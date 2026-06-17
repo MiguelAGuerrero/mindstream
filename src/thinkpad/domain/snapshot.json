@@ -1,0 +1,69 @@
+{schemaVersion: 5, rootProblemId: 148, activeNodeId: 155, nodeSnapshots: Array(44), nodeState: {…}, …}
+activeNodeId
+: 
+155
+expiryCount
+: 
+0
+hiddenRootIds
+: 
+(6) [61, 100, 118, 124, 160, 135]
+interventionLog
+: 
+[]
+isConstraintMode
+: 
+true
+lastExpiryReason
+: 
+""
+nodeSnapshots
+: 
+(44) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+nodeState
+: 
+{111: {…}, 116: {…}, 117: {…}, 122: {…}, 130: {…}, 131: {…}, 147: {…}, 148: {…}, 149: {…}, 150: {…}, 151: {…}, 152: {…}, 153: {…}, 154: {…}, 155: {…}, 156: {…}, 157: {…}, 158: {…}, 159: {…}, 161: {…}, 162: {…}, 163: {…}, 164: {…}, 165: {…}, 166: {…}, 167: {…}, 168: {…}, 169: {…}, 170: {…}, 171: {…}, 172: {…}, 173: {…}, 174: {…}, 175: {…}, 176: {…}, 177: {…}, 178: {…}, 179: {…}, 180: {…}, 181: {…}, 182: {…}, 183: {…}, 184: {…}, 185: {…}}
+notesByNodeId
+: 
+175
+: 
+(2) [{…}, {…}]
+176
+: 
+[{…}]
+177
+: 
+[{…}]
+obstacleTag
+: 
+""
+pendingIntervention
+: 
+false
+rootPanels
+: 
+(8) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+rootProblemId
+: 
+148
+rootTitle
+: 
+"Implementing the short info component"
+schemaVersion
+: 
+5
+sessionId
+: 
+null
+stepRunState
+: 
+"active"
+surfaceState
+: 
+"running"
+timeboxMinutes
+: 
+10
+updatedAt
+: 
+Mon Apr 20 2026 15:17:33 GMT-0400 (Eastern Daylight Time) {}
