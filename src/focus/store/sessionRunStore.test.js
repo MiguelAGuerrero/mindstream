@@ -40,7 +40,16 @@ describe("sessionRunStore (contexts of authored focuses)", () => {
     expect(store.contextList.find((c) => c.problem === "Problem B").isActive).toBe(true);
   });
 
-  it("decompose/resolve act only on the ACTIVE context's stack", () => {
+  it("complete at root records a takeaway on the problem itself", () => {
+    const store = useSessionRunStore();
+    store.newContext({ title: "Ship the runner" });
+    store.completeFocus({ result: "  shipped it  " });
+    expect(store.depth).toBe(1);
+    expect(store.currentFocus).toBe("Ship the runner");
+    expect(store.currentResult).toBe("shipped it");
+  });
+
+  it("decompose/complete act only on the ACTIVE context's stack", () => {
     const store = useSessionRunStore();
     store.newContext({ title: "A" });
     const aId = store.activeContextId;
@@ -52,8 +61,8 @@ describe("sessionRunStore (contexts of authored focuses)", () => {
     // A is untouched
     const a = store.contextList.find((c) => c.id === aId);
     expect(a.depth).toBe(1);
-    // resolve B.1 with a takeaway folds into B
-    store.resolveFocus({ result: "  done B.1  " });
+    // complete B.1 with a takeaway folds into B
+    store.completeFocus({ result: "  done B.1  " });
     expect(store.depth).toBe(1);
     expect(store.currentResult).toBe("done B.1");
   });
@@ -102,19 +111,28 @@ describe("sessionRunStore (contexts of authored focuses)", () => {
     expect(store.contextList[0].parked).toBe(false);
   });
 
-  it("endActiveContext removes the active context", () => {
+  it("endActiveContext removes the active context and switches to another when one remains", () => {
     const store = useSessionRunStore();
     store.newContext({ title: "A" });
     store.newContext({ title: "B" });
     store.endActiveContext(); // ends B
     expect(store.contextList.map((c) => c.problem)).toEqual(["A"]);
+    expect(store.hasFocus).toBe(true);
+    expect(store.currentFocus).toBe("A");
+  });
+
+  it("endActiveContext clears focus when the last context is removed", () => {
+    const store = useSessionRunStore();
+    store.newContext({ title: "A" });
+    store.endActiveContext();
+    expect(store.hasContexts).toBe(false);
     expect(store.hasFocus).toBe(false);
   });
 
-  it("guards: drill/resolve/park no-op with no active context", () => {
+  it("guards: drill/complete/park no-op with no active context", () => {
     const store = useSessionRunStore();
     store.drillIntoFocus({ title: "x" });
-    store.resolveFocus({ result: "x" });
+    store.completeFocus({ result: "x" });
     store.parkActiveContext({ reason: "x" });
     store.endActiveContext();
     expect(store.hasContexts).toBe(false);

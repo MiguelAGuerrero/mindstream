@@ -20,7 +20,7 @@
  * @param {object} args
  * @param {number|string} args.id        unique id (minted by the caller)
  * @param {string}        args.title     the authored focus text (the prompt itself)
- * @param {string|null}   args.result    takeaway folded up when a decomposed child resolves
+ * @param {string|null}   args.result    takeaway folded up when a decomposed child completes
  * @param {string|null}   args.createdAt ISO timestamp (minted by the caller)
  */
 export function createFocusFrame({ id, title = "", result = null, createdAt = null } = {}) {

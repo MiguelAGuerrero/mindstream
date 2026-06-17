@@ -7,7 +7,7 @@
 // clicking; you PARK one (with an optional "waiting on…" reason) when it's
 // blocked / awaiting something external, then work another.
 //
-// All the focus moves (drill/resolve/abandon) operate on the ACTIVE context's
+// All the focus moves (drill/complete/abandon) operate on the ACTIVE context's
 // stack. Separate from padStore / the thinkPad domain. Workflows are deferred
 // (no template is consulted). No persistence: in-memory, lost on reload.
 // ---------------------------------------------------------------------------
@@ -110,16 +110,21 @@ export const useSessionRunStore = defineStore("sessionRun", {
       ctx.stack.push(this._frame(t));
     },
 
-    /** Fold an optional takeaway up into the parent focus and pop. No-op at the root. */
-    resolveFocus({ result = "" } = {}) {
+    /** Fold an optional takeaway into the active focus. At root, records on the
+     *  problem itself; when drilled, pops and records on the parent. */
+    completeFocus({ result = "" } = {}) {
       const ctx = this.activeContext;
-      if (!ctx || ctx.stack.length < 2) return;
-      ctx.stack.pop();
+      if (!ctx || ctx.stack.length < 1) return;
       const r = typeof result === "string" ? result.trim() : "";
-      if (r) {
-        const parent = ctx.stack[ctx.stack.length - 1];
-        if (parent) parent.result = r;
+      if (ctx.stack.length >= 2) {
+        ctx.stack.pop();
+        if (r) {
+          const parent = ctx.stack[ctx.stack.length - 1];
+          if (parent) parent.result = r;
+        }
+        return;
       }
+      if (r) ctx.stack[0].result = r;
     },
 
     /** Pop the active decomposition WITHOUT writing anything up. No-op at the root. */
@@ -143,8 +148,16 @@ export const useSessionRunStore = defineStore("sessionRun", {
       const ctx = this.activeContext;
       if (!ctx) return;
       const id = ctx.id;
-      this.contexts = this.contexts.filter((c) => c.id !== id);
-      this.activeContextId = null;
+      const remaining = this.contexts.filter((c) => c.id !== id);
+      this.contexts = remaining;
+      if (remaining.length === 0) {
+        this.activeContextId = null;
+        return;
+      }
+      const next = remaining[remaining.length - 1];
+      this.activeContextId = next.id;
+      next.parked = false;
+      next.waitingOn = "";
     },
   },
 });

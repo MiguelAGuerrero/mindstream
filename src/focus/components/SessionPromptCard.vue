@@ -1,8 +1,8 @@
 <script setup>
 // The authored focus — a centered sticky note. Its content is whatever you
 // typed, not a prescribed workflow step. The one move is DECOMPOSE (drill into
-// an authored sub-focus); when drilled you can RESOLVE UP (fold a takeaway back)
-// or go BACK (abandon). Presentational only: props in, events out.
+// an authored sub-focus); COMPLETE records an optional takeaway on the active
+// focus (root or drilled). When drilled you can also go BACK (abandon).
 import { computed } from "vue";
 
 const props = defineProps({
@@ -13,7 +13,7 @@ const props = defineProps({
   breadcrumb: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(["drill", "resolve", "abandon", "park", "stop"]);
+const emit = defineEmits(["drill", "complete", "abandon", "park", "stop"]);
 
 const isDrilled = computed(() => props.depth > 1);
 // The decompose trail excludes the current focus (shown big below it).
@@ -74,17 +74,16 @@ const trail = computed(() => props.breadcrumb.slice(0, -1).join("  ›  "));
         Decompose
       </v-btn>
 
-      <!-- fold the decomposition back up -->
+      <!-- record a takeaway on the active focus (root or drilled) -->
       <v-btn
-        v-if="isDrilled"
-        class="srun-resolve"
+        class="srun-complete"
         color="primary"
         variant="flat"
         block
         prepend-icon="mdi-arrow-up-bold"
-        @click="emit('resolve')"
+        @click="emit('complete')"
       >
-        Resolve up
+        Complete
       </v-btn>
     </v-card>
   </div>
@@ -169,7 +168,7 @@ const trail = computed(() => props.breadcrumb.slice(0, -1).join("  ›  "));
   margin-bottom: 0.6rem;
 }
 
-.srun-resolve {
+.srun-complete {
   flex-shrink: 0;
 }
 </style>

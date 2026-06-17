@@ -10,10 +10,9 @@ const emit = defineEmits(["switch", "new"]);
 
 <template>
   <aside class="ctx-rail">
-    <div class="ctx-rail__head">
+    <header class="ctx-rail__head">
       <span class="ctx-rail__title">Contexts</span>
-      <v-btn size="small" variant="text" prepend-icon="mdi-plus" @click="emit('new')">New</v-btn>
-    </div>
+    </header>
 
     <div class="ctx-rail__list">
       <button
@@ -32,28 +31,50 @@ const emit = defineEmits(["switch", "new"]);
         </div>
       </button>
     </div>
+
+    <footer class="ctx-rail__foot">
+      <button type="button" class="ctx-rail__new" @click="emit('new')">
+        <v-icon icon="mdi-plus" size="18" />
+        <span>New context</span>
+      </button>
+    </footer>
   </aside>
 </template>
 
 <style scoped>
+/* One inset token — every band shares the same horizontal padding and borders. */
 .ctx-rail {
+  --ctx-rail-width: 268px;
+  --ctx-rail-inset: 12px;
+  --ctx-rail-rule: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+
   display: flex;
   flex-direction: column;
-  flex: 0 0 268px;
+  align-self: stretch;
+  width: var(--ctx-rail-width);
+  flex: 0 0 var(--ctx-rail-width);
+  min-width: var(--ctx-rail-width);
   min-height: 0;
-  border-right: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  border-right: var(--ctx-rail-rule);
   overflow: hidden;
+  box-sizing: border-box;
+}
+
+.ctx-rail__head,
+.ctx-rail__list,
+.ctx-rail__foot {
+  padding-inline: var(--ctx-rail-inset);
+  box-sizing: border-box;
 }
 
 .ctx-rail__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 0.5rem 0.75rem 1rem;
   flex-shrink: 0;
+  padding-block: 12px;
+  border-bottom: var(--ctx-rail-rule);
 }
 
 .ctx-rail__title {
+  display: block;
   font-size: 0.72rem;
   letter-spacing: 0.16em;
   font-weight: 700;
@@ -63,17 +84,50 @@ const emit = defineEmits(["switch", "new"]);
 .ctx-rail__list {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  padding: 0 0.5rem 1rem;
-  overflow-y: auto;
+  gap: 8px;
+  flex: 1 1 auto;
   min-height: 0;
+  width: 100%;
+  padding-block: 12px;
+  overflow-y: auto;
+}
+
+.ctx-rail__foot {
+  flex-shrink: 0;
+  width: 100%;
+  padding-block: 12px;
+  border-top: var(--ctx-rail-rule);
+}
+
+.ctx-rail__new {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.12s ease;
+}
+
+.ctx-rail__new:hover {
+  filter: brightness(1.08);
 }
 
 .ctx-card {
-  text-align: left;
+  display: block;
   width: 100%;
-  padding: 0.6rem 0.75rem;
-  border-radius: 10px;
+  box-sizing: border-box;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 8px;
   border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
   background: transparent;
   cursor: pointer;
@@ -121,10 +175,12 @@ const emit = defineEmits(["switch", "new"]);
 
 @media (max-width: 959px) {
   .ctx-rail {
+    width: 100%;
     flex: 0 0 auto;
+    min-width: 0;
     max-height: 34vh;
     border-right: none;
-    border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+    border-bottom: var(--ctx-rail-rule);
   }
 }
 </style>
