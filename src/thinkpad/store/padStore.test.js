@@ -24,7 +24,7 @@ describe("padStore", () => {
     expect(store.pads).toEqual([]);
     expect(store.currentPadId).toBeNull();
     expect(store.currentPad).toBeNull();
-    expect(store.navigationStack).toEqual([null]);
+    expect(store.surfaceHead).toBeNull();
   });
 
   it("loadPads preserves in-memory pad over stale empty-thread DB row", async () => {
@@ -170,14 +170,15 @@ describe("padStore", () => {
       expect(upsertPad).toHaveBeenCalled();
     });
 
-    it("jumpToSurfaceIndex truncates the stack for breadcrumb navigation", () => {
+    it("jumpToSurfaceIndex(0) returns to the root document surface", () => {
       const store = usePadStore();
       withDoc(store, "outer span text");
       const parent = store.drillIntoSpan({ parentThreadId: null, title: "p", selectionStart: 0, selectionEnd: 5, selectedText: "outer" });
       const child = store.drillIntoSpan({ parentThreadId: parent.id, title: "c", selectionStart: 0, selectionEnd: 5, selectedText: "outer" });
-      expect(store.navigationStack).toEqual([null, parent.id, child.id]);
+      expect(store.surfaceHead).toBe(child.id);
+      expect(store.threadPath.map((f) => f.id)).toEqual([parent.id, child.id]);
       store.jumpToSurfaceIndex(0);
-      expect(store.navigationStack).toEqual([null]);
+      expect(store.surfaceHead).toBeNull();
       expect(store.viewThreadId).toBeNull();
     });
   });

@@ -66,9 +66,9 @@ export function createPad({ id, title, config, now } = {}, { makeId } = {}) {
     id: typeof id === "string" && id ? id : makeId("pad"),
     title: trimmed,
     threads: [],
-    // navigationStack: root-to-head trail; null = root document, string = thread sub-pad.
-    // The stack head drives which surface is shown — single source for drill/breadcrumb/peek.
-    navigationStack: [null],
+    // surfaceThreadId: which surface is shown — null = root document, a thread id =
+    // that thread's sub-pad. The breadcrumb trail is derived from the tree on read.
+    surfaceThreadId: null,
     config: config ? { ...DEFAULT_CONFIG, ...config } : { ...DEFAULT_CONFIG },
     state: "new",
     createdAt: now,
@@ -763,8 +763,8 @@ export function resolveStepIntoDocument(pad, { stepId = null, now } = {}) {
  * parentAnchor back-ref, pushes it (root threads when parentThreadId is null, else
  * the parent thread's subThreads), and writes the anchor annotation into the
  * PARENT pad carrying the CHILD step's id (the linchpin that lets the roll-up
- * reuse the keystone splice). The reducer does NOT move the navigation stack — the store
- * does, mirroring setViewThread. Returns { pad, thread, annotationId }. (§6.1)
+ * reuse the keystone splice). The reducer does NOT move the surface pointer — the
+ * store does, mirroring navigateToThread. Returns { pad, thread, annotationId }. (§6.1)
  */
 export function drillIntoSpan(pad, {
   parentThreadId = null, title, selectionStart, selectionEnd, selectedText = "",
@@ -890,32 +890,19 @@ export function resolveThreadIntoParent(pad, { threadId, result, reframe = null 
 }
 
 // ---------------------------------------------------------------------------
-// Surface navigation — single stack; head drives which pad shows. (§6.5)
+// Surface navigation — a single pointer (pad.surfaceThreadId) drives which pad
+// shows; the breadcrumb trail is DERIVED from the owns-tree on read, never
+// stored. null = root document, a thread id = that thread's sub-pad. (§6.5)
 // ---------------------------------------------------------------------------
 
-const ROOT_SURFACE = null;
-
-function normalizeNavigationStack(stack) {
-  if (!Array.isArray(stack) || stack.length === 0) return [ROOT_SURFACE];
-  return stack.map((entry) => (typeof entry === "string" && entry ? entry : ROOT_SURFACE));
-}
-
-function stacksEqual(a, b) {
-  if (a.length !== b.length) return false;
-  return a.every((v, i) => v === b[i]);
-}
-
-/** Stack head: null = root document surface, string = thread sub-pad. */
+/** The surface pointer: null = root document, a thread id = that thread's sub-pad. */
 export function surfaceHead(pad) {
-  const stack = pad?.navigationStack;
-  if (!Array.isArray(stack) || stack.length === 0) return ROOT_SURFACE;
-  return stack[stack.length - 1] ?? ROOT_SURFACE;
+  return pad?.surfaceThreadId ?? null;
 }
 
-/** Thread id at stack head, or null on the root document surface. */
+/** Thread id on the surface, or null on the root document. (Alias of surfaceHead.) */
 export function surfaceThreadId(pad) {
-  const head = surfaceHead(pad);
-  return typeof head === "string" && head ? head : null;
+  return pad?.surfaceThreadId ?? null;
 }
 
 function findTreePathToThread(pad, targetId) {
@@ -936,81 +923,45 @@ function findTreePathToThread(pad, targetId) {
   return [];
 }
 
-/** Thread chain for breadcrumb (excludes the root document entry). */
+/**
+ * Root → surface thread chain for the breadcrumb (excludes the root document).
+ * Derived from the owns-tree: the surface pointer is only the leaf id, so the
+ * ancestor trail is recomputed here rather than stored as a stack.
+ */
 export function surfaceThreadPath(pad) {
-  const stack = normalizeNavigationStack(pad?.navigationStack);
-  return stack
-    .slice(1)
-    .map((id) => findThreadById(pad, id))
-    .filter(Boolean);
+  return findTreePathToThread(pad, pad?.surfaceThreadId ?? null);
 }
 
-/** Descend one level — append threadId to the navigation stack. */
-export function pushSurface(pad, threadId, { now } = {}) {
-  if (!pad) return pad;
-  const next = typeof threadId === "string" && threadId ? threadId : null;
-  if (!next || !findThreadById(pad, next)) return pad;
-  const stack = normalizeNavigationStack(pad.navigationStack);
-  if (stack[stack.length - 1] === next) return pad;
-  return { ...pad, navigationStack: [...stack, next], updatedAt: now };
-}
-
-/** Ascend one level — pop the stack head. */
-export function popSurface(pad, { now } = {}) {
-  if (!pad) return pad;
-  const stack = normalizeNavigationStack(pad.navigationStack);
-  if (stack.length <= 1) return pad;
-  const next = stack.slice(0, -1);
-  if (stacksEqual(stack, next)) return pad;
-  return { ...pad, navigationStack: next, updatedAt: now };
-}
-
-/** Jump to a stack index (0 = root document). Stack-aware breadcrumb navigation. */
-export function jumpToSurfaceIndex(pad, index, { now } = {}) {
-  if (!pad) return pad;
-  const stack = normalizeNavigationStack(pad.navigationStack);
-  const i = typeof index === "number" ? Math.floor(index) : 0;
-  const clamped = Math.max(0, Math.min(i, stack.length - 1));
-  const next = stack.slice(0, clamped + 1);
-  if (stacksEqual(stack, next)) return pad;
-  return { ...pad, navigationStack: next, updatedAt: now };
-}
-
-/** Navigate to a thread at any depth — rebuilds the full stack trail from the tree. */
+/** Navigate to a thread at any depth (null = root document). No-op if unknown/unchanged. */
 export function navigateToThread(pad, threadId, { now } = {}) {
   if (!pad) return pad;
   const target = typeof threadId === "string" && threadId ? threadId : null;
-  if (target === null) {
-    const stack = normalizeNavigationStack(pad.navigationStack);
-    if (stack.length === 1 && stack[0] === ROOT_SURFACE) return pad;
-    return { ...pad, navigationStack: [ROOT_SURFACE], updatedAt: now };
-  }
-  const path = findTreePathToThread(pad, target);
-  if (path.length === 0) return pad;
-  const next = [ROOT_SURFACE, ...path.map((f) => f.id)];
-  const stack = normalizeNavigationStack(pad.navigationStack);
-  if (stacksEqual(stack, next)) return pad;
-  return { ...pad, navigationStack: next, updatedAt: now };
+  if (target !== null && !findThreadById(pad, target)) return pad;
+  if ((pad.surfaceThreadId ?? null) === target) return pad;
+  return { ...pad, surfaceThreadId: target, updatedAt: now };
 }
 
-/** @deprecated Use navigateToThread — kept for tests and gradual migration. */
-export function setViewThread(pad, threadId, opts) {
-  return navigateToThread(pad, threadId, opts);
+/** Descend onto a child thread — with a single pointer this just sets the head. */
+export function pushSurface(pad, threadId, { now } = {}) {
+  return navigateToThread(pad, threadId, { now });
 }
 
-/** @deprecated Use pushSurface. */
-export function pushViewThread(pad, threadId, opts) {
-  return pushSurface(pad, threadId, opts);
+/** Ascend one level — move the surface to the current thread's parent (or root). */
+export function popSurface(pad, { now } = {}) {
+  if (!pad) return pad;
+  const path = findTreePathToThread(pad, pad.surfaceThreadId ?? null);
+  if (path.length === 0) return pad; // already at the root document
+  const parent = path.length >= 2 ? path[path.length - 2].id : null;
+  return navigateToThread(pad, parent, { now });
 }
 
-/** @deprecated Use popSurface. */
-export function popViewThread(pad, opts) {
-  return popSurface(pad, opts);
-}
-
-/** @deprecated Use surfaceThreadPath. */
-export function findViewPath(pad) {
-  return surfaceThreadPath(pad);
+/** Jump to a breadcrumb index (0 = root document, i = the i-th ancestor thread). */
+export function jumpToSurfaceIndex(pad, index, { now } = {}) {
+  if (!pad) return pad;
+  const path = findTreePathToThread(pad, pad.surfaceThreadId ?? null);
+  const i = typeof index === "number" ? Math.floor(index) : 0;
+  const target = i <= 0 ? null : (path[i - 1]?.id ?? null);
+  return navigateToThread(pad, target, { now });
 }
 
 /**

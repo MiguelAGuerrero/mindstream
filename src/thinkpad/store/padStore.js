@@ -2,7 +2,7 @@
 // Pad store — imperative shell over the pure ThinkPad model.
 //
 // Owns the pad pool and current selection. Surface navigation, drafting, and
-// drill-down all react to navigationStack head. Domain reducers stay pure in
+// drill-down all react to the surfaceThreadId pointer. Domain reducers stay pure in
 // thinkPadModel; this store mints ids/timestamps and persists via padsDb.
 // ---------------------------------------------------------------------------
 
@@ -99,13 +99,8 @@ export const usePadStore = defineStore("pad", {
       return this.currentPad?.doc ?? { text: "", annotations: [] };
     },
 
-    navigationStack() {
-      return this.currentPad?.navigationStack ?? [null];
-    },
-
     surfaceHead() {
-      const stack = this.navigationStack;
-      return stack[stack.length - 1] ?? null;
+      return this.currentPad?.surfaceThreadId ?? null;
     },
 
     viewThreadId() {
@@ -380,8 +375,12 @@ export const usePadStore = defineStore("pad", {
       const viewId = this.surfaceHead;
       if (typeof viewId !== "string" || !viewId) return;
       const now = nowIso();
+      // Parent of the current surface, resolved BEFORE pruning — discarding viewId
+      // removes it from the tree, so popSurface could no longer derive its parent.
+      const path = surfaceThreadPathOnPad(this.currentPad);
+      const parentId = path.length >= 2 ? path[path.length - 2].id : null;
       const pruned = discardThreadOnPad(this.currentPad, viewId, { now });
-      const next = popSurfaceOnPad(pruned, { now });
+      const next = navigateToThreadOnPad(pruned, parentId, { now });
       if (next === this.currentPad) return;
       this._replaceCurrent(next);
     },

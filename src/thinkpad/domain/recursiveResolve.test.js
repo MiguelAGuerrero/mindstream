@@ -2,7 +2,7 @@
 // Recursive-resolve contract — Slice 1 ("lock the model").
 //
 // Covers the additive model foundation: frame.doc / frame.parentAnchor /
-// pad.navigationStack, the pad-addressing projection padForThread, and the
+// pad.surfaceThreadId, the pad-addressing projection padForThread, and the
 // keystone generalized from "resolve into the root document" to "resolve into
 // any pad" (resolveStepIntoPad). resolveStepIntoDocument is now the padLocator=
 // null base case. All additive — the existing suite is the regression net.
@@ -41,11 +41,11 @@ describe("additive model fields", () => {
     expect(thread.parentAnchor).toBeNull();
   });
 
-  it("createPad starts on the root surface (navigationStack head is null)", () => {
+  it("createPad starts on the root surface (surfaceThreadId is null)", () => {
     const env = makeTestEnv();
     const pad = createPad({ title: "doc", now: env.now }, env);
     expect(surfaceThreadId(pad)).toBeNull();
-    expect(pad.navigationStack).toEqual([null]);
+    expect(pad.surfaceThreadId).toBeNull();
   });
 });
 
@@ -143,7 +143,7 @@ describe("persistence — additive round-trip (no schema bump)", () => {
     expect(restored.threads[0].parentAnchor).toBeNull();
   });
 
-  it("round-trips frame.doc, parentAnchor, and navigationStack (legacy viewThreadId migrates)", () => {
+  it("round-trips frame.doc, parentAnchor, and surfaceThreadId", () => {
     const env = makeTestEnv();
     const thread = {
       id: "frame:1",
@@ -161,11 +161,11 @@ describe("persistence — additive round-trip (no schema bump)", () => {
     const pad = {
       ...createPad({ title: "doc", now: env.now }, env),
       threads: [thread],
-      viewThreadId: "frame:1",
+      surfaceThreadId: "frame:1",
     };
     const restored = normalizePad(buildPadSnapshot(pad, { now: env.now }), { now: env.now });
     expect(surfaceThreadId(restored)).toBe("frame:1");
-    expect(restored.navigationStack).toEqual([null, "frame:1"]);
+    expect(restored.surfaceThreadId).toBe("frame:1");
     expect(restored.threads[0].doc.text).toBe("sub thoughts");
     expect(restored.threads[0].doc.annotations[0].id).toBe("a1");
     expect(restored.threads[0].parentAnchor).toEqual({ annotationId: "rootAnn:1", parentFrameId: null });
@@ -430,7 +430,7 @@ describe("navigateToThread / surfaceThreadPath", () => {
     expect(surfaceThreadPath(pad)).toEqual([]);
     expect(surfaceThreadPath(navigateToThread(pad, "frame:root", env)).map((f) => f.id)).toEqual(["frame:root"]);
     expect(surfaceThreadPath(navigateToThread(pad, "frame:child", env)).map((f) => f.id)).toEqual(["frame:root", "frame:child"]);
-    expect(surfaceThreadPath({ ...pad, navigationStack: [null, "ghost"] })).toEqual([]);
+    expect(surfaceThreadPath({ ...pad, surfaceThreadId: "ghost" })).toEqual([]);
   });
 });
 

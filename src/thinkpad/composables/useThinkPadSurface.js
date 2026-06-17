@@ -18,7 +18,6 @@ export function useThinkPadSurface() {
   const isAtRoot = computed(() => surfaceHead.value === null);
   const threadPath = computed(() => padStore.threadPath);
   const viewPad = computed(() => padStore.viewPad);
-  const navigationStack = computed(() => padStore.navigationStack);
 
   const canResolveUp = computed(() => {
     const path = threadPath.value;
@@ -58,8 +57,8 @@ export function useThinkPadSurface() {
 
   const peekOpen = ref(false);
   const peekParentLocator = computed(() => {
-    const stack = navigationStack.value;
-    return stack.length >= 2 ? stack[stack.length - 2] : null;
+    const path = threadPath.value;
+    return path.length >= 2 ? path[path.length - 2].id : null;
   });
   const peekPad = computed(
     () => padForThread(currentContext.value, peekParentLocator.value) ?? { text: "", annotations: [] },
@@ -200,7 +199,6 @@ export function useThinkPadSurface() {
     isAtRoot,
     threadPath,
     viewPad,
-    navigationStack,
     canResolveUp,
     viewFrame,
     surfaceTitle,

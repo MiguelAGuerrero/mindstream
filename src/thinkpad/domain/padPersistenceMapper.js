@@ -232,28 +232,6 @@ function normalizeThread(value, { now } = {}) {
   };
 }
 
-function normalizeNavigationStack(value) {
-  const legacyViewId = typeof value.viewThreadId === "string" && value.viewThreadId ? value.viewThreadId : null;
-  const legacyViewStack = Array.isArray(value.viewStack)
-    ? value.viewStack.map((entry) => (typeof entry === "string" && entry ? entry : null))
-    : [];
-
-  if (Array.isArray(value.navigationStack) && value.navigationStack.length > 0) {
-    const stack = value.navigationStack.map((entry) =>
-      (typeof entry === "string" && entry ? entry : null),
-    );
-    if (stack[0] !== null) stack.unshift(null);
-    const normalized = stack.length ? stack : [null];
-    // Default [null] stack coexists with legacy viewThreadId on older records.
-    if (normalized.length === 1 && normalized[0] === null && legacyViewId) {
-      return [...legacyViewStack, legacyViewId];
-    }
-    return normalized;
-  }
-  if (!legacyViewId) return [null];
-  return [...legacyViewStack, legacyViewId];
-}
-
 export function normalizePad(value, { now } = {}) {
   if (!value || typeof value !== "object") return null;
   const id = asString(value.id);
@@ -271,8 +249,7 @@ export function normalizePad(value, { now } = {}) {
     createdAt: asString(value.createdAt) ?? now,
     updatedAt: asString(value.updatedAt) ?? now,
     resumeHint: typeof value.resumeHint === "string" ? value.resumeHint : null,
-    activeThreadId: typeof value.activeThreadId === "string" && value.activeThreadId ? value.activeThreadId : null,
-    navigationStack: normalizeNavigationStack(value),
+    surfaceThreadId: asString(value.surfaceThreadId),
     doc: normalizeDoc(value.doc, { now }),
     history: Array.isArray(value.history) ? value.history.map((h) => normalizeHistoryEntry(h, { now })).filter(Boolean) : [],
   };
