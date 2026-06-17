@@ -17,7 +17,6 @@ onUnmounted(() => {
 </script>
 
 <template>
-
   <v-main class="thinkpad-main">
     <v-container
       fluid
@@ -46,6 +45,17 @@ onUnmounted(() => {
   min-height: 0;
 }
 
+.thinkpad-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.thinkpad-row {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 @media (min-width: 960px) {
   .thinkpad-main {
     height: 100%;
@@ -69,11 +79,18 @@ onUnmounted(() => {
   }
 
   .thinkpad-content-wrap {
+    flex: 1 1 auto;
     height: 100%;
     min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    justify-content: center;
+    overflow: hidden;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .thinkpad-content-wrap > :deep(*) {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
   }
 }
 </style>

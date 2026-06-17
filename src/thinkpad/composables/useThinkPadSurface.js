@@ -19,7 +19,7 @@ export function useThinkPadSurface() {
   const threadPath = computed(() => padStore.threadPath);
   const viewPad = computed(() => padStore.viewPad);
 
-  const canResolveUp = computed(() => {
+  const canComplete = computed(() => {
     const path = threadPath.value;
     const thread = path.length > 0 ? path[path.length - 1] : null;
     return !!thread && !threadIsOpen(thread);
@@ -161,7 +161,7 @@ export function useThinkPadSurface() {
     padStore.ascendThread();
   }
 
-  function handleResolveUp() {
+  function handleComplete() {
     const head = padStore.surfaceHead;
     if (typeof head !== "string" || !head) return;
     padStore.resolveThreadIntoParent({ threadId: head });
@@ -199,7 +199,7 @@ export function useThinkPadSurface() {
     isAtRoot,
     threadPath,
     viewPad,
-    canResolveUp,
+    canComplete,
     viewFrame,
     surfaceTitle,
     currentGoal,
@@ -219,7 +219,7 @@ export function useThinkPadSurface() {
     jumpToSurface,
     navigateToThread,
     handleAscend,
-    handleResolveUp,
+    handleComplete,
     restoreResumableContext,
     handleDeleteDocument,
   });

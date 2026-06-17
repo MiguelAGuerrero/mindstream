@@ -53,33 +53,35 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
         :class="{ 'thinkpad-workspace--expanded': sessionUi.padExpanded }"
       >
         <div class="thinkpad-canvas flex-grow-1 min-h-0">
-          <div
-            v-if="welcome.showRecentPanel"
-            class="thinkpad-welcome"
-          >
-            <p class="thinkpad-welcome__heading text-overline text-medium-emphasis">Pick up where you left off</p>
-            <div class="thinkpad-welcome__grid">
-              <button
-                v-for="item in welcome.recentItems"
-                :key="item.contextId"
-                type="button"
-                class="thinkpad-doc-card"
-                @click="welcome.handleSelectRecent(item.contextId)"
-              >
-                <span class="thinkpad-doc-card__page">
-                  <span v-if="item.previewText" class="thinkpad-doc-card__preview">{{ item.previewText }}</span>
-                  <span v-else class="thinkpad-doc-card__preview thinkpad-doc-card__preview--empty">Empty document</span>
-                </span>
-                <span class="thinkpad-doc-card__caption">
-                  <span class="thinkpad-doc-card__title text-body-2">{{ item.title || 'Untitled' }}</span>
-                  <span v-if="item.updatedAt" class="thinkpad-doc-card__date text-caption text-disabled">
-                    {{ welcome.formatRelativeTime(item.updatedAt) }}
+          <v-expand-transition mode="out-in">
+            <div
+              v-if="welcome.showRecentPanel"
+              class="thinkpad-welcome"
+            >
+              <p class="thinkpad-welcome__heading text-overline text-medium-emphasis">Pick up where you left off</p>
+              <div class="thinkpad-welcome__grid">
+                <button
+                  v-for="item in welcome.recentItems"
+                  :key="item.contextId"
+                  type="button"
+                  class="thinkpad-doc-card"
+                  @click="welcome.handleSelectRecent(item.contextId)"
+                >
+                  <span class="thinkpad-doc-card__page">
+                    <span v-if="item.previewText" class="thinkpad-doc-card__preview">{{ item.previewText }}</span>
+                    <span v-else class="thinkpad-doc-card__preview thinkpad-doc-card__preview--empty">Empty document</span>
                   </span>
-                </span>
-              </button>
-            </div>  <ThinkPadAppBar />
-
-          </div>
+                  <span class="thinkpad-doc-card__caption">
+                    <span class="thinkpad-doc-card__title text-body-2">{{ item.title || 'Untitled' }}</span>
+                    <span v-if="item.updatedAt" class="thinkpad-doc-card__date text-caption text-disabled">
+                      {{ welcome.formatRelativeTime(item.updatedAt) }}
+                    </span>
+                  </span>
+                </button>
+              </div>  <ThinkPadAppBar />
+  
+            </div>
+          </v-expand-transition>
 
           <div
             class="thinkpad-page-col"
@@ -116,7 +118,7 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
                 <div class="drill-bar__actions">
                   <v-btn size="small" variant="text" prepend-icon="mdi-eye-outline" @click="surface.peekOpen = true">Peek parent</v-btn>
                   <v-btn size="small" variant="text" prepend-icon="mdi-arrow-up-left" @click="surface.handleAscend()">Back</v-btn>
-                  <v-btn size="small" color="primary" variant="flat" prepend-icon="mdi-arrow-up-bold-box-outline" :disabled="!surface.canResolveUp" @click="surface.handleResolveUp()">Resolve</v-btn>
+                  <v-btn size="small" color="primary" variant="flat" prepend-icon="mdi-arrow-up-bold-box-outline" :disabled="!surface.canComplete" @click="surface.handleComplete()">Complete</v-btn>
                 </div>
               </div>
 
@@ -215,12 +217,17 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
 <style scoped>
 .thinkpad-page-layout {
   position: relative;
+  flex: 1 1 auto;
   width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
 }
 
 .thinkpad-workspace {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
   width: 100%;
   min-width: 0;
   min-height: 0;
@@ -235,8 +242,9 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
 .thinkpad-canvas {
   display: flex;
   flex-direction: column;
+  flex: 1 1 auto;
   align-items: stretch;
-  overflow: visible;
+  overflow: hidden;
   min-height: 0;
   min-width: 0;
   padding: clamp(16px, 4vh, 40px) clamp(12px, 4vw, 40px);
@@ -250,6 +258,7 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
   flex: 1 1 auto;
   width: 100%;
   max-width: 100%;
+  height: 100%;
   min-height: 0;
   min-width: 0;
   max-height: min(v-bind(pageMaxHeight), 100%);
@@ -262,6 +271,7 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
 .thinkpad-page__panel {
   flex: 1 1 auto;
   width: 100%;
+  height: 100%;
   min-height: 0;
   min-width: 0;
 }
@@ -270,7 +280,7 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
   position: relative;
   display: flex;
   flex-direction: column;
-  flex: 1 1 0;
+  flex: 1 1 auto;
   width: 100%;
   min-width: 0;
   min-height: 0;
@@ -394,7 +404,7 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  flex: 1 1 0;
+  flex: 1 1 auto;
   width: 100%;
   max-width: v-bind(pageWidth);
   margin-inline: auto;
@@ -409,8 +419,8 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
 
 .thinkpad-page-row {
   display: flex;
-  align-items: flex-start;
-  flex: 1 1 0;
+  align-items: stretch;
+  flex: 1 1 auto;
   width: 100%;
   min-width: 0;
   min-height: 0;

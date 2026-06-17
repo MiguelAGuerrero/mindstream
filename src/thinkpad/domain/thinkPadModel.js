@@ -89,9 +89,9 @@ export function createPad({ id, title, config, now } = {}, { makeId } = {}) {
 
 /**
  * A thread is "open" when its sub-pad contains more than one block (paragraph-
- * separated by a blank line). Open threads cannot resolve up — the 1-to-1
+ * separated by a blank line). Open threads cannot be completed — the 1-to-1
  * substitution contract requires a single converged idea. Converge the blocks
- * down to one before resolving. Returns false for empty/single-block pads.
+ * down to one before completing. Returns false for empty/single-block pads.
  */
 export function threadIsOpen(thread) {
   return parseBlocks(thread?.doc?.text ?? "").length > 1;

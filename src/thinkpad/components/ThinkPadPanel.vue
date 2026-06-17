@@ -229,7 +229,7 @@ const editor = useEditor({
   },
   onBlur() {
     // Commit any pending (debounced) edit the moment focus leaves the editor —
-    // e.g. clicking Back / Resolve-up / a move. This runs BEFORE the click's
+    // e.g. clicking Back / Complete / a move. This runs BEFORE the click's
     // handler, so a level change reads fresh store state (an untouched drill isn't
     // wrongly discarded) and the edit is never lost. Routing by padLocator keeps
     // it on THIS pad. (wrong-pad text race)
@@ -705,7 +705,7 @@ defineExpose({ flushText, dismissSelection });
 
 <template>
   <div
-    class="thinkpad-panel d-flex flex-column w-100 min-w-0"
+    class="thinkpad-panel d-flex flex-column w-100 h-100 min-h-0 min-w-0"
     :class="{
       'thinkpad-panel--embedded': embedded,
       'thinkpad-panel--card': !embedded,
@@ -963,8 +963,8 @@ defineExpose({ flushText, dismissSelection });
   --thinkpad-footer-height: 44px;
   --thinkpad-margin-inset: v-bind(pageMarginInset);
   position: relative;
-  flex: 1 1 auto;
   width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 0;
   background: rgb(var(--v-theme-surface));
