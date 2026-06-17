@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local agent/session config and scratch files
+.claude/
+_elbow_extract.txt
