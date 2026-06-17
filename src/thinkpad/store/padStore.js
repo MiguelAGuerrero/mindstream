@@ -474,11 +474,11 @@ export const usePadStore = defineStore("pad", {
       this._replaceCurrent(next);
     },
 
-    promoteWithinPad({ padLocator = null, title, selectionStart, selectionEnd, selectedText = "", timeboxSeconds = null, move = "", writeBack = "replace" } = {}) {
+    promoteWithinPad({ padLocator = null, title, selectionStart, selectionEnd, selectedText = "", move = "", writeBack = "replace" } = {}) {
       if (!this.currentPad) return null;
       const now = nowIso();
       const { pad, step, annotationId } = promoteSpanToMoveOnPad(this.currentPad, {
-        title, selectionStart, selectionEnd, selectedText, timeboxSeconds, move, writeBack, padLocator,
+        title, selectionStart, selectionEnd, selectedText, move, writeBack, padLocator,
       }, { now, makeId });
       if (!step) return null;
       const next = appendHistoryOnPad(pad, {

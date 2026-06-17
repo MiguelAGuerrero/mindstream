@@ -26,13 +26,6 @@
 import { INTENT_CLASSES, ANNOTATION_TAG_LIST } from "../moves";
 import { parseBlocks } from "./ideaParser";
 
-function normalizeTimebox(value) {
-  if (value == null) return null;
-  const n = Number(value);
-  if (!Number.isFinite(n) || n <= 0) return null;
-  return Math.floor(n);
-}
-
 const DEFAULT_CONFIG = Object.freeze({
   timing: Object.freeze({ enabled: true, timeboxMinutes: 10 }),
 });
@@ -41,25 +34,19 @@ const DEFAULT_CONFIG = Object.freeze({
 // Constructors
 // ---------------------------------------------------------------------------
 
-export function createStep({ id, title, timeboxSeconds = null } = {}, { makeId } = {}) {
+export function createStep({ id, title } = {}, { makeId } = {}) {
   const trimmed = typeof title === "string" ? title.trim() : "";
   return {
     id: typeof id === "string" && id ? id : makeId("step"),
     title: trimmed,
-    timeboxSeconds: normalizeTimebox(timeboxSeconds),
-    startedAt: null,
-    completedAt: null,
-    elapsedSeconds: 0,
-    pause: null,
-    notes: [],
     output: "",
   };
 }
 
-export function createThread({ title, timeboxSeconds = null, id, now } = {}, { makeId } = {}) {
+export function createThread({ title, id, now } = {}, { makeId } = {}) {
   const trimmed = typeof title === "string" ? title.trim() : "";
   if (!trimmed) return null;
-  const step = { ...createStep({ title: trimmed, timeboxSeconds }, { makeId }), startedAt: now };
+  const step = createStep({ title: trimmed }, { makeId });
   return {
     id: typeof id === "string" && id ? id : makeId("thread"),
     steps: [step],
@@ -149,9 +136,9 @@ function withThreads(pad, threads, { now } = {}) {
 // Push reducers
 // ---------------------------------------------------------------------------
 
-export function addRootThread(pad, { title, timeboxSeconds = null } = {}, { now, makeId } = {}) {
+export function addRootThread(pad, { title } = {}, { now, makeId } = {}) {
   if (!pad) return { pad, pushed: null };
-  const thread = createThread({ title, timeboxSeconds, now }, { makeId });
+  const thread = createThread({ title, now }, { makeId });
   if (!thread) return { pad, pushed: null };
   const nextThreads = [...(pad.threads ?? []), thread];
   return { pad: withThreads(pad, nextThreads, { now }), pushed: thread };
@@ -248,7 +235,7 @@ function patchStepByIdInThreads(threads, stepId, patchFn) {
  */
 export function promoteSpanToMove(pad, {
   title, selectionStart, selectionEnd, selectedText = "",
-  timeboxSeconds = null, stepId = null, annotationId = null,
+  stepId = null, annotationId = null,
   move = "", writeBack = "replace", padLocator = null,
 } = {}, { now, makeId } = {}) {
   const noop = { pad, step: null, annotationId: null };
@@ -267,7 +254,7 @@ export function promoteSpanToMove(pad, {
   if (padForThread(pad, padLocator) == null) return noop;
   const sid = typeof stepId === "string" && stepId ? stepId : makeId("step");
   const aid = typeof annotationId === "string" && annotationId ? annotationId : makeId("ann");
-  const step = createStep({ id: sid, title: trimmed, timeboxSeconds }, { makeId });
+  const step = createStep({ id: sid, title: trimmed }, { makeId });
 
   // Every promoted thought is an INDEPENDENT sibling thread: its own root thread
   // on pad.threads, never another step appended to a shared thread. Sibling
@@ -366,7 +353,7 @@ export function captureIdea(pad, {
  * Returns { pad, step }.
  */
 export function performMoveOnIdea(pad, ideaId, {
-  title, move = "", writeBack = "replace", timeboxSeconds = null, stepId = null,
+  title, move = "", writeBack = "replace", stepId = null,
 } = {}, { now, makeId } = {}) {
   const noop = { pad, step: null };
   if (!pad || typeof ideaId !== "string" || !ideaId) return noop;
@@ -378,7 +365,7 @@ export function performMoveOnIdea(pad, ideaId, {
   if (!trimmed) return noop;
 
   const sid = typeof stepId === "string" && stepId ? stepId : makeId("step");
-  const step = createStep({ id: sid, title: trimmed, timeboxSeconds }, { makeId });
+  const step = createStep({ id: sid, title: trimmed }, { makeId });
 
   // The worked idea becomes its own INDEPENDENT sibling thread — a root thread at
   // depth 1, mirroring promoteSpanToMove so both entry paths yield identical threads.
@@ -800,10 +787,9 @@ export function drillIntoSpan(pad, {
   const fid = typeof frameId === "string" && frameId ? frameId : makeId("thread");
   const seedText = typeof selectedText === "string" ? selectedText : "";
 
-  // One seeded goal step (startedAt parity with createThread), an empty sub-pad
-  // (user types freely; title carries the context), and a parentAnchor back-ref
-  // pointing at the anchor we add to the parent pad below.
-  const step = { ...createStep({ id: sid, title: trimmed }, { makeId }), startedAt: now };
+  // One seeded goal step, an empty sub-pad (user types freely; title carries the
+  // context), and a parentAnchor back-ref pointing at the anchor we add below.
+  const step = createStep({ id: sid, title: trimmed }, { makeId });
   const frame = {
     id: fid,
     move: typeof move === "string" ? move : "",

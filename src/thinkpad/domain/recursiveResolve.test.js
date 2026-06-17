@@ -269,7 +269,6 @@ describe("drillIntoSpan", () => {
     expect(frame.doc.text).toBe("");
     expect(frame.steps).toHaveLength(1);
     expect(frame.steps[0].title).toBe("work the mess");
-    expect(frame.steps[0].startedAt).toBe(env.now);
     expect(frame.parentAnchor).toEqual({ annotationId, parentFrameId: null });
     const anchor = pad.doc.annotations.find((a) => a.id === annotationId);
     expect(anchor.stepId).toBe(frame.steps[0].id); // the linchpin

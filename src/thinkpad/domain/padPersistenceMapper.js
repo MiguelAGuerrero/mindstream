@@ -22,9 +22,7 @@
 //     createdAt }
 //
 // Each Step has:
-//   { id, title, timeboxSeconds, startedAt, completedAt, elapsedSeconds,
-//     pause: { obstacleTag, note } | null,
-//     notes: Note[] }
+//   { id, title, output }
 // ---------------------------------------------------------------------------
 
 import { INTENT_CLASSES } from "../moves";
@@ -194,52 +192,18 @@ function asString(value, fallback = null) {
   return typeof value === "string" && value ? value : fallback;
 }
 
-function asInt(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : fallback;
-}
-
 // ---------------------------------------------------------------------------
 // Entity normalizers
 // ---------------------------------------------------------------------------
 
-function normalizeNote(value, { now } = {}) {
-  if (!value || typeof value !== "object") return null;
-  const id = asString(value.id);
-  if (!id) return null; // v9: ids are required — an idless note is dropped, never minted.
-  const body = typeof value.body === "string" ? value.body.trim() : "";
-  if (!body) return null;
-  const kind = ["note", "decision", "question"].includes(value.kind) ? value.kind : "note";
-  return {
-    id,
-    body,
-    kind,
-    createdAt: asString(value.createdAt) ?? now,
-  };
-}
-
-function normalizePause(value) {
-  if (!value || typeof value !== "object") return null;
-  const obstacleTag = typeof value.obstacleTag === "string" ? value.obstacleTag : "";
-  const note = typeof value.note === "string" ? value.note : "";
-  return { obstacleTag, note };
-}
-
-function normalizeStep(value, { now } = {}) {
+function normalizeStep(value) {
   if (!value || typeof value !== "object") return null;
   const id = asString(value.id);
   const title = typeof value.title === "string" ? value.title.trim() : "";
   if (!id || !title) return null;
-  const tb = Number(value.timeboxSeconds);
   return {
     id,
     title,
-    timeboxSeconds: Number.isFinite(tb) && tb > 0 ? Math.floor(tb) : null,
-    startedAt: asString(value.startedAt),
-    completedAt: asString(value.completedAt),
-    elapsedSeconds: asInt(value.elapsedSeconds, 0),
-    pause: normalizePause(value.pause),
-    notes: Array.isArray(value.notes) ? value.notes.map((n) => normalizeNote(n, { now })).filter(Boolean) : [],
     output: typeof value.output === "string" ? value.output : "",
   };
 }
@@ -253,7 +217,7 @@ function normalizeThread(value, { now } = {}) {
   if (!value || typeof value !== "object") return null;
   const id = asString(value.id);
   if (!id) return null;
-  const steps = Array.isArray(value.steps) ? value.steps.map((s) => normalizeStep(s, { now })).filter(Boolean) : [];
+  const steps = Array.isArray(value.steps) ? value.steps.map((s) => normalizeStep(s)).filter(Boolean) : [];
   return {
     id,
     steps,
