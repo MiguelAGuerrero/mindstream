@@ -34,15 +34,13 @@ function padWithText(text, env) {
 // ---------------------------------------------------------------------------
 
 describe("stampDraft", () => {
-  it("transitions phase to cultivate, snapshots frozenText, seeds versions[0]", () => {
+  it("transitions phase to cultivate, snapshots frozenText", () => {
     const env = makeTestEnv();
     const pad = padWithText("Hello world", env);
     const stamped = stampDraft(pad, {}, { now: env.now });
     const doc = stamped.doc;
     expect(doc.phase).toBe("cultivate");
     expect(doc.frozenText).toBe("Hello world");
-    expect(doc.versions).toHaveLength(1);
-    expect(doc.versions[0]).toMatchObject({ n: 0, text: "Hello world" });
     expect(doc.staged).toEqual([]);
   });
 
@@ -151,7 +149,7 @@ describe("revealReflectPass", () => {
     expect(result).toBe(pad);
   });
 
-  it("applies staged output, clears staging, mints vN+1", () => {
+  it("applies staged output, clears staging", () => {
     const env = makeTestEnv();
     const text = "Replace this span with something better.";
     let pad = padWithText(text, env);
@@ -168,7 +166,6 @@ describe("revealReflectPass", () => {
 
     // Stamp the draft.
     let stamped = stampDraft(promoted, {}, { now: env.now });
-    expect(stamped.doc.versions).toHaveLength(1); // v0
 
     // Set the step output and stage it (mimics the cultivate work pass).
     stamped = setStepOutput(stamped, { stepId: step.id, output: "Improve" }, { now: env.now });
@@ -184,9 +181,6 @@ describe("revealReflectPass", () => {
 
     // Staging area is cleared.
     expect(revealed.doc.staged).toHaveLength(0);
-    // A new version was minted.
-    expect(revealed.doc.versions).toHaveLength(2);
-    expect(revealed.doc.versions[1].n).toBe(1);
     // The span was replaced in the text.
     expect(revealed.doc.text).toContain("Improve");
     expect(revealed.doc.text).not.toContain("Replace this");
@@ -227,7 +221,6 @@ describe("revealReflectPass", () => {
     expect(revealed.doc.text).not.toContain("AAAA");
     expect(revealed.doc.text).not.toContain("BBBB");
     expect(revealed.doc.staged).toHaveLength(0);
-    expect(revealed.doc.versions).toHaveLength(2);
   });
 });
 
@@ -266,14 +259,13 @@ describe("restreamDraft", () => {
     expect(next.doc.staged).toHaveLength(0);
   });
 
-  it("preserves frozenText and versions as a record of the cultivation pass", () => {
+  it("preserves frozenText as a record of the cultivation pass", () => {
     const env = makeTestEnv();
     let pad = padWithText("History matters", env);
     pad = stampDraft(pad, {}, { now: env.now });
     const next = restreamDraft(pad, {}, { now: env.now });
-    // frozenText and versions survive — they are historical artifacts, not mutable state.
+    // frozenText survives — it is a historical artifact, not mutable state.
     expect(next.doc.frozenText).toBe("History matters");
-    expect(next.doc.versions).toHaveLength(1);
   });
 
   it("does not create any new threads", () => {
@@ -291,7 +283,7 @@ describe("restreamDraft", () => {
 // ---------------------------------------------------------------------------
 
 describe("draft phase persistence round-trip", () => {
-  it("preserves phase, frozenText, staged, and versions across normalize→snapshot→normalize", () => {
+  it("preserves phase, frozenText, and staged across normalize→snapshot→normalize", () => {
     const env = makeTestEnv();
     let pad = padWithText("Persist this", env);
     pad = stampDraft(pad, {}, { now: env.now });
@@ -304,8 +296,6 @@ describe("draft phase persistence round-trip", () => {
     expect(restored.doc.frozenText).toBe("Persist this");
     expect(restored.doc.staged).toHaveLength(1);
     expect(restored.doc.staged[0]).toMatchObject({ stepId: "s1", text: "staged output" });
-    expect(restored.doc.versions).toHaveLength(1);
-    expect(restored.doc.versions[0]).toMatchObject({ n: 0, text: "Persist this" });
   });
 
   it("default-fills phase fields to stream defaults for pre-feature records", () => {
@@ -316,7 +306,6 @@ describe("draft phase persistence round-trip", () => {
     expect(restored.doc.phase).toBe("stream");
     expect(restored.doc.frozenText).toBeNull();
     expect(restored.doc.staged).toEqual([]);
-    expect(restored.doc.versions).toEqual([]);
   });
 
   it("preserves draftHistory across normalize→snapshot→normalize", () => {

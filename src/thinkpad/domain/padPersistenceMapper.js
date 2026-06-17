@@ -95,17 +95,6 @@ function normalizeStagedOutput(value) {
   };
 }
 
-function normalizeDraftVersion(value) {
-  if (!value || typeof value !== "object") return null;
-  const n = Number(value.n);
-  if (!Number.isFinite(n) || n < 0) return null;
-  return {
-    n: Math.floor(n),
-    text: typeof value.text === "string" ? value.text : "",
-    at: asString(value.at),
-  };
-}
-
 function normalizeDraftHistoryContribution(value) {
   if (!value || typeof value !== "object") return null;
   return {
@@ -135,7 +124,7 @@ function normalizeDraftHistoryEntry(value) {
 
 function normalizeDoc(value, { now } = {}) {
   if (!value || typeof value !== "object") {
-    return { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], versions: [], draftHistory: [] };
+    return { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], draftHistory: [] };
   }
   return {
     text: typeof value.text === "string" ? value.text : "",
@@ -148,9 +137,6 @@ function normalizeDoc(value, { now } = {}) {
     frozenText: typeof value.frozenText === "string" ? value.frozenText : null,
     staged: Array.isArray(value.staged)
       ? value.staged.map(normalizeStagedOutput).filter(Boolean)
-      : [],
-    versions: Array.isArray(value.versions)
-      ? value.versions.map(normalizeDraftVersion).filter(Boolean)
       : [],
     draftHistory: Array.isArray(value.draftHistory)
       ? value.draftHistory.map(normalizeDraftHistoryEntry).filter(Boolean)
@@ -226,8 +212,6 @@ function normalizeThread(value, { now } = {}) {
     // to the parent anchor it resolves into.
     doc: normalizeDoc(value.doc, { now }),
     parentAnchor: normalizeParentAnchor(value.parentAnchor),
-    // isDump distinguishes free-write re-stream threads from anchored move threads.
-    isDump: value.isDump === true,
     createdAt: asString(value.createdAt) ?? now,
   };
 }

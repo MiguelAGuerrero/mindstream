@@ -30,6 +30,11 @@ const DEFAULT_CONFIG = Object.freeze({
   timing: Object.freeze({ enabled: true, timeboxMinutes: 10 }),
 });
 
+/** A fresh, empty document surface (root pad.doc or any thread's sub-pad). */
+function emptyDoc() {
+  return { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], draftHistory: [] };
+}
+
 // ---------------------------------------------------------------------------
 // Constructors
 // ---------------------------------------------------------------------------
@@ -54,7 +59,7 @@ export function createThread({ title, id, now } = {}, { makeId } = {}) {
     // Each thread owns a document surface (its drill-down sub-pad) and a back-ref
     // to the parent anchor it resolves into — empty/null for a base move; a focus
     // drill seeds the doc and sets parentAnchor. (recursive-resolve contract)
-    doc: { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], versions: [], draftHistory: [] },
+    doc: emptyDoc(),
     parentAnchor: null,
     createdAt: now,
   };
@@ -74,7 +79,7 @@ export function createPad({ id, title, config, now } = {}, { makeId } = {}) {
     createdAt: now,
     updatedAt: now,
     resumeHint: null,
-    doc: { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], versions: [], draftHistory: [] },
+    doc: emptyDoc(),
     history: [],
   };
 }
@@ -263,7 +268,7 @@ export function promoteSpanToMove(pad, {
     id: makeId("thread"),
     steps: [step],
     subThreads: [],
-    doc: { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], versions: [], draftHistory: [] },
+    doc: emptyDoc(),
     parentAnchor: null,
     createdAt: now,
   }];
@@ -373,7 +378,7 @@ export function performMoveOnIdea(pad, ideaId, {
     id: makeId("thread"),
     steps: [step],
     subThreads: [],
-    doc: { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], versions: [], draftHistory: [] },
+    doc: emptyDoc(),
     parentAnchor: null,
     createdAt: now,
   }];
@@ -795,7 +800,7 @@ export function drillIntoSpan(pad, {
     move: typeof move === "string" ? move : "",
     steps: [step],
     subThreads: [],
-    doc: { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], versions: [], draftHistory: [] },
+    doc: emptyDoc(),
     parentAnchor: { annotationId: aid, parentFrameId: parentThreadId ?? null },
     createdAt: now,
   };
@@ -1157,7 +1162,6 @@ export function stampDraft(pad, { padLocator = null } = {}, { now } = {}) {
     ...doc,
     phase: "cultivate",
     frozenText,
-    versions: [{ n: 0, text: frozenText, at: now }],
     staged: doc.staged ?? [],
   };
   return withPad(pad, padLocator, nextDoc, { now });
@@ -1189,7 +1193,7 @@ export function stageStepOutput(pad, {
 }
 
 /**
- * Reveal pass: apply all staged outputs atomically, mint vN+1, clear staging.
+ * Reveal pass: apply all staged outputs atomically, then clear staging.
  * Splices are applied in REVERSE document order (end → start) so offset shifts
  * from rightward splices do not corrupt leftward anchor positions that haven't
  * been processed yet. Phase stays 'cultivate' after reveal — the study beat is
@@ -1219,15 +1223,9 @@ export function revealReflectPass(pad, { padLocator = null } = {}, { now } = {})
     next = resolveStepIntoPad(next, { stepId: entry.stepId, padLocator, now });
   }
 
-  // Read the updated doc after all splices, then attach the new version entry
-  // and clear the staging area.
+  // Clear the staging area after applying all splices.
   const updatedDoc = padForThread(next, padLocator) ?? doc;
-  const prevVersions = updatedDoc.versions ?? [];
-  const nextDoc = {
-    ...updatedDoc,
-    staged: [],
-    versions: [...prevVersions, { n: prevVersions.length, text: updatedDoc.text ?? "", at: now }],
-  };
+  const nextDoc = { ...updatedDoc, staged: [] };
   return withPad(next, padLocator, nextDoc, { now });
 }
 
@@ -1235,7 +1233,7 @@ export function revealReflectPass(pad, { padLocator = null } = {}, { now } = {})
  * Re-stream: unfreeze the current doc so it can be edited directly again.
  * The phase flips back to 'stream'; any staged (unrevealed) outputs are
  * discarded since their offsets may no longer be valid after direct editing.
- * frozenText and versions are preserved as a record of the cultivation pass.
+ * frozenText is preserved as a record of the cultivation pass.
  * padLocator null = root document; a thread id = that sub-pad.
  */
 export function restreamDraft(pad, { padLocator = null } = {}, { now } = {}) {
@@ -1317,14 +1315,14 @@ export function advanceToNextDraft(pad, { padLocator = null } = {}, { now, makeI
       draftHistory: [{
         n: 0,
         text: doc.frozenText ?? doc.text ?? "",
-        at: doc.versions?.[0]?.at ?? now,
+        at: now,
         contributions: [],
       }],
     };
     next = withPad(next, padLocator, seedDoc, { now });
   }
 
-  // Apply the reveal pass (splices text, sets step outputs, mints doc.versions entry).
+  // Apply the reveal pass (splices text, sets step outputs, clears staging).
   next = revealReflectPass(next, { padLocator }, { now, makeId });
 
   // Append the new draft snapshot with its contributions.
@@ -1346,7 +1344,6 @@ export function advanceToNextDraft(pad, { padLocator = null } = {}, { now, makeI
     ...advancedDoc,
     frozenText: advancedDoc.text ?? "",
     staged: [],
-    versions: [{ n: 0, text: advancedDoc.text ?? "", at: now }],
   };
   return withPad(next, padLocator, restampedDoc, { now });
 }
