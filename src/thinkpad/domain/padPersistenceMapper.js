@@ -1,8 +1,6 @@
 // ---------------------------------------------------------------------------
 // Pad persistence mapper — entity-state model: runtime state lives on entities
-// and is never derived from an event log. (A separate, append-only
-// `pad.history` side-log is persisted for reflection only; it never feeds
-// runtime state.)
+// and is never derived from an event log.
 //
 // The app is pre-deployment and keeps NO persisted-format backwards
 // compatibility: there is no schema version and no legacy-field tolerance. The
@@ -11,7 +9,7 @@
 //
 // Record shape:
 //   { id, title, threads, config, state, createdAt, updatedAt, resumeHint,
-//     doc, history }
+//     surfaceThreadId, doc }
 //
 // Each Thread in `threads` has:
 //   { id,
@@ -152,28 +150,6 @@ function normalizeParentAnchor(value) {
   return { annotationId, parentFrameId: asString(value.parentFrameId) };
 }
 
-const HISTORY_TYPES = [
-  "capture", "promote", "setOutput", "resolve", "complete", "uncomplete", "padEdit", "startScratch",
-  // Draft phase rhythm events (stream-reflect-lifecycle)
-  "stamp", "reveal", "restream", "advance",
-];
-
-function normalizeHistoryEntry(value, { now } = {}) {
-  if (!value || typeof value !== "object") return null;
-  const id = asString(value.id);
-  const type = HISTORY_TYPES.includes(value.type) ? value.type : null;
-  if (!id || !type) return null;
-  return {
-    id,
-    at: asString(value.at) ?? now,
-    type,
-    stepId: asString(value.stepId),
-    annotationId: asString(value.annotationId),
-    summary: typeof value.summary === "string" ? value.summary : "",
-    meta: value.meta && typeof value.meta === "object" ? value.meta : null,
-  };
-}
-
 function asString(value, fallback = null) {
   return typeof value === "string" && value ? value : fallback;
 }
@@ -235,7 +211,6 @@ export function normalizePad(value, { now } = {}) {
     resumeHint: typeof value.resumeHint === "string" ? value.resumeHint : null,
     surfaceThreadId: asString(value.surfaceThreadId),
     doc: normalizeDoc(value.doc, { now }),
-    history: Array.isArray(value.history) ? value.history.map((h) => normalizeHistoryEntry(h, { now })).filter(Boolean) : [],
   };
 }
 

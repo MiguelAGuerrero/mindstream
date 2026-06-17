@@ -58,17 +58,6 @@ describe("padStore", () => {
     expect(store.currentPad?.title).toBe("In progress");
   });
 
-  it("activatePad repairs title-only contexts and selects them", () => {
-    const store = usePadStore();
-    const ctx = store.createNewPad({ title: "Orphan from race" });
-    store.$patch({ currentPadId: null });
-
-    const ok = store.activatePad(ctx.id);
-    expect(ok).toBe(true);
-    expect(store.currentPadId).toBe(ctx.id);
-    expect(store.currentPad?.threads).toHaveLength(1);
-  });
-
   it("createNewPad adds a pad to the pool and sets it active", () => {
     const store = usePadStore();
     store.createNewPad({ title: "Fix auth bug" });

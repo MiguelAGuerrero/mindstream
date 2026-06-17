@@ -9,12 +9,10 @@
 import { defineStore } from "pinia";
 import {
   createPad,
-  addRootThread as addRootThreadOnPad,
   setTitle as setTitleOnPad,
   tagPadAnnotation as tagPadAnnotationOnPad,
   setStepOutput as setStepOutputOnPad,
   setStepTitleById as setStepTitleByIdOnPad,
-  appendHistory as appendHistoryOnPad,
   pushSurface as pushSurfaceOnPad,
   popSurface as popSurfaceOnPad,
   jumpToSurfaceIndex as jumpToSurfaceIndexOnPad,
@@ -69,16 +67,6 @@ function mergePads(inMemory, fromDb) {
     }
   }
   return [...byId.values()];
-}
-
-function repairPadIfEmpty(pad) {
-  if (!pad || (pad.threads ?? []).length > 0) return pad;
-  if ((pad.history ?? []).some((h) => h.type === "startScratch")) return pad;
-  if ((pad.doc?.text ?? "").length > 0) return pad;
-  const title = (pad.title || "").trim();
-  if (!title) return pad;
-  const { pad: next, pushed } = addRootThreadOnPad(pad, { title }, { now: nowIso(), makeId });
-  return pushed ? next : pad;
 }
 
 export const usePadStore = defineStore("pad", {
@@ -159,11 +147,7 @@ export const usePadStore = defineStore("pad", {
         const merged = inMemory.length
           ? mergePads(inMemory, normalized)
           : normalized;
-        this.pads = merged.map((pad) => {
-          const repaired = repairPadIfEmpty(pad);
-          if (repaired !== pad) persistPadToDb(repaired);
-          return repaired;
-        });
+        this.pads = merged;
         if (
           this.currentPadId
           && !this.pads.some((c) => c.id === this.currentPadId)
@@ -188,14 +172,7 @@ export const usePadStore = defineStore("pad", {
 
     activatePad(padId) {
       if (!this.setActivePad(padId)) return false;
-      const pad = this.currentPad;
-      if (!pad) return false;
-      const repaired = repairPadIfEmpty(pad);
-      if (repaired !== pad) {
-        this.pads = this.pads.map((c) => (c.id === padId ? repaired : c));
-        persistPadToDb(repaired);
-      }
-      return true;
+      return this.currentPad != null;
     },
 
     createNewPad({ title } = {}) {
@@ -215,10 +192,6 @@ export const usePadStore = defineStore("pad", {
           config: { ...pad.config, timing: { ...pad.config.timing, timeboxMinutes: Number(timeboxMinutes) } },
         };
       }
-      pad = appendHistoryOnPad(pad, {
-        type: "startScratch",
-        summary: trimmed ? `Started: ${trimmed}` : "Started a scratch session",
-      }, { now, makeId });
       this.pads = [pad, ...this.pads];
       this.currentPadId = pad.id;
       persistPadToDb(pad);
@@ -289,10 +262,7 @@ export const usePadStore = defineStore("pad", {
       const now = nowIso();
       const stamped = stampDraftOnPad(this.currentPad, { padLocator }, { now });
       if (stamped === this.currentPad) return;
-      const next = appendHistoryOnPad(stamped, {
-        type: "stamp", summary: "Stamped the draft for cultivation",
-      }, { now, makeId });
-      this._replaceCurrent(next);
+      this._replaceCurrent(stamped);
     },
 
     advanceToNextDraft({ padLocator = null } = {}) {
@@ -300,17 +270,9 @@ export const usePadStore = defineStore("pad", {
       const doc = padForThreadOnPad(this.currentPad, padLocator);
       if (!doc || doc.phase !== "cultivate" || !(doc.staged?.length)) return;
       const now = nowIso();
-      const stagedCount = doc.staged.length;
       const next = advanceToNextDraftOnPad(this.currentPad, { padLocator }, { now, makeId });
       if (next === this.currentPad) return;
-      const newDoc = padForThreadOnPad(next, padLocator);
-      const draftN = newDoc?.draftHistory?.length ?? 1;
-      const withHistory = appendHistoryOnPad(next, {
-        type: "advance",
-        summary: `Advanced to Draft ${draftN}`,
-        meta: { moveCount: stagedCount, draftN },
-      }, { now, makeId });
-      this._replaceCurrent(withHistory);
+      this._replaceCurrent(next);
       this.viewingDraftN = null;
     },
 
@@ -327,15 +289,12 @@ export const usePadStore = defineStore("pad", {
     drillIntoSpan({ parentThreadId = null, title, selectionStart, selectionEnd, selectedText = "", move = "", writeBack = "replace", tag = null } = {}) {
       if (!this.currentPad) return null;
       const now = nowIso();
-      const { pad, frame, annotationId } = drillIntoSpanOnPad(this.currentPad, {
+      const { pad, frame } = drillIntoSpanOnPad(this.currentPad, {
         parentThreadId, title, selectionStart, selectionEnd, selectedText, move, writeBack, tag,
       }, { now, makeId });
       if (!frame) return null;
       const descended = pushSurfaceOnPad(pad, frame.id, { now });
-      const next = appendHistoryOnPad(descended, {
-        type: "promote", stepId: frame.steps[0].id, annotationId, summary: `Opened thread "${frame.steps[0].title}"`,
-      }, { now, makeId });
-      this._replaceCurrent(next);
+      this._replaceCurrent(descended);
       return frame;
     },
 
@@ -409,10 +368,7 @@ export const usePadStore = defineStore("pad", {
       const anchorRec = (parentDoc?.annotations ?? []).find((a) => a.id === annotationId);
       if (anchorRec?.resolved === true) {
         const ascended = popSurfaceOnPad(this.currentPad, { now });
-        const next = appendHistoryOnPad(ascended, {
-          type: "resolve", stepId: childStep.id, summary: "Re-resolve (already applied)",
-        }, { now, makeId });
-        this._replaceCurrent(next);
+        this._replaceCurrent(ascended);
         return { resolved: true, delta: null };
       }
 
@@ -423,10 +379,7 @@ export const usePadStore = defineStore("pad", {
       }, { now, makeId });
 
       const ascended = popSurfaceOnPad(pad, { now });
-      const next = appendHistoryOnPad(ascended, {
-        type: "resolve", stepId: childStep.id, summary: "Staged thread resolution for parent",
-      }, { now, makeId });
-      this._replaceCurrent(next);
+      this._replaceCurrent(ascended);
       return { resolved: true, delta: null };
     },
 
@@ -476,14 +429,11 @@ export const usePadStore = defineStore("pad", {
     promoteWithinPad({ padLocator = null, title, selectionStart, selectionEnd, selectedText = "", move = "", writeBack = "replace" } = {}) {
       if (!this.currentPad) return null;
       const now = nowIso();
-      const { pad, step, annotationId } = promoteSpanToMoveOnPad(this.currentPad, {
+      const { pad, step } = promoteSpanToMoveOnPad(this.currentPad, {
         title, selectionStart, selectionEnd, selectedText, move, writeBack, padLocator,
       }, { now, makeId });
       if (!step) return null;
-      const next = appendHistoryOnPad(pad, {
-        type: "promote", stepId: step.id, annotationId, summary: `Promoted "${step.title}"`,
-      }, { now, makeId });
-      this._replaceCurrent(next);
+      this._replaceCurrent(pad);
       return step;
     },
 

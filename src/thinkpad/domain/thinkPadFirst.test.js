@@ -13,7 +13,6 @@ import {
   setStepOutput,
   resolveStepIntoDocument,
   updateThinkPadAnnotation,
-  appendHistory,
   getContextMoves,
 } from "./padDomain";
 import {
@@ -43,11 +42,6 @@ function scratchWithSpan() {
 describe("new entity fields", () => {
   it("createStep carries an empty output", () => {
     expect(createStep({ title: "x" }, makeTestEnv()).output).toBe("");
-  });
-
-  it("createPad carries an empty history", () => {
-    const env = makeTestEnv();
-    expect(createPad({ title: "x", now: env.now }, env).history).toEqual([]);
   });
 });
 
@@ -276,40 +270,14 @@ describe("updateThinkPadAnnotation", () => {
   });
 });
 
-describe("appendHistory (reflective side-log)", () => {
-  it("appends an ordered, well-shaped entry and no-ops on junk", () => {
-    const env = makeTestEnv();
-    let pad = createPad({ title: "x", now: env.now }, env);
-    pad = appendHistory(pad, { type: "promote", stepId: "step:a", summary: "Promoted X" }, { now: "2026-06-01T00:00:00.000Z", makeId: env.makeId });
-    pad = appendHistory(pad, { type: "resolve", stepId: "step:a" }, { now: "2026-06-01T00:01:00.000Z", makeId: env.makeId });
-    expect(pad.history).toHaveLength(2);
-    expect(pad.history[0]).toMatchObject({ type: "promote", stepId: "step:a", summary: "Promoted X", at: "2026-06-01T00:00:00.000Z" });
-    expect(pad.history[0].id).toMatch(/^hist:/);
-    expect(appendHistory(pad, null)).toBe(pad);
-    expect(appendHistory(pad, { type: "not-a-real-type" })).toBe(pad);
-  });
-
-  it("NEVER derives runtime state — appending history leaves threads/active step untouched", () => {
-    let { pad, env } = scratchWithSpan();
-    const threadsBefore = pad.threads;
-    const activeBefore = pad.threads[0].steps[0];
-    const next = appendHistory(pad, { type: "promote", stepId: "step:a" }, env);
-    expect(next.threads).toBe(threadsBefore); // same array reference — runtime state not rebuilt
-    expect(next.threads[0].steps[0].id).toBe(activeBefore.id);
-  });
-});
-
 describe("persistence round-trip (additive fields)", () => {
-  it("round-trips output, history, and resolved-annotation fields", () => {
+  it("round-trips output and resolved-annotation fields", () => {
     let { pad, env } = scratchWithSpan();
     pad = setStepOutput(pad, { stepId: "step:a", output: "RESOLVED" }, env);
     pad = resolveStepIntoDocument(pad, { stepId: "step:a", ...env });
-    pad = appendHistory(pad, { type: "resolve", stepId: "step:a", summary: "wrote it back" }, env);
 
     const restored = normalizePad(buildPadSnapshot(pad, { now: env.now }), { now: env.now });
     expect(findStepDeep(restored, "step:a").output).toBe("RESOLVED");
-    expect(restored.history).toHaveLength(1);
-    expect(restored.history[0].type).toBe("resolve");
     const ann = restored.doc.annotations[0];
     expect(ann.resolved).toBe(true);
     expect(ann.placement).toBe("anchored");
@@ -326,23 +294,9 @@ describe("persistence round-trip (additive fields)", () => {
       },
     }, { now: "2026-01-01T00:00:00.000Z" });
     expect(restored.threads[0].steps[0].output).toBe("");
-    expect(restored.history).toEqual([]);
     expect(restored.doc.annotations[0].resolved).toBe(false);
     expect(restored.doc.annotations[0].placement).toBe("anchored");
     expect(restored.doc.annotations[0].resolvedAt).toBeNull();
-  });
-
-  it("drops malformed history entries on normalize", () => {
-    const restored = normalizePad({
-      id: "ctx:1",
-      history: [
-        { id: "hist:1", type: "promote", at: "2026-06-01T00:00:00.000Z" },
-        { id: "hist:2", type: "bogus" }, // unknown type → dropped
-        { type: "promote" },             // missing id → dropped
-      ],
-    }, { now: "2026-01-01T00:00:00.000Z" });
-    expect(restored.history).toHaveLength(1);
-    expect(restored.history[0].id).toBe("hist:1");
   });
 
 });

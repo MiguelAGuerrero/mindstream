@@ -80,7 +80,6 @@ export function createPad({ id, title, config, now } = {}, { makeId } = {}) {
     updatedAt: now,
     resumeHint: null,
     doc: emptyDoc(),
-    history: [],
   };
 }
 
@@ -1056,36 +1055,6 @@ export function updateThinkPadAnnotation(pad, annotationId, patch = {}, { now } 
   return {
     ...pad,
     doc: { ...(pad.doc ?? { text: "", annotations: [] }), annotations: nextAnnotations },
-    updatedAt: now,
-  };
-}
-
-const HISTORY_TYPES = new Set([
-  "capture", "promote", "setOutput", "resolve", "complete", "uncomplete", "padEdit", "startScratch",
-  // Draft phase rhythm events (stream-reflect-lifecycle)
-  "stamp", "reveal", "restream",
-]);
-
-/**
- * Append a reflective transaction to pad.history. Append-only, ordered by
- * `at`. This is a SIDE-log for meta-reflection — it NEVER derives runtime state.
- */
-export function appendHistory(pad, entry, { now, makeId } = {}) {
-  if (!pad || !entry || typeof entry !== "object") return pad;
-  const type = typeof entry.type === "string" ? entry.type : "";
-  if (!HISTORY_TYPES.has(type)) return pad;
-  const item = {
-    id: typeof entry.id === "string" && entry.id ? entry.id : makeId("hist"),
-    at: typeof entry.at === "string" && entry.at ? entry.at : now,
-    type,
-    stepId: typeof entry.stepId === "string" && entry.stepId ? entry.stepId : null,
-    annotationId: typeof entry.annotationId === "string" && entry.annotationId ? entry.annotationId : null,
-    summary: typeof entry.summary === "string" ? entry.summary : "",
-    meta: entry.meta && typeof entry.meta === "object" ? entry.meta : null,
-  };
-  return {
-    ...pad,
-    history: [...(pad.history ?? []), item],
     updatedAt: now,
   };
 }

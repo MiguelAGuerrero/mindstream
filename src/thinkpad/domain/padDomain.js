@@ -50,7 +50,6 @@ export {
   jumpToSurfaceIndex,
   navigateToThread,
   discardThread,
-  appendHistory,
   getContextMoves,
   ideasForPanel,
   // Draft phase state machine (stream-reflect-lifecycle)
