@@ -46,6 +46,7 @@ export function createContext({ id, rootFrame = null, createdAt = null } = {}) {
     stack: rootFrame ? [rootFrame] : [],
     parked: false,
     waitingOn: "",
+    resolved: false,
     createdAt,
   };
 }

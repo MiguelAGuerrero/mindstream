@@ -20,11 +20,15 @@ const emit = defineEmits(["switch", "new"]);
         :key="c.id"
         type="button"
         class="ctx-card"
-        :class="{ 'ctx-card--active': c.isActive, 'ctx-card--parked': c.parked }"
+        :class="{ 'ctx-card--active': c.isActive, 'ctx-card--parked': c.parked, 'ctx-card--resolved': c.resolved }"
         @click="emit('switch', c.id)"
       >
-        <div class="ctx-card__problem">{{ c.problem }}</div>
-        <div v-if="c.depth > 1" class="ctx-card__current">↳ {{ c.current }}</div>
+        <div class="ctx-card__header">
+          <div class="ctx-card__problem">{{ c.problem }}</div>
+          <v-icon v-if="c.resolved" size="15" icon="mdi-check-circle" class="ctx-card__check" />
+        </div>
+        <div v-if="!c.resolved && c.depth > 1" class="ctx-card__current">↳ {{ c.current }}</div>
+        <div v-if="c.resolved && c.result" class="ctx-card__result">{{ c.result }}</div>
         <div v-if="c.parked" class="ctx-card__parked">
           <v-icon size="13" icon="mdi-pause-circle-outline" class="mr-1" />
           {{ c.waitingOn ? `waiting on ${c.waitingOn}` : "parked" }}
@@ -147,6 +151,21 @@ const emit = defineEmits(["switch", "new"]);
   opacity: 0.7;
 }
 
+.ctx-card--resolved {
+  opacity: 0.75;
+}
+
+.ctx-card__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ctx-card__check {
+  flex-shrink: 0;
+  color: rgb(var(--v-theme-success));
+}
+
 .ctx-card__problem {
   font-size: 0.9rem;
   font-weight: 600;
@@ -163,6 +182,16 @@ const emit = defineEmits(["switch", "new"]);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.ctx-card__result {
+  font-size: 0.78rem;
+  color: rgba(var(--v-theme-on-surface), 0.55);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-style: italic;
 }
 
 .ctx-card__parked {

@@ -111,6 +111,7 @@ watch(
         :timer-formatted="timerFormatted"
         :depth="runStore.depth"
         :breadcrumb="runStore.breadcrumb"
+        :resolved="runStore.currentResolved"
         @drill="openComposer('drill')"
         @complete="openComposer('complete')"
         @abandon="handleAbandon"

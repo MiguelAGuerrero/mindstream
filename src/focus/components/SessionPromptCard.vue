@@ -11,6 +11,7 @@ const props = defineProps({
   timerFormatted: { type: String, default: "0:00" },
   depth: { type: Number, default: 1 },
   breadcrumb: { type: Array, default: () => [] },
+  resolved: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(["drill", "complete", "abandon", "park", "stop"]);
@@ -22,28 +23,35 @@ const trail = computed(() => props.breadcrumb.slice(0, -1).join("  ›  "));
 
 <template>
   <div class="srun-wrap">
-    <v-card class="srun-note" rounded="lg" elevation="4">
+    <v-card
+      class="srun-note"
+      :class="{ 'srun-note--resolved': resolved }"
+      rounded="lg"
+      elevation="4"
+    >
       <!-- trail + level controls -->
       <div class="srun-top">
         <div class="srun-trail" :title="trail">{{ trail }}</div>
         <v-spacer />
-        <v-btn
-          v-if="isDrilled"
-          size="small"
-          variant="text"
-          prepend-icon="mdi-arrow-left"
-          @click="emit('abandon')"
-        >
-          Back
-        </v-btn>
-        <v-btn
-          size="small"
-          variant="text"
-          prepend-icon="mdi-pause-circle-outline"
-          @click="emit('park')"
-        >
-          Park
-        </v-btn>
+        <template v-if="!resolved">
+          <v-btn
+            v-if="isDrilled"
+            size="small"
+            variant="text"
+            prepend-icon="mdi-arrow-left"
+            @click="emit('abandon')"
+          >
+            Back
+          </v-btn>
+          <v-btn
+            size="small"
+            variant="text"
+            prepend-icon="mdi-pause-circle-outline"
+            @click="emit('park')"
+          >
+            Park
+          </v-btn>
+        </template>
         <v-btn
           icon="mdi-close"
           size="small"
@@ -55,36 +63,40 @@ const trail = computed(() => props.breadcrumb.slice(0, -1).join("  ›  "));
 
       <!-- the authored focus -->
       <div class="srun-body">
-        <p class="srun-eyebrow">FOCUSING ON</p>
+        <p class="srun-eyebrow">{{ resolved ? "COMPLETED" : "FOCUSING ON" }}</p>
         <h2 class="srun-focus">{{ focus }}</h2>
         <p v-if="result" class="srun-result">
           <v-icon size="16" icon="mdi-subdirectory-arrow-right" class="mr-1" />{{ result }}
         </p>
-        <p class="srun-timer" aria-live="polite">{{ timerFormatted }}</p>
+        <p v-if="!resolved" class="srun-timer" aria-live="polite">{{ timerFormatted }}</p>
+        <div v-if="resolved" class="srun-resolved-badge">
+          <v-icon size="16" icon="mdi-check-circle" class="mr-1" />Resolved
+        </div>
       </div>
 
-      <!-- the move: decompose -->
-      <v-btn
-        class="srun-decompose"
-        variant="tonal"
-        block
-        prepend-icon="mdi-arrow-down-circle-outline"
-        @click="emit('drill')"
-      >
-        Decompose
-      </v-btn>
+      <!-- action buttons — hidden when resolved -->
+      <template v-if="!resolved">
+        <v-btn
+          class="srun-decompose"
+          variant="tonal"
+          block
+          prepend-icon="mdi-arrow-down-circle-outline"
+          @click="emit('drill')"
+        >
+          Decompose
+        </v-btn>
 
-      <!-- record a takeaway on the active focus (root or drilled) -->
-      <v-btn
-        class="srun-complete"
-        color="primary"
-        variant="flat"
-        block
-        prepend-icon="mdi-arrow-up-bold"
-        @click="emit('complete')"
-      >
-        Complete
-      </v-btn>
+        <v-btn
+          class="srun-complete"
+          color="primary"
+          variant="flat"
+          block
+          prepend-icon="mdi-arrow-up-bold"
+          @click="emit('complete')"
+        >
+          Complete
+        </v-btn>
+      </template>
     </v-card>
   </div>
 </template>
@@ -107,6 +119,11 @@ const trail = computed(() => props.breadcrumb.slice(0, -1).join("  ›  "));
   padding: 1.5rem;
   background-color: rgb(var(--v-theme-surface));
   border-top: 4px solid rgb(var(--v-theme-primary));
+}
+
+.srun-note--resolved {
+  border-top-color: rgb(var(--v-theme-success));
+  opacity: 0.85;
 }
 
 .srun-top {
@@ -170,5 +187,14 @@ const trail = computed(() => props.breadcrumb.slice(0, -1).join("  ›  "));
 
 .srun-complete {
   flex-shrink: 0;
+}
+
+.srun-resolved-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgb(var(--v-theme-success));
+  margin-top: 0.5rem;
 }
 </style>

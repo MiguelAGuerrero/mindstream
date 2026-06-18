@@ -51,15 +51,20 @@ export const useSessionRunStore = defineStore("sessionRun", {
     breadcrumb() {
       return this.activeStack.map((f) => f.title);
     },
+    currentResolved() {
+      return this.activeContext?.resolved ?? false;
+    },
     /** Rail items: one per context, with switch/park display info. */
     contextList(s) {
       return s.contexts.map((c) => ({
         id: c.id,
         problem: c.stack[0]?.title ?? "",
         current: c.stack.length ? c.stack[c.stack.length - 1].title : "",
+        result: c.stack[0]?.result ?? null,
         depth: c.stack.length,
         parked: c.parked,
         waitingOn: c.waitingOn,
+        resolved: c.resolved,
         isActive: c.id === s.activeContextId,
       }));
     },
@@ -110,8 +115,8 @@ export const useSessionRunStore = defineStore("sessionRun", {
       ctx.stack.push(this._frame(t));
     },
 
-    /** Fold an optional takeaway into the active focus. At root, records on the
-     *  problem itself; when drilled, pops and records on the parent. */
+    /** Fold an optional takeaway into the active focus. At root, marks the
+     *  context resolved and steps off it; when drilled, pops and records on parent. */
     completeFocus({ result = "" } = {}) {
       const ctx = this.activeContext;
       if (!ctx || ctx.stack.length < 1) return;
@@ -124,7 +129,11 @@ export const useSessionRunStore = defineStore("sessionRun", {
         }
         return;
       }
+      // Root: record takeaway, mark resolved, step off to the next live context.
       if (r) ctx.stack[0].result = r;
+      ctx.resolved = true;
+      const next = this.contexts.find((c) => c.id !== ctx.id && !c.parked && !c.resolved);
+      this.activeContextId = next ? next.id : null;
     },
 
     /** Pop the active decomposition WITHOUT writing anything up. No-op at the root. */
