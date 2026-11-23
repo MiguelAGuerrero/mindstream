@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-23
 **Status:** Proposal. This version replaces v1. It records the model reached in a design conversation with Miguel. §10 lists what is still open.
-**Mockup:** the design canvas *Capture Templates Mockup*, a private artifact. Its screens still show the v1 section model; §11 lists what changes.
+**Mockup:** the design canvas *Capture Templates Mockup*, a private artifact (see §11).
 **Builds on:** `src/thinkpad/moves.js`, `src/thinkpad/domain/thinkPadModel.js` (threads, sub-pads, `resolveThreadIntoParent`, `discardThread`), `src/thinkpad/composables/useThinkPadSurface.js` (`canComplete`), `docs/recursive-resolve-contract.md`, `docs/stream-reflect-lifecycle.md`, `docs/GENERIC_PROBLEM_SOLVING_WORKFLOWS.md`.
 
 ---
@@ -226,12 +226,16 @@ step.resolution        = { text, type: Type | null, caveats: string[] }   // cav
 
 ---
 
-## 11. Mockup changes still to make
+## 11. Mockup
 
-- **Investigate:** replace v1's seven sections with the four-step workflow, slotted for Research in one screen and Debugging in another.
-- **Pivot:** add swapping a slot mid-run, and "Save as variant" at resolve.
-- **Gate:** add the open-item gate on the Resolve sheet, with the four decisions and the scope check, and open counts in the breadcrumb.
-- **Step view:** add it on phone as the counterpart of the form view.
+The canvas now shows the v2 model:
+- **Investigate · Research** in form view, with open counts in the breadcrumb and step 4 filled by a workflow.
+- **Investigate · Debugging**: a step added during the run, and step 4's workflow being swapped.
+- **The Resolve gate**, with the four decisions and the scope check.
+- **The result rolled up** with its caveat, plus the parked question.
+- **On phone**: the preview with a variant picker, and the step view.
+
+The workflow-step and cite screens are carried over from v1.
 
 ---
 
