@@ -10,23 +10,29 @@
 
 **Revision 2 (same day):** aligned with the in-flight direction Miguel described: text is the first-class unit every tool consumes, ThinkPad spans become runnable work in the Focus runner through workflows, and a Focus step can open its own think pad. The design for this is `docs/capture-templates-proposal.md` (v2) on branch `claude/great-dijkstra-ave9hv`. Only that proposal doc was visible on the remote; no implementation code was, so §2 and §3 still describe `master`. §4 to §6 were revised: Phases 2 and 3 now sequence the in-flight work instead of proposing a parallel design, and the earlier advice to leave out a workflow library and delete `escalatesTo` is withdrawn.
 
+**Revision 3 (same day):** Miguel widened the frame. Mindstream is not one recursive tool; it is a **thinking workspace**: a suite of tools for processing and refining thoughts so you can answer questions, make decisions, and turn big goals into small actions you can take. ThinkPad and the runner are the first two tools, and others may join. §1 and §4 were rewritten around that, a tool contract was added (§4.1), and Phase 4 now treats Home as the workspace entry instead of removing it.
+
 **How this was assessed:** read every design doc and all non-test source, ran `vitest` and `vite build`, and drove both tools in a real browser (stream, reflect, drill two levels, complete, next draft, Focus decompose, reload).
 
 ---
 
 ## 1. The identity, in one paragraph
 
-Mindstream is a tool for **resolving a thought by recursion and then carrying out what it resolved into**. You dump a messy thought; you pick the part that needs work and descend into it as its own blank page; when that page converges to one idea, it folds back up and replaces the mess it came from. The same operation runs on tasks: a focus that is too big is decomposed into a sub-focus, which is completed and folds a takeaway back up. One primitive, two materials:
+Mindstream is a **thinking workspace**: a suite of tools that help you process and refine your thoughts until you can answer a question, make a decision, or name the next small thing to do. Its bias is toward **small actionable steps as the way to finish big, lofty things**. Each tool does a different job on the same material:
+
+- **ThinkPad** is where you get out the thoughts that stand between you and the next decision, and refine them.
+- **The runner** is where you work through a workflow one step at a time to carry out an action, whether that is an intellectual move (doubt this claim), a thinking pattern, or a practice that moves a goal forward.
+- **Other tools** may join the suite later.
+
+What makes it a suite and not a folder of apps is the shared material: **text that stands for a thought** (a claim, a doubt, a question, a feeling, an intention). Every tool takes such text in and hands text back to where it came from. And one mechanism recurs in all of them, because it is how big becomes small:
 
 ```
-resolve(node):
-  base case      -> you write the answer / do the task
-  recursive case -> open a child seeded from the node, resolve it, fold the result up
+resolve(thing):
+  small enough -> write the answer / do the step
+  too big      -> open a smaller piece of it, resolve that, fold the result back up
 ```
 
-The material the primitive works on is always **text that stands for a thought**: a claim, a doubt, a question, an intention. Any tool in the app should be able to take such a piece of text as its input and hand back text that replaces or sits beside it.
-
-That primitive is the product. Everything in the roadmap is judged by whether it makes the descend / converge / fold-up loop clearer, safer or faster.
+Everything in the roadmap is judged by two questions: does it help a big thing become a next small step, and does its result get back to the thought that started it?
 
 ---
 
@@ -94,21 +100,36 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 
 ## 4. Product identity to commit to
 
-**Statement.** Mindstream is a recursive resolver. You bring one unresolved thing. You descend into whatever part is too big to answer directly, and nothing can come back up until it has converged to one idea. What comes up replaces the mess it came from. When a thought resolves into something to *do*, it runs through the same loop as a focus.
+**Statement.** Mindstream is a thinking workspace that turns big, unclear things into small actions you can take. You bring a goal, a question or a mess. The tools help you get it out, break it down, work a method on the hard parts, and come back with an answer, a decision or a next step. Whatever a tool produces returns to the thought that asked for it.
 
-**Five rules that follow from it.** Use these to accept or reject features.
+**Rules that follow from it.** Use these to accept or reject features and new tools.
 
 0. **Text is the interface.** Every tool consumes a piece of text that stands for a thought and returns text anchored to it. A span is a workable thing, not decoration on a document. A feature that needs its own non-text input format is suspect.
-1. **One primitive.** Thought-nodes and task-nodes are the same kind of thing: a goal, a workspace, children, and a result that folds up. Build it once.
+1. **One mechanism, many tools.** Tools differ in how they present work, not in what work is. Thoughts, workflow steps and tasks are the same kind of thing underneath: a goal, a place to work, smaller pieces, and a result that folds up. Build that once and let each tool be a way of working on it.
 2. **Convergence is the gate.** Nothing ascends unresolved: one block, and no open items left undecided (the proposal's open-item gate). Abandoning is allowed but is a visible, named act.
 3. **Fold the result, archive the process.** The parent only ever receives the chunk. The path that produced it stays re-openable.
 4. **One level in view.** At any moment you see one node, its goal, and a cue to where you are. Never a two-pane parent and child.
 5. **The app guides, you execute.** The app asks the next question or shows the next step of a workflow. It never generates the answer.
+7. **Every session can end in a next small action.** Wherever you stop, the workspace can tell you the one next step. A tool that leaves you with a bigger pile than you brought is working against the product.
 6. **The anchor chain is never broken.** However many levels a move descends, and whichever tool it runs in, its result lands at the span that produced it. This is only possible if the work stays in one tree, so moving work between tools means changing the view, not copying the data.
 
-**What it is not** (for this horizon): a note vault, an outliner you browse, a to-do list, a team tool, or an AI writer.
+**What it is not** (for this horizon): a note vault, an outliner you browse, a general to-do list, a team tool, or an AI writer.
 
-**The two tools, restated.** ThinkPad is the *document view* of the tree: many spans visible, you choose where to work. The Focus runner is the *step view* of the same tree: one step visible, the app tells you what is next. The proposal already describes these as "form view" and "step view" of a run (§4.1). Under this reading the runner stops being a separate tool with its own state.
+### 4.1 The tool contract
+
+A suite needs a rule for what counts as a tool, or it becomes a pile of features. A Mindstream tool:
+
+1. **Takes text in.** It can be started from a span, a step, or a blank prompt, and treats its input as a thought to work on.
+2. **Gives text back to the origin.** Its result lands at the span or step that started it (rule 6). A tool whose output stays inside the tool does not qualify.
+3. **Works on the shared tree.** It keeps no private copy of the work. It may keep view state: what is on screen, which step, a timer.
+4. **Ends in something smaller.** An answer, a decision, a sharper question, or a next step.
+5. **Can be entered and left mid-work.** You can hop to another tool from any point and come back to the same place.
+
+Against this contract today: ThinkPad meets 1 to 4 and partly 5. The runner on `master` meets 1 and 4 only; it has no origin to return to and keeps a private, unsaved copy. Phases 2 and 3 are what bring it into the contract.
+
+**The first two tools.** ThinkPad is the open-ended tool: many spans visible, you choose where to work. The runner is the guided tool: one step visible, the workflow tells you what is next. They stay distinct tools with distinct jobs. What they share is the tree underneath, which is what lets a span be run in the runner and a runner step open its own pad without copying anything. The proposal's "form view" and "step view" (§4.1 there) are these two tools looking at one run.
+
+**Future tools** are not planned here, but the contract is the test for them. A weekly review, a decision log, or a goal breakdown would each qualify if it reads and writes the same tree. A habit tracker with its own data would not.
 
 **Vocabulary to standardise** (one word per concept, in UI and code):
 
@@ -187,9 +208,9 @@ The identity phase. It resolves G1, G2 and G3 together, and delivers both bridge
 
 ### Phase 4 — Resume and the open-loop ledger (about 1 to 2 weeks)
 
-With one tree, the home screen can answer "what should I pick up?".
+With one tree, the workspace home can answer "what is my next small step?".
 
-- **Replace the launcher.** Home becomes a list of open loops across all pads: open thought threads, active tasks, and parked tasks with what they are waiting on. Two icons become one entry point.
+- **Home is the workspace.** Keep the tool launcher; a suite needs one. Add above it the open loops across all pads: open thought threads, runs in progress, and parked work with what it is waiting on. Each shows its one next step and opens in the tool it was left in.
 - **Resume lands you exactly where you were:** same pad, same thread, same phase. Set `resumeHint` on leave and show it on return.
 - **Parked tasks resurface.** A parked task shows how long it has waited; un-parking returns to its exact depth.
 - **Export.** One pad to Markdown, with the resolved root on top and archived threads nested below. For a personal local-only tool, this is also the backup.
@@ -222,7 +243,7 @@ With one tree, the home screen can answer "what should I pick up?".
 
 ### Questions for Miguel
 
-1. **View or import?** Is the Focus runner meant to be a view over the same run thread (recommended above), or a separate state that spans are copied into and synced back from?
+1. **View or import?** Read from Revision 3: the runner stays its own tool, and the roadmap assumes it works on the shared tree and keeps only view state (tool contract, point 3). Say so if you intend the runner to hold its own copy of the work.
 2. **Where is the in-flight code?** Only the proposal doc is on the remote. If implementation exists on an unpushed branch, §2 and §3 should be re-checked against it.
 3. **Resolve or Complete?** See the naming note in §4.
 4. **Does every tag map to a workflow?** Doubt is the example given. Should Question, Expand and Flag each open a workflow by default, or do some stay as a plain blank sub-pad?
@@ -237,4 +258,5 @@ Count these from the data already stored; no analytics needed.
 - **Open-thread ratio:** threads left open with content, over threads created. Should fall after Phase 1.
 - **Depth actually used:** distribution of max depth per pad. If it is always 1, recursion is not earning its place.
 - **Thought-to-task conversion:** after Phase 3, share of resolved pads that produced at least one task, and share of those tasks completed.
+- **Sessions ending in a next step:** share of sessions where, on leaving, some thread or run has a named next step. This is the workspace-level measure.
 - **Resume success:** after Phase 4, how often a return visit continues an existing thread instead of starting a new pad.
