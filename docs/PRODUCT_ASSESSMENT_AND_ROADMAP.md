@@ -130,8 +130,8 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 3. **Fold the result, archive the process.** The parent only ever receives the chunk. The path that produced it stays re-openable.
 4. **One level in view.** At any moment you see one node, its goal, and a cue to where you are. Never a two-pane parent and child.
 5. **The app guides, you execute.** The app asks the next question or shows the next step of a workflow. It never generates the answer.
-7. **Every session can end in a next small action.** Wherever you stop, the workspace can tell you the one next step. A tool that leaves you with a bigger pile than you brought is working against the product.
 6. **Results come home.** However many levels a move descends, and however many tools it passes through, its result lands at the span or step that asked for it. Between tools this is done by a reply address carried on the message, not by shared data.
+7. **Every session can end in a next small action.** Wherever you stop, the workspace can tell you the one next step. A tool that leaves you with a bigger pile than you brought is working against the product.
 
 **What it is not** (for this horizon): a note vault, an outliner you browse, a general to-do list, a team tool, or an AI writer.
 
@@ -239,7 +239,7 @@ Nothing here changes behaviour; it stops the repo from misdescribing itself.
 - Mark `PRODUCT_AGENT_CONTEXT.md`, `PRODUCT_IDEATION_CONTEXT.md`, `TRIAGE_IDEATION_CONTEXT.md`, `GRAPH_STATUS_AGENT_CONTEXT.md` and `feature-science-map.md` §3 as historical, or move them to `docs/archive/`. Correct `FRONTEND_PATHS.md`.
 - Remove Font Awesome and the unused audio assets if confirmed unused.
 
-*Done. All items shipped. D2 was fixed by the gate. The README was rewritten rather than given the full §4 rules, which stay here. Verified: 289 tests pass, the build succeeds, and the browser console showed no warnings on `/`, `/thinkpad` or `/focus`; the same check run against the code before the fixes showed the router warning on all three and the `ThinkPadAppBar` warning on `/thinkpad`.*
+*Done. All items shipped. D2 was fixed by the gate, though the tooltip saying why the button is disabled was not added; it is small and left for Phase 1. The README was rewritten rather than given the full §4 rules, which stay here. Verified: 289 tests pass, the build succeeds, and the browser console showed no warnings on `/`, `/thinkpad` or `/focus`; the same check run against the code before the fixes showed the router warning on all three and the `ThinkPadAppBar` warning on `/thinkpad`.*
 
 **Exit test:** `npm test` is green, the browser console is clean on both routes, and a fresh agent session given only `README.md` and this doc describes the product correctly.
 
