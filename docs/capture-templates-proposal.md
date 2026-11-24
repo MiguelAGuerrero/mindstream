@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-23, revised 2026-11-24
 **Status:** Proposal. This version replaces v1. It records the model reached in a design conversation with Miguel. §10 lists what is still open.
-**v2.1:** aligned with the loosely coupled workspace in `docs/PRODUCT_ASSESSMENT_AND_ROADMAP.md` (branch `claude/keen-sagan-c5wtji`, Revisions 4–6: shell, registry, Send/Ask, shelf). That doc owns the message envelope, the tool contract and the shell. This doc owns the **workflow definition**: its shape, steps, slots, variants and `produces`. The items that came out of coordination between the two design sessions were confirmed or withdrawn by Miguel on 2026-11-24 (decisions 15–22).
+**v2.1:** aligned with the loosely coupled workspace in `docs/PRODUCT_ASSESSMENT_AND_ROADMAP.md` (branch `claude/keen-sagan-c5wtji`, Revisions 4–7: shell, registry, Send/Ask, shelf, content-carrying messages). That doc owns the message envelope, the tool contract and the shell. This doc owns the **workflow definition**: its shape, steps, slots, variants and `produces`. The items that came out of coordination between the two design sessions were confirmed or withdrawn by Miguel on 2026-11-24 (decisions 15–22).
 **Mockup:** the design canvas *Capture Templates Mockup*, a private artifact (see §11).
 **Builds on:** `src/thinkpad/moves.js`, `src/thinkpad/domain/thinkPadModel.js` (threads, sub-pads, `resolveThreadIntoParent`, `discardThread`), `src/thinkpad/composables/useThinkPadSurface.js` (`canComplete`), `docs/recursive-resolve-contract.md`, `docs/stream-reflect-lifecycle.md`, `docs/GENERIC_PROBLEM_SOLVING_WORKFLOWS.md`.
 
