@@ -36,8 +36,13 @@ watch(
 );
 
 // No title: name the pad by its first words, so untitled pads can be told apart.
+// activeTitle falls back to "Untitled" upstream; that placeholder isn't a title.
+function realTitle(item) {
+  const active = (item.activeTitle || "").trim();
+  return (item.rootTitle || "").trim() || (active === "Untitled" ? "" : active);
+}
 function docTitle(item) {
-  const title = (item.rootTitle || item.activeTitle || "").trim();
+  const title = realTitle(item);
   if (title) return title;
   const words = (item.previewText || "").replace(/\s+/g, " ").trim();
   if (!words) return "Untitled";
@@ -46,7 +51,7 @@ function docTitle(item) {
 
 // Empty pads (nothing written, no title) are left out, except the one open now.
 const listed = computed(() =>
-  props.items.filter((item) => item.id === props.activeId || (item.previewText || "").trim() || (item.rootTitle || item.activeTitle || "").trim()),
+  props.items.filter((item) => item.id === props.activeId || (item.previewText || "").trim() || realTitle(item)),
 );
 
 // Items already arrive newest-first (contextPool). Filter client-side by title.
@@ -153,7 +158,7 @@ function truncatePreview(text, max = 280) {
                   v-if="item.createdAt"
                   class="doc-card__date text-caption text-disabled"
                 >
-                  Created {{ formatRelativeTime(item.createdAt) }}
+                  <span class="doc-card__created">Created </span>{{ formatRelativeTime(item.createdAt) }}
                 </span>
               </span>
             </button>
@@ -357,41 +362,71 @@ function truncatePreview(text, max = 280) {
   gap: 8px;
 }
 
-/* Phones: a plain document list (title, when), like the welcome screen. No
-   previews; the delete button is always there since there is no hover. */
+/* Phones: two columns of page tiles, like the welcome screen. The delete
+   button is always there since there is no hover. */
 @media (max-width: 600px) {
+  .doc-grid-scroll {
+    padding: 0.75rem 1rem;
+    max-height: none;
+  }
   .doc-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
   }
   .doc-card {
-    flex-direction: row;
-    align-items: center;
-    min-height: 56px;
-    padding: 0 48px 0 12px;
+    padding: 0;
   }
-  .doc-card__page {
+  .dialog-title,
+  .dialog-search {
+    padding-inline: 1rem;
+  }
+  .doc-card__created {
     display: none;
   }
+  .doc-card__page {
+    height: 104px;
+    padding: 10px 10px 0;
+  }
+  .doc-card__preview {
+    font-size: 0.68rem;
+  }
   .doc-card__caption {
-    padding: 8px 0;
+    padding: 8px 10px 10px;
     min-width: 0;
   }
   .doc-card--new {
-    flex-direction: row;
-    justify-content: flex-start;
-    gap: 12px;
-    min-height: 52px;
-    padding: 0 12px;
+    min-height: 0;
   }
+  /* Bottom right, beside the title, so it never covers the preview. */
   .doc-card__delete {
     opacity: 1 !important;
-    top: 50% !important;
-    transform: translateY(-50%);
-    right: 6px !important;
-    width: 40px !important;
-    height: 40px !important;
+    top: auto !important;
+    bottom: 6px;
+    right: 2px !important;
+    width: 36px !important;
+    height: 36px !important;
+  }
+  .doc-card__caption {
+    padding-right: 34px;
+  }
+  .doc-card__title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.3;
+  }
+  .doc-card__date {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .doc-card__confirm {
+    padding: 10px;
+    gap: 6px;
+  }
+  .doc-card__confirm-actions {
+    flex-wrap: wrap;
   }
 }
 </style>

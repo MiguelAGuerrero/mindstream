@@ -127,7 +127,7 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 - **No pins** (Revision 29).
 - **Writing scrolls, Reflect is paged** (Revision 31). Writing is one continuous scroll; Reflect opens in a Pages view (swipe or tap to turn, "page N of M") with a Document view to switch to, as in a word processor.
 - **The page is the phone screen** (Revision 32). On phones the ThinkPad has one thin bar (Home, the page's actions, a ⋯ menu for New / Open / Export), no card frame, and a one-line thread strip; the Writing / Reflect switch stays at the bottom. Desktop keeps its reading width.
-- **A new think-pad starts from + on phones** (Revision 33). The phone welcome is a document list (no previews) with a thumb-reach + that opens a dialog asking the question, skippable. Desktop keeps the full-screen question prompt.
+- **A new think-pad starts from + on phones** (Revision 33). The phone welcome is two columns of page tiles (first lines, title, when; Revision 37, replacing the Revision 33 list) with a thumb-reach + that opens a dialog asking the question, skippable. Desktop keeps the full-screen question prompt.
 - **Revision history, not a study card** (Revision 34). Tapping "Draft N / M" opens each draft with the moves that made it (writing pass with word change, or the thread results brought in); tap to read a past draft. The before → after study card is retired.
 - **Pages are real pages** (Revision 35). In Reflect's Pages view you only ever see one page: the lines that fit whole; the rest starts the next page. No partial lines, no repeated lines, no free scrolling.
 - **Tag shortcuts are declared per tag** (Revision 29): each tag can have one workflow as its shortcut.

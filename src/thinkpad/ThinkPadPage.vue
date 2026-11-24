@@ -183,7 +183,7 @@ watch(
                     <span v-if="item.whereLeft" class="thinkpad-doc-card__date text-caption text-disabled">
                       In: {{ item.whereLeft }}
                     </span>
-                    <!-- Phones: when and where on one line (the list has no preview). -->
+                    <!-- Phones: when and where on one line under the tile. -->
                     <span v-if="item.updatedAt || item.whereLeft" class="thinkpad-doc-card__meta text-caption text-disabled">
                       {{ [item.updatedAt ? welcome.formatRelativeTime(item.updatedAt) : "", item.whereLeft ? `In: ${item.whereLeft}` : ""].filter(Boolean).join(" · ") }}
                     </span>
@@ -1255,9 +1255,7 @@ watch(
   .thinkpad-canvas {
     padding: 0;
   }
-  /* "Pick up where you left off" is a plain document list, like a docs app:
-     icon, title, and when / where on one line. No preview on a phone. At most
-     about four rows show; the rest scroll, so the question stays in view. */
+  /* "Pick up where you left off": two columns of page tiles (below). */
   .thinkpad-welcome {
     flex-shrink: 0;
     padding: 8px 8px 0;
@@ -1279,49 +1277,52 @@ watch(
     bottom: calc(24px + env(safe-area-inset-bottom, 0px));
     z-index: 5;
   }
+  /* Two columns of tiles, like a docs app: each tile is a mini page with the
+     pad's first lines, captioned with its title and when / where. */
   .thinkpad-welcome__grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding-inline: 8px;
   }
-  /* With no big prompt below, the list can use the screen. */
+  /* With no big prompt below, the tiles can use the screen. */
   .thinkpad-welcome {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     padding-bottom: 96px; /* the last row clears the + button */
   }
-  .thinkpad-welcome__grid .thinkpad-doc-card {
-    flex-direction: row;
-    align-items: center;
-    gap: 14px;
-    min-height: 56px;
-    padding: 0 8px;
-    border: none;
-    border-radius: 8px;
-    background: transparent;
-    box-shadow: none;
+  .thinkpad-welcome__grid .thinkpad-doc-card__page {
+    height: 112px;
+    padding: 10px 10px 0;
   }
-  .thinkpad-welcome__grid .thinkpad-doc-card__page,
+  .thinkpad-welcome__grid .thinkpad-doc-card__preview {
+    -webkit-line-clamp: 6;
+    font-size: 0.68rem;
+  }
+  .thinkpad-welcome__grid .thinkpad-doc-card__caption {
+    padding: 8px 10px 10px;
+    min-width: 0;
+  }
   .thinkpad-welcome__grid .thinkpad-doc-card__date {
     display: none;
   }
-  .thinkpad-welcome__grid .thinkpad-doc-card__icon {
-    display: inline-flex;
-    flex-shrink: 0;
-    color: rgb(var(--v-theme-primary));
-  }
-  .thinkpad-welcome__grid .thinkpad-doc-card__caption {
-    flex: 1 1 auto;
-    min-width: 0;
+  .thinkpad-welcome__grid .thinkpad-doc-card {
     padding: 0;
+  }
+  /* Titles get two lines on a narrow tile. */
+  .thinkpad-welcome__grid .thinkpad-doc-card__title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-height: 1.3;
   }
   .thinkpad-welcome__grid .thinkpad-doc-card__meta {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
   }
   .thinkpad-page-col {
     gap: 0;

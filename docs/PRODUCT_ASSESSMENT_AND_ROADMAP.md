@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 36)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 37)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 37 (2026-11-24): on phones, pads show as tiles.** Miguel: "I expected the tiles to be in. I still see the list view." Settled with him: two columns, each tile a mini page showing the pad's first lines; tiles only, with no list/tiles switch; on the home screen and in Open… alike. This replaces the Revision 33 phone list. **Built:** each tile has the page preview, a title of up to two lines, and when / where you left off. In Open…, the delete button sits beside the title so it never covers the preview, and the "Delete …? Keep / Delete" confirmation fits on the tile. **Fixed:** Open… listed empty pads as "Untitled", because the placeholder title counted as a real one. Also this session: the new-pad dialog's question is its heading, so it wraps instead of being cut off.
 
 **Revision 36 (2026-11-24): the installed app updates in place, and works fully offline.** Miguel: "PWA support is wanted". The app was already installable and cached for offline use, but updates landed only after closing and reopening the app. **Built:** a new deploy now shows "A new version of Mindstream is ready · Later / Reload" inside the app. The app checks for a new deploy when you come back to it and every 30 minutes. Mindstream asks the browser to keep pads permanently, so it can't clear them when space runs low. The phone ⋮ menu has an **Install app** item: Chrome uses its own install prompt, and iPhone Safari shows the Share → Add to Home Screen steps. A small **Offline** pill sits bottom-left while there's no connection. **Fixed:** offline, every icon used to be blank, because the icon font is requested with `?v=…` and that query stopped it matching the cached copy.
 
