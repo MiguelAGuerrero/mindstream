@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 20)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 21)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,12 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 21 (2026-11-24): connections are snapshots; whole-draft synthesis replaces.** Settled by Miguel after the manual run:
+- **A whole-draft synthesis resolves by replacing the text.** The root ends as its thesis; the raw material is archived in the synthesis thread.
+- **A connection keeps a snapshot of the text it drew on, and does not change when that text changes.** His words: "A connection is a product of its context and time, and it must keep track of that context, even if that context changes." A later refinement of a source passage is a later move, not a correction the connection must follow. This settles the run's second break: quotes and connections hold their original text and draft version; only the pointer to the source's current location follows it, so the app can notice change.
+- **Change is a prompt for reflection, not an error.** When a connection draws on text that was later refined, the app says so ("drawn from text that was later refined"), without blocking anything.
+- **A connection need not argue.** It can simply be an insight, such as a proposed generalization, which may still hold as things change around it. The alert's wording must not imply the connection is now wrong.
 
 **Revision 20 (2026-11-24): manual run of the revised synthesis model.** At Miguel's request the four recommended defaults in question 15 were walked through a five-day research session on a phone, as if built (`reports/Mindstream synthesis model manual run.md`). Two breaks were found: replacing a passage strands open threads anchored inside it, and "references follow into resolution" makes a thesis's evidence point at itself. Three gaps were also found: no cheap in-document link, no whole-draft gesture, and no visible answer for a pad. The run also reverses one review recommendation (keep each move's landing as a default). Question 15's defaults stand with these amendments; nothing is decided.
 
@@ -458,6 +464,7 @@ Open:
     - **References follow a passage into its resolution**, with provenance, instead of going lost.
     - **The moves stay built in** (one prompt each, ThinkPad stands alone); library workflows are for multi-step methods; tags stay shortcuts.
     - **A thesis is a name for a resolution that argues**, not a new mechanic; rule 2 reads "one resolution". Evidence travels as pointers ("3 sources"), opening the archived working-out, so rule 3 holds.
+    - **Settled in Revision 21:** whole-draft synthesis replaces; quotes and connections are snapshots of their source text and draft version, with a non-blocking "later refined" notice. Still open: whether replacing requires deciding open threads anchored inside the replaced text (the run's first break, now certain to occur, since a whole-draft replace contains every open thread at the root); whether a thesis may resolve with sources that still have open threads; whether the link action may target a passage (which would make it a connection, with snapshot semantics).
     - **Amendments from the manual run (Revision 20):** replace is gated on open threads anchored inside the passage; quotes point at the draft version they came from and never "follow" (only live anchors and links do); each move keeps its landing as a default you can override; the link action can target a passage in the document; quotes show "still open" and "changed since quoted"; a "Synthesize" action opens a thread on the whole draft; a pad's resolved thesis is marked as its answer and shown first.
     - **Deferred** until a real document shows the need: Arrange (question 14), a Themes view, inline reference marks, multi-select in the stream.
 
