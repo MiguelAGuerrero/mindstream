@@ -2,7 +2,7 @@
 
 **Date:** 2026-11-23, revised 2026-11-24
 **Status:** Proposal. This version replaces v1. It records the model reached in a design conversation with Miguel. §10 lists what is still open.
-**v2.1:** aligned with the loosely coupled workspace in `docs/PRODUCT_ASSESSMENT_AND_ROADMAP.md` (branch `claude/keen-sagan-c5wtji`, Revisions 4–5: shell, registry, Send/Ask, shelf). That doc owns the message envelope, the tool contract and the shell. This doc owns the **workflow definition**: its shape, steps, slots, variants, `produces` and `then`. Items marked **(proposed)** came out of coordination between the two design sessions and are **not yet confirmed by Miguel**.
+**v2.1:** aligned with the loosely coupled workspace in `docs/PRODUCT_ASSESSMENT_AND_ROADMAP.md` (branch `claude/keen-sagan-c5wtji`, Revisions 4–6: shell, registry, Send/Ask, shelf). That doc owns the message envelope, the tool contract and the shell. This doc owns the **workflow definition**: its shape, steps, slots, variants and `produces`. The items that came out of coordination between the two design sessions were confirmed or withdrawn by Miguel on 2026-11-24 (decisions 15–22).
 **Mockup:** the design canvas *Capture Templates Mockup*, a private artifact (see §11).
 **Builds on:** `src/thinkpad/moves.js`, `src/thinkpad/domain/thinkPadModel.js` (threads, sub-pads, `resolveThreadIntoParent`, `discardThread`), `src/thinkpad/composables/useThinkPadSurface.js` (`canComplete`), `docs/recursive-resolve-contract.md`, `docs/stream-reflect-lifecycle.md`, `docs/GENERIC_PROBLEM_SOLVING_WORKFLOWS.md`.
 
@@ -32,11 +32,14 @@ A move like **Investigate** is a **workflow of steps**, and a "form" is one way 
 | 12 | **Open-item gate:** a level can't resolve up while it has unresolved, undecided moves | §8 |
 | 13 | A workflow is a **tool-agnostic template**; any tool that accepts workflows runs it its own way. A form is the ThinkPad's way, for workflows that produce text | §3 |
 | 14 | Harvesting workflows from practice is **deferred** | — |
-| 15 | **(proposed)** Steps declare `produces: "text" \| "action"`; each tool's registration decides what it accepts; the shell only filters | §3.1 |
-| 16 | **(proposed)** The workflow library is **shell-level**, a sibling of the shelf. Workflows travel **by reference** (`{ id, version }`) | §3.1 |
-| 17 | **(proposed)** A workflow may suggest a follow-up (`then`), e.g. reflect. It is offered as a one-tap action, never run automatically | §6.3 |
+| 15 | Steps declare `produces: "text" \| "action"`. This is the basis of the Focus runner. Each tool's registration decides what it accepts; the shell only filters | §3.1 |
+| 16 | The workflow library belongs to the **shell**: workflows are not a ThinkPad or runner construct, and the library **can be its own page** in the workspace. Workflows travel **by reference** (`{ id, version }`) | §3.1 |
+| 17 | ~~A workflow may suggest a follow-up (`then`)~~ **Withdrawn.** Reflection is not built into the app. It is just a step you can choose to put in a workflow, defined by you, never prompted automatically | §6.3 |
 | 18 | **The shelf is confirmed.** Confirmed in roadmap Revision 6 | §8.2 |
 | 19 | **The ThinkPad has no step-by-step view.** A pad is a document that holds the context of your thinking. A run in the ThinkPad is shown only as a document (the form view). Stepping through a workflow means sending it to the runner. Confirmed in roadmap Revision 6 | §4.1 |
+| 20 | **The envelope additions are confirmed:** `workflow: { id, version }` on requests and `caveats: string[]` on replies. The roadmap owns the envelope | §3.1, §6.3 |
+| 21 | **Name: Resolve, not Complete.** A resolution means you've reached a place of understanding, which still holds when you leave room for doubt. "Complete" implies the task is solved | throughout |
+| 22 | **Moves and tags don't start workflows by default, and no workflow is tied to a type of move.** Question, Expand and Flag offer **shortcuts** to workflows, but which workflow fits depends on context, so there is no fixed mapping | §3 |
 
 ---
 
@@ -51,7 +54,13 @@ Investigate  (the abstract move: a contract)
   ─ Resolve                → a call  |  a sharper question     ⤴ rolls up to the origin span
 ```
 
-Move, template and workflow from v1 collapse into **workflow**. A move such as Investigate is a workflow that sits in the palette. Its `escalatesTo` field becomes the slot defaults.
+Move, template and workflow from v1 collapse into **workflow**. Investigate is a workflow you can run on a span.
+
+**No workflow is tied to a type of move** (decision 22). Which workflow fits a question or a claim depends on context.
+- Choosing Question, Expand or Flag on a span opens a blank sub-pad, as it does today.
+- Alongside that, the tag offers **shortcuts** to workflows you might want, and a way into the full library.
+- The hard-coded `escalatesTo` field in `moves.js` is retired as a fixed link. At most it becomes one input to which shortcuts are offered.
+- Likewise, a step's `slot` is the default that a variant saved, not a rule.
 
 ### 3.1 A workflow is tool-agnostic
 
@@ -59,12 +68,13 @@ Move, template and workflow from v1 collapse into **workflow**. A move such as I
 - **Every tool runs workflows.** A move on a pad is a one-step workflow. Free-form moves are an unscripted workflow. A Focus session is a workflow you write as you go.
 - **Each tool runs a workflow its own way.** The runner shows one step at a time. **The ThinkPad shows a form.** A form only makes sense for workflows whose steps produce text: a sketching workflow has no form, but a "reflect on that session" workflow does.
 
-**(proposed)** How this fits the workspace shell:
-- **The workflow declares, each tool decides, the shell filters.** Each step has `produces: "text" | "action"`, defaulting to `"text"`.
+How this fits the workspace shell (decisions 15, 16, 20):
+- **The workflow declares, each tool decides, the shell filters.** Each step has `produces: "text" | "action"`, defaulting to `"text"`. This is the basis of the Focus runner.
   - Each tool's registration says what it accepts. The ThinkPad accepts a workflow only if every step produces text. The runner accepts any.
   - The shell asks each registered tool and builds "Run with…" or "Send to…" from the answers. The shell never interprets workflows.
   - Keep exactly these two values until a third one would make some tool behave differently (§7's test).
-- **Library.** Workflow definitions live in a **shell-level library**, a sibling of the shelf. They are not copied per tool, because copies would drift and runs would stop being comparable.
+- **Library.** Workflow definitions live in a **shell-level library**, a sibling of the shelf. They are not a ThinkPad or runner construct, and they are not copied per tool, because copies would drift and runs would stop being comparable.
+  - The library **can be its own page** in the workspace, where you browse, write and edit workflows.
   - Tools read the library through the shell.
   - Tools write to it through one call only: save as variant.
   - Pivots made during a run stay in the running tool's own state.
@@ -141,18 +151,15 @@ The rest of the level is its **process**. It is kept as a record that you can re
   - Within one tool, a citation can read the record directly.
   - Across tools, the tool contract forbids reading another tool's data, so a citation would go through the shell as text plus a reference back. This is deferred, along with records.
 
-### 6.3 Across tools (proposed)
-How resolution and roll-up work when the asking level and the working level are in different tools. The envelope fields named here belong to the roadmap.
+### 6.3 Across tools
+How resolution and roll-up work when the asking level and the working level are in different tools. The envelope fields named here belong to the roadmap, and both are confirmed (decision 20).
 - **Outcomes already line up.** The roadmap's reply outcomes `resolved | question | abandoned` are this doc's *a call | a sharper question | Back*.
 - **A pending Ask is an open item.** If the ThinkPad sends a span to the runner, the span's open item stays until the reply arrives. The gate counts it like any unresolved move.
 - **Caveats travel on the reply** (`caveats: string[]`). An item lifted out of another tool's level arrives as a caveat at the origin, to begin with.
-- **The practice → reflect loop:**
-  - A workflow may carry `then: { intent: "reflect", workflow: <id> }`. When the run finishes, the tool shows it as the promoted one-tap action, so it is user-initiated and never forced.
-  - "Reflect" is an intent that the registry resolves, today to the ThinkPad, so no tool names another tool.
-  - The reflection is an Ask from the runner, and its reply **lands on the finished run** as that run's reflection.
-  - **Seeding the next run is a pull, not a push.** Starting a new run of the same workflow offers the last reflection as context lines.
+- **Reflection is not built into the app** (decision 17). If you want to reflect on a practice, you put a reflection step in that workflow yourself, or run a reflection workflow when you choose to. Nothing prompts you.
+  - A reflection step is an ordinary `produces: "text"` step.
+  - In the runner, you can work a text step there, or Send or Ask it to the ThinkPad like any other text, and the reply lands on that step.
   - Changing the method itself stays a deliberate save-as-variant.
-  - If the finished run is gone, the reply goes to the shelf.
 
 ---
 
@@ -161,7 +168,7 @@ How resolution and roll-up work when the asking level and the working level are 
 Everything is text representing a thought, so a type is justified **only if it changes what the app does** at one of three points:
 
 1. **Roll-up:** whether it closes a loop at the origin or keeps one open.
-2. **What's offered next.** This extends the existing `movesForIntent()`.
+2. **What's offered next.** This extends the existing `movesForIntent()`. These are **suggestions of moves, not bindings to workflows** (decision 22).
 3. **What comes back later:** something the app returns to after time passes or when evidence arrives.
 
 | Type | Loop | Offered next | Comes back |
@@ -233,17 +240,16 @@ The rule is the same at every level:
 
 ```js
 // Shared, tool-agnostic workflow definition. Data only, node-testable (like MOVES).
-// Lives in the shell-level library (proposed), not under src/thinkpad/.
+// Lives in the shell-level library, not under src/thinkpad/ or src/focus/.
 Workflow = {
   id, label, version,
   variantOf: workflowId | null,      // "Investigate · Research" → "investigate"
   steps: [{
     id, prompt,
     expects: Type | null,            // what the step resolves to (§7)
-    produces: "text" | "action",     // (proposed) default "text"; tools decide what they accept
-    slot: workflowId | null,         // default workflow filling this step
+    produces: "text" | "action",     // default "text"; tools decide what they accept
+    slot: workflowId | null,         // the default a variant saved; never a rule
   }],
-  then: { intent, workflow: workflowId } | null,   // (proposed) suggested follow-up, e.g. reflect
 }
 // Must render as plain text (numbered prompts) for tools that don't understand workflows.
 
@@ -275,9 +281,11 @@ step.resolution        = { text, type: Type | null, caveats: string[] }   // cav
 3. **How section headers are represented in the run doc.** Header paragraphs protected by a TipTap extension (recommended), or a separate doc per step.
 4. **Do records outlive their pad?** Proposed: yes, marked as orphaned.
 5. **Starter workflows:** Investigate (with Research and Debugging variants), Experiment, Decide.
-6. **Confirm the proposed items** in §2 (15–17) and §6.3. Miguel hasn't confirmed them. In particular, the two envelope additions (a workflow reference on requests, caveats on replies) are still being explained to him through on-screen examples by the roadmap session. (The shelf and the ThinkPad-has-no-step-view question are settled: decisions 18 and 19.)
-8. **Resolve vs Complete.** `master` renamed "Resolve up" to "Complete". Both design sessions lean towards **Resolve**, because a sharper question is resolved but not complete.
-9. **Does every palette tag (Question, Expand, Flag) default to a workflow?** Or do some stay plain blank sub-pads? This is shared with the roadmap.
+6. **Where tag shortcuts come from.** Decision 22 says tags offer shortcuts to workflows without a fixed mapping. What decides which shortcuts appear? Options:
+   - workflows you've pinned to that tag yourself;
+   - the ones you've used most recently with it;
+   - only the library, with no shortcuts until you pin some.
+7. **Renaming "Complete" back to "Resolve" in code.** `master` renamed "Resolve up" to "Complete" in the ThinkPad surface and the Focus runner (decision 21). This rename should land before the gate UI.
 
 ---
 
