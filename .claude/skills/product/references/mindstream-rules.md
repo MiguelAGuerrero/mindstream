@@ -6,7 +6,7 @@ A compact summary of what is settled, for checking proposals quickly. The source
 - `docs/capture-templates-proposal.md`: workflows, the open-item gate, resolution. Read its decisions table first.
 - `reports/`: research on comparable apps.
 
-If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 13 and proposal decisions 1 to 22.
+If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 14 and proposal decisions 1 to 22.
 
 ## Contents
 
@@ -113,7 +113,9 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 - **Open-item gate.** A level cannot resolve while moves started there are undecided. Each is addressed, accepted as a stated caveat, lifted to an ancestor, or parked. Built in ThinkPad.
 - **Steps declare what they produce:** text or an action. ThinkPad accepts a set of steps only if all produce text; the runner accepts any. A step may also carry `expects: "call"` with `options`: a decision step, finished by choosing an output (Revision 8).
 - **A workflow is only its steps.** No workflow-level notes; notes belong to the run. The runner's card shows the current step only; a side panel is the fallback for the whole plan (Revision 8, settled by Miguel).
-- **"Write more" is append-only, for now** (Revision 11). Going back to writing adds text after the frozen draft as a new version; the frozen text is never reopened for editing. Branching from an earlier draft is the way to rewrite.
+- **Mobile-first is a design constraint** (Revision 14). Every feature must work by touch on a phone; nothing hover-only or drag-only. "If it works on mobile, it works on desktop." The phone's small surface is what limits the feature set. Desktop stays supported.
+- **Freezing is a state of Reflect, not a move** (Revision 14). The document is living; Reflect freezes it while you reflect, and leaving Reflect returns to writing. Supersedes the one-way stamp (lifecycle doc §6) and Revision 11's append-only Write more. Mechanics are open (roadmap §6 questions 9 to 11).
+- **Citations and links are supported** (Revision 14). Whether citing is a move or a document action is open (roadmap §6 question 12).
 - **Phases follow the roadmap order.** The gate and bridges landing before Phase 1 was circumstance, not a reorder (Revision 11).
 - **Every finished phase lands on `master`** once its exit test passes, without asking again (Miguel, Revision 11). Work inside an unfinished phase stays on the branch.
 - **Reflection is not an app feature.** Nothing prompts it. It is a step or a workflow the person chooses.
@@ -155,6 +157,8 @@ Check the documents for the current list. At last sync:
 - Whether ThinkPad's one-way stamp into Reflect is too formal. Research found a published critique of mandatory drafts ("formality on demand"); the roadmap already calls for a "Write more" escape.
 
 ## 10. Outdated documents
+
+`docs/stream-reflect-lifecycle.md` §6 (one-way stamp, "flow is never the default canvas again") is superseded by Revision 14.
 
 Everything in `docs/archive/` describes an earlier product ("Rep-it", a workflow-step session app) or removed code. Do not use it as current context. `docs/feature-science-map.md` is also historical as a product description; its research principles still hold. `README.md` and `docs/FRONTEND_PATHS.md` were brought up to date in Phase 0 (Revision 8).
 

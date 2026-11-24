@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 13)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 14)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,13 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 14 (2026-11-24): mobile-first as a design constraint, Reflect as a state, citations.** Settled by Miguel, prompted by walking through a research scenario ("how do I build an effective workout program?", gathered from YouTube over several days):
+- **Mobile-first is a scope discipline, not a platform switch.** His words: "if it works on mobile, then it most certainly will work on desktop, because it's proven itself on a very limited surface." Every feature must work by touch on a phone screen, and that limit is what keeps the feature set small. Desktop stays supported. The earlier "no mobile layout" exclusion in §5 is withdrawn.
+- **Freezing is not a first-class move; it is the state of being in Reflect.** A document is living and understanding evolves as you gather more; stamping it at one point "isn't a good model of how people really think." Reflect freezes the draft so you are not tempted to add to it while focusing on your thoughts; leaving Reflect returns to a living document. This supersedes the one-way stamp in `stream-reflect-lifecycle.md` §6 and Revision 11's "Write more is append-only, for now".
+- **Citations and links are supported.** Pasting a link, or putting a link over a span of text, keeps track of what is external to the document. Miguel left open whether citing is an intellectual move or an action the document supports.
+
+The mechanics of the Reflect change and the shape of citing are proposed in §6 questions 9 to 12, not yet decided.
 
 **Revision 13 (2026-11-24): Phase 1 done.** Every Phase 1 item is built and its exit test passed in the browser, so it lands on `master` under Miguel's standing instruction (Revision 11). What changed for the person using ThinkPad:
 - **Write more** (G4): an append-only way back to writing from Reflect.
@@ -379,7 +386,7 @@ Designed in the session that produced Revision 8, not built. Each item names the
 ### Explicitly not on this roadmap
 
 - AI generation or agent execution. Rule 5. If revisited, an agent would join as one more tool behind the broker, receiving and replying in text like any other.
-- Accounts, sync, sharing, mobile layout, onboarding.
+- Accounts, sync, sharing, onboarding. *(Mobile layout was here; withdrawn in Revision 14: mobile-first is now the design constraint.)*
 - From the proposal, for now: variants, records and citation, and the "comes back later" behaviours (prediction checks, call reviews). They depend on the run loop being in daily use first.
 - Multiple drills per span with AND/OR roll-up, and sibling re-validation after a fold-up. Real ideas, deferred in the contract, still deferred.
 
@@ -410,8 +417,15 @@ Open:
 7. **Library access rule (capture-templates §10.8).** Built as proposed: the runner never reads the library. It asks with `choose-steps`, the library page answers, and only the library page writes (`keep`). Confirm before it hardens.
 8. *(Settled in Revision 11: append-only, for now.)*
 
+9. **Leaving Reflect with results waiting.** Proposed: leaving Reflect applies waiting results first (the Next Draft step, then the study beat), so you go back to writing on the newest draft and no result is ever placed against text you have since edited. The alternative, keeping them waiting while you edit, relies on re-finding the original words, and falls back to appending at the end of the document when they are gone (`spliceStepIntoPad`).
+10. **When a draft version is recorded.** Proposed: each time you enter Reflect, so the draft history becomes the record of how your understanding moved over time, without any stamping ceremony.
+11. **Write more.** Proposed: remove it. Switching back to writing replaces it, and two ways to add text would be confusing.
+12. **Citing: a move or a document action?** Proposed: both, for different jobs. *Attaching* a link to a span is a plain document action, available whether writing or reflecting, and needs no resolution. *"This needs a source"* is a move: an open item on the span that the gate counts until a link is attached or the item is decided. Pasted URLs become links automatically. Links are stored as text (Markdown style), so they cross to other tools intact.
+
 Settled:
 
+- **Mobile-first?** Revision 14: yes, as a design constraint.
+- **Is the draft frozen by a stamp?** Revision 14: no; frozen only while in Reflect.
 - **View or import?** Revisions 4 and 5: tools own their state and exchange text through the workspace shell.
 - **The shelf.** Revision 6: yes.
 - **Resolve or Complete?** Revision 7: Resolve. Done in code in Revision 9.
