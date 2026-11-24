@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 11)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 12)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 12 (2026-11-24): Write more built.** G4 is fixed, append-only as settled in Revision 11. Two pre-existing defects found while verifying it, D11 and D12, are logged in §3.3.
 
 **Revision 11 (2026-11-24): three answers from Miguel.**
 - **"Write more" is append-only, for now.** His words: "Write more is append only for now. In a way." Going back to writing adds a new piece of text after the frozen draft; it never reopens the frozen text for editing. "For now" means this can be revisited.
@@ -113,7 +115,7 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 
 **G3. The runner's fold-up loses results.** Each tool decomposing in its own way is by design (Revision 4). The defect is narrower: completing a sub-focus overwrites a single `result` string on the parent, so a second child's takeaway erases the first.
 
-**G4. Reflect is a one-way door.** `resolveThreadIntoParent` in the store force-stamps the parent, and `restreamDraft` / `restreamFromDraftHistory` exist in the domain but are not wired to any UI. Once a pad is in Reflect there is no way to write freely in it again. The lifecycle doc says the escape hatch must exist ("never trapped"); the build has the trap without the hatch.
+**G4. Reflect is a one-way door.** *Fixed in Revision 12: Write more, append-only.* `resolveThreadIntoParent` in the store force-stamps the parent, and `restreamDraft` / `restreamFromDraftHistory` exist in the domain but are not wired to any UI. Once a pad is in Reflect there is no way to write freely in it again. The lifecycle doc says the escape hatch must exist ("never trapped"); the build has the trap without the hatch.
 
 **G5. Designed vocabulary, undelivered.** `moves.js` defines nine moves in four families with prompts, write-back modes and intent mappings. The UI exposes three tags (Question, Expand, Flag), and the tag does not change what happens next: every tag opens the same blank sub-pad. The move's driving question, the thing that would make a drill *guided*, never reaches the screen. *The capture-templates proposal answers this with workflows of prompted steps, offered as shortcuts from the tags.* Likewise unwired: pins (`captureIdea`, `performMoveOnIdea`), the intent detector (does not exist), `promoteWithinPad` (no component emits `extract-step`), `resumeHint`, and the timebox config.
 
@@ -135,6 +137,8 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 | D8 | Focus timer resets on every action and is display-only; time spent is never recorded. | `FocusRunnerPage.vue` | Fixed by the workflows build (Revision 8): time spent is recorded per focus. |
 | D9 | `snapshot.json` is a browser devtools dump of an old Rep-it graph, not valid JSON, and imported by nothing. | `src/thinkpad/domain/snapshot.json` | Open. Likely safe to delete; confirm it is not wanted as a reference. |
 | D10 | Vuetify warns that `dense` is deprecated on every visit to `/workflows`. | `WorkflowLibrary.vue` | Fixed (Revision 9): `density="comfortable"`. |
+| D11 | Dragging across a few words inside a block in Reflect drills the whole block: the thread's title and anchor are the full sentence, and its result replaces the full sentence. Seen in automated browser runs (mouse drag); not yet checked by hand. Whether a drag should select words or the block is a design point. | block selection in `ThinkPadPanel.vue` (candidate-span handling) | Open (Phase 1). |
+| D12 | "Next Draft" stays in the Reflect pill after it has run (e.g. "Draft 2 / 2 · Next Draft"). Seen in automated browser runs, with and without Write more; cause not traced. | `DraftPhaseBar.vue` (`stagedCount`), `advanceToNextDraft` | Open (Phase 1). |
 
 ### 3.4 Hygiene
 
@@ -275,7 +279,7 @@ Nothing here changes behaviour; it stops the repo from misdescribing itself.
 
 Make the existing recursion complete and trustworthy before extending it.
 
-- **Escape hatch (G4).** *Settled in Revision 11: append-only.* A named "Write more" action in the phase bar opens an empty writing area after the frozen draft; adding it makes a new draft version recorded as a stream pass. The frozen text is never reopened for editing. Stop `resolveThreadIntoParent` from force-stamping a parent that is still in Stream; either stage without freezing, or ask.
+- **Escape hatch (G4).** *Done (Revision 12).* Verified in the browser: added text appears after the frozen draft as workable paragraphs, the draft count goes up, a staged result still lands at Next Draft, half-written text survives a reload, Cancel and a blank addition change nothing. The force-stamp below is now reachable only after branching from an old draft; left as is. A named "Write more" action in the phase bar opens an empty writing area after the frozen draft; adding it makes a new draft version recorded as a stream pass. The frozen text is never reopened for editing. Stop `resolveThreadIntoParent` from force-stamping a parent that is still in Stream; either stage without freezing, or ask.
 - **Symmetric recursion (G6).** *Done (Revision 10), except the root-as-thread unification, which did not fall out cheaply.* Compute `drillThreads` for the current surface at any depth so every sub-pad shows its own threads and Continue / Reopen. Take the root-as-thread unification from the contract (§13.3) only if it falls out cheaply.
 - **Make the fold-up the moment (G7).** After "Next Draft", show a short before/after of each replaced span, then the whole new draft. This is the study beat. Keep it skippable.
 - **Open-thread hygiene.** On the parent, mark threads as open, converged-not-completed, or completed. On Back from a thread with content, say it is being left open. Contract rule 6 calls unclosed drills "worse than no feature".
