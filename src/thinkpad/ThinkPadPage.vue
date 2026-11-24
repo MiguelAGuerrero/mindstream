@@ -132,6 +132,7 @@ watch(
                     <span v-if="item.previewText" class="thinkpad-doc-card__preview">{{ item.previewText }}</span>
                     <span v-else class="thinkpad-doc-card__preview thinkpad-doc-card__preview--empty">Empty document</span>
                   </span>
+                  <v-icon class="thinkpad-doc-card__icon" icon="mdi-file-document-outline" size="22" />
                   <span class="thinkpad-doc-card__caption">
                     <span class="thinkpad-doc-card__title text-body-2">{{ item.title || 'Untitled' }}</span>
                     <span v-if="item.updatedAt" class="thinkpad-doc-card__date text-caption text-disabled">
@@ -139,6 +140,10 @@ watch(
                     </span>
                     <span v-if="item.whereLeft" class="thinkpad-doc-card__date text-caption text-disabled">
                       In: {{ item.whereLeft }}
+                    </span>
+                    <!-- Phones: when and where on one line (the list has no preview). -->
+                    <span v-if="item.updatedAt || item.whereLeft" class="thinkpad-doc-card__meta text-caption text-disabled">
+                      {{ [item.updatedAt ? welcome.formatRelativeTime(item.updatedAt) : "", item.whereLeft ? `In: ${item.whereLeft}` : ""].filter(Boolean).join(" · ") }}
                     </span>
                   </span>
                 </button>
@@ -1109,6 +1114,11 @@ watch(
   white-space: nowrap;
 }
 
+.thinkpad-doc-card__icon,
+.thinkpad-doc-card__meta {
+  display: none;
+}
+
 .thinkpad-doc-card__date {
   font-size: 0.7rem;
   overflow: hidden;
@@ -1123,21 +1133,55 @@ watch(
   .thinkpad-canvas {
     padding: 0;
   }
-  /* "Pick up where you left off" is one row of cards you swipe through, so it
-     never pushes the question off the screen. */
+  /* "Pick up where you left off" is a plain document list, like a docs app:
+     icon, title, and when / where on one line. No preview on a phone. At most
+     about four rows show; the rest scroll, so the question stays in view. */
   .thinkpad-welcome {
     flex-shrink: 0;
-    padding: 12px 16px 0;
+    padding: 8px 8px 0;
+    gap: 4px;
+  }
+  .thinkpad-welcome__heading {
+    padding-inline: 8px;
   }
   .thinkpad-welcome__grid {
     display: flex;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    padding-bottom: 4px;
+    flex-direction: column;
+    gap: 0;
+    max-height: 232px;
+    overflow-y: auto;
   }
   .thinkpad-welcome__grid .thinkpad-doc-card {
-    flex: 0 0 min(70%, 240px);
-    scroll-snap-align: start;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    min-height: 56px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    box-shadow: none;
+  }
+  .thinkpad-welcome__grid .thinkpad-doc-card__page,
+  .thinkpad-welcome__grid .thinkpad-doc-card__date {
+    display: none;
+  }
+  .thinkpad-welcome__grid .thinkpad-doc-card__icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: rgb(var(--v-theme-primary));
+  }
+  .thinkpad-welcome__grid .thinkpad-doc-card__caption {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0;
+  }
+  .thinkpad-welcome__grid .thinkpad-doc-card__meta {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
   }
   .thinkpad-page-col {
     gap: 0;
