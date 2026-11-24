@@ -77,6 +77,7 @@ describe("padStore", () => {
     store.setPadText({ text: "The plan is a set of open questions. Dates slip." });
     store.enterReflect();
     expect(store.draftHistory).toHaveLength(3);
+    expect(store.studyBeat).toBeNull(); // a new Reflect session starts fresh
   });
 
   it("a thread resolving into a parent that is being written splices straight in", () => {

@@ -336,6 +336,7 @@ export const usePadStore = defineStore("pad", {
      * opens the study beat for them, and returns to writing.
      */
     enterReflect({ padLocator = null } = {}) {
+      this.studyTarget = null; // a new Reflect session; the last study beat is done
       this._applyOnPad((pad, now) => enterReflectOnPad(pad, { padLocator }, { now, makeId }));
     },
 
