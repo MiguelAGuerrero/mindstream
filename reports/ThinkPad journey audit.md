@@ -2,6 +2,10 @@
 
 Every ThinkPad journey reachable in the app, driven in a browser at iPhone size (390 × 664) with desktop spot checks (1280 × 860), on build 5eecaff (Revision 34). Each step was screenshotted and judged from what was on screen plus measured sizes. Screenshots: https://claude.ai/artifact/1PGncJr78BZxhFMJ8NFcpa (private to the owner).
 
+## Status (same day)
+
+All findings are fixed on master except #12 (partly fixed: plain wording and wrapping titles; the gate and the takeaway are still two dialogs) and #14 (withdrawn: a measurement error; the desktop screenshots were halved when the contact sheet was made, and at real size the page is 816px wide and centred in both modes). Commits: high f9c9e01, medium 2e6427f, low ed6b91d. Reflect's Pages view was rebuilt as a real page viewer in b2f6d11, which also fixes #10.
+
 ## Findings, ranked
 
 ### 1. [High] Notice covers Back and Resolve in a thread
