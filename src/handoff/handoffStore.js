@@ -29,6 +29,12 @@ export const useHandoffStore = defineStore("handoff", {
     handoffs: [],
     hydrated: false,
   }),
+  getters: {
+    /** Requests still waiting on a reply (Phase 4 open loops), newest first. */
+    waiting(state) {
+      return state.handoffs.filter((h) => !h.reply).slice().reverse();
+    },
+  },
   actions: {
     /** Load persisted requests once and write through on every change. Idempotent. */
     hydrate() {

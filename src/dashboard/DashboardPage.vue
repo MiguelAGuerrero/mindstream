@@ -1,36 +1,84 @@
 <script setup>
-// Launcher — the app's front door. It only lists the registered tools and
-// opens each one on its own full-screen route; no tool renders inside another.
+// The workspace's front door. Above the tools, "Pick up" lists what each tool
+// reports as unfinished (roadmap Phase 4): open threads in ThinkPad, live and
+// parked contexts in the runner, and requests still waiting on a reply. Each
+// shows its one next step and opens exactly where it left off. Home only
+// lists what the tools report; it reads no tool's data itself.
+import { computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { emitAudioEvent } from "../sfx";
-import { TOOLS, routeForTool } from "../handoff/toolRegistry";
+import { TOOLS, getTool, routeForTool } from "../handoff/toolRegistry";
+import { usePadStore } from "../thinkpad/store/padStore";
+import { useSessionRunStore } from "../focus/store/sessionRunStore";
+import { useHandoffStore } from "../handoff/handoffStore";
 
 const router = useRouter();
+const pads = usePadStore();
+const runs = useSessionRunStore();
+const handoffs = useHandoffStore();
+
+onMounted(async () => {
+  handoffs.hydrate();
+  if (!pads.isLoaded) await pads.loadPads();
+  if (!runs.isLoaded) await runs.loadContexts();
+});
+
+function waited(iso) {
+  const days = Math.round((Date.now() - Date.parse(iso ?? "")) / 86400000);
+  if (!Number.isFinite(days) || days < 0) return "";
+  return days === 0 ? "today" : days === 1 ? "1 day" : `${days} days`;
+}
+
+const loops = computed(() => [
+  ...runs.openLoops.map((l) => ({
+    ...l,
+    meta: l.since ? `waiting ${waited(l.since)}` : "",
+    to: { name: "focus", query: { context: String(l.place.context) } },
+  })),
+  ...pads.openLoops.map((l) => ({
+    ...l,
+    meta: l.where,
+    to: { name: "thinkpad", query: { pad: l.place.pad, thread: l.place.thread } },
+  })),
+  ...handoffs.waiting.map((h) => ({
+    tool: h.to.tool,
+    id: h.id,
+    title: h.text,
+    next: `Waiting on ${getTool(h.to.tool)?.name ?? "another tool"}`,
+    meta: getTool(h.replyTo.tool)?.name ?? "",
+    to: handoffs.routeFor(h),
+  })),
+]);
 
 function openTool(tool) {
   emitAudioEvent(tool.id, "tool", "select");
   router.push(routeForTool(tool.id));
 }
-
-function hoverTool(tool) {
-  emitAudioEvent(tool.id, "tool", "hover");
-}
 </script>
 
 <template>
   <v-main>
-    <v-container class="py-8" style="max-width: 880px">
+    <v-container class="py-6" style="max-width: 880px">
+      <section v-if="loops.length" class="home-loops" aria-label="Pick up">
+        <h2 class="home-loops__title">Pick up</h2>
+        <ul class="home-loops__list">
+          <li v-for="l in loops" :key="`${l.tool}:${l.id}`">
+            <button type="button" class="home-loops__row" @click="router.push(l.to)">
+              <v-icon :icon="getTool(l.tool)?.icon ?? 'mdi-circle-small'" size="18" class="home-loops__icon" />
+              <span class="home-loops__text">
+                <span class="home-loops__name">{{ l.title }}</span>
+                <span class="home-loops__next">{{ l.next }}<template v-if="l.meta"> · {{ l.meta }}</template></span>
+              </span>
+              <v-icon icon="mdi-chevron-right" size="18" class="home-loops__go" />
+            </button>
+          </li>
+        </ul>
+      </section>
+
+      <h2 v-if="loops.length" class="home-loops__title">Tools</h2>
       <v-row>
         <v-col v-for="tool in TOOLS" :key="tool.id" cols="12" sm="6">
-          <v-card
-            class="h-100"
-            rounded="lg"
-            variant="outlined"
-            hover
-            :aria-label="`Open ${tool.name}`"
-            @click="openTool(tool)"
-            @mouseenter="hoverTool(tool)"
-          >
+          <v-card class="h-100" rounded="lg" variant="outlined" hover :aria-label="`Open ${tool.name}`" @click="openTool(tool)">
             <v-card-item :prepend-icon="tool.icon">
               <v-card-title>{{ tool.name }}</v-card-title>
               <v-card-subtitle class="text-wrap">{{ tool.job }}</v-card-subtitle>
@@ -41,3 +89,41 @@ function hoverTool(tool) {
     </v-container>
   </v-main>
 </template>
+
+<style scoped>
+.home-loops { margin-bottom: 24px; }
+.home-loops__title {
+  margin: 0 0 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(var(--v-theme-on-surface), 0.6);
+}
+.home-loops__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+.home-loops__list li { border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity)); }
+.home-loops__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 4px;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.home-loops__row:hover .home-loops__name { color: rgb(var(--v-theme-primary)); }
+.home-loops__icon { color: rgba(var(--v-theme-on-surface), 0.55); }
+.home-loops__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.home-loops__name { font-size: 0.95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-loops__next { font-size: 0.8rem; color: rgba(var(--v-theme-on-surface), 0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-loops__go { color: rgba(var(--v-theme-on-surface), 0.4); }
+</style>

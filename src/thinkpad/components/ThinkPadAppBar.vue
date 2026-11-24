@@ -23,6 +23,19 @@ const sessionUi = useSessionUi();
 function goHome() {
   router.push({ name: "home" });
 }
+
+// Export the pad on screen as a Markdown file (roadmap Phase 4): the draft on
+// top, threads nested below. For a local-only tool, this is also the backup.
+function exportPad() {
+  const text = padStore.currentPadMarkdown;
+  const name = (padStore.currentPad?.title || "pad").replace(/[^\w\- ]+/g, "").trim().slice(0, 60) || "pad";
+  const url = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${name}.md`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 </script>
 
 <template>
@@ -47,6 +60,16 @@ function goHome() {
         @click="sessionUi.documentPickerOpen = true"
       >
         Open…
+      </v-btn>
+      <v-btn
+        v-if="padStore.currentPad && padStore.currentPadMarkdown.trim()"
+        variant="text"
+        prepend-icon="mdi-download-outline"
+        size="small"
+        title="Export this pad as Markdown (also your backup)"
+        @click="exportPad"
+      >
+        Export
       </v-btn>
     </div>
   </component>

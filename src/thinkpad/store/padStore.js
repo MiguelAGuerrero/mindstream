@@ -45,6 +45,8 @@ import {
   applySlot as applySlotOnPad,
   dropSlot as dropSlotOnPad,
   withCaveats as withCaveatsOnPad,
+  openLoopsFor as openLoopsForPad,
+  exportPadMarkdown as exportPadMarkdownOnPad,
   unstageOutput as unstageOutputOnPad,
   openItems as openItemsOnPad,
   disposeOpenItem as disposeOpenItemOnPad,
@@ -103,6 +105,16 @@ export const usePadStore = defineStore("pad", {
   }),
 
   getters: {
+    /** ThinkPad's open loops across every pad (Phase 4), reported for the workspace. */
+    openLoops() {
+      return this.pads.flatMap((pad) => openLoopsForPad(pad));
+    },
+
+    /** The current pad as Markdown (Phase 4 export). */
+    currentPadMarkdown() {
+      return exportPadMarkdownOnPad(this.currentPad);
+    },
+
     currentPad(state) {
       if (!state.currentPadId) return null;
       return state.pads.find((c) => c.id === state.currentPadId) ?? null;

@@ -15,6 +15,7 @@
 // ---------------------------------------------------------------------------
 
 import { acceptHMRUpdate, defineStore } from "pinia";
+import { openLoopsForContexts } from "../model/openLoops.js";
 import {
   cleanSteps,
   createFocusFrame,
@@ -82,6 +83,11 @@ export const useSessionRunStore = defineStore("sessionRun", {
   }),
 
   getters: {
+    /** The runner's open loops (Phase 4), reported for the workspace. */
+    openLoops() {
+      return openLoopsForContexts(this.contexts);
+    },
+
     hasContexts: (s) => s.contexts.length > 0,
     activeContext(s) {
       return s.contexts.find((c) => c.id === s.activeContextId) ?? null;

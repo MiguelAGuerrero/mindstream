@@ -6,7 +6,7 @@
 // context aside immediately (optional reason on the rail when paused). Only this route
 // touches the store.
 import { computed, reactive, ref, watch, nextTick, onBeforeUnmount } from "vue";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useSessionRunStore } from "./store/sessionRunStore";
 import { useTimer } from "./composables/useTimer";
 import { useFocusUi } from "./composables/useFocusUi";
@@ -23,6 +23,22 @@ import DecomposeReturnDialog from "./components/DecomposeReturnDialog.vue";
 import SessionPromptCard from "./components/SessionPromptCard.vue";
 
 const runStore = useSessionRunStore();
+
+// Deep link from the workspace's open loops (Phase 4): ?context=… opens it
+// (resuming a parked one at its exact depth), then the query is dropped.
+const deepRoute = useRoute();
+const deepRouter = useRouter();
+watch(
+  [() => deepRoute.query.context, () => runStore.isLoaded],
+  ([id, loaded]) => {
+    if (!loaded || id == null || id === "") return;
+    const match = runStore.contexts.find((c) => String(c.id) === String(id));
+    if (match) runStore.switchContext(match.id);
+    const { context: _c, ...rest } = deepRoute.query;
+    deepRouter.replace({ name: "focus", query: rest });
+  },
+  { immediate: true },
+);
 const focusUi = useFocusUi();
 // A task handed in from another tool (/focus?handoff=<id>) lands on a
 // "ready to start" card; a missing or consumed handoff is just a plain session.

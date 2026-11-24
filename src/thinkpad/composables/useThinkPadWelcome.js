@@ -4,6 +4,20 @@ import { usePadStore } from "../store/padStore";
 import { formatRelativeTime } from "../utils/formatRelativeTime";
 
 /** Welcome doc grid shown on a blank pad when other documents exist. */
+function threadTitleOf(pad, threadId) {
+  if (!threadId) return null;
+  let found = null;
+  const visit = (threads) => {
+    for (const t of threads ?? []) {
+      if (found) return;
+      if (t.id === threadId) { found = t.steps?.[0]?.title ?? null; return; }
+      visit(t.subThreads);
+    }
+  };
+  visit(pad.threads);
+  return found;
+}
+
 export function useThinkPadWelcome({ thinkPad, sessionUi, isDraftFrozen }) {
   const padStore = usePadStore();
   const { currentPad: currentContext } = storeToRefs(padStore);
@@ -33,6 +47,8 @@ export function useThinkPadWelcome({ thinkPad, sessionUi, isDraftFrozen }) {
         title: (pad.title || "").trim() || "Untitled",
         updatedAt: pad.updatedAt ?? null,
         previewText: (pad.doc?.text ?? "").trim(),
+        // Where you were in it, so a return lands with context (Phase 4 resume).
+        whereLeft: threadTitleOf(pad, pad.surfaceThreadId),
       }));
   });
 

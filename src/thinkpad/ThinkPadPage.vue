@@ -1,6 +1,7 @@
 <script setup>
 import { toRef, ref, watch, nextTick } from "vue";
 import { storeToRefs } from "pinia";
+import { useRoute, useRouter } from "vue-router";
 import ThinkPadPanel from "./components/ThinkPadPanel.vue";
 import DraftPhaseBar from "./components/DraftPhaseBar.vue";
 import StudyBeatCard from "./components/StudyBeatCard.vue";
@@ -24,6 +25,24 @@ const surface = useThinkPadSurface();
 const sessionUi = useSessionUi();
 const padStore = usePadStore();
 const { currentPad: currentContext, isLoaded: padStoreIsLoaded, isDraftFrozen, currentPadId } = storeToRefs(padStore);
+
+// Deep link from the workspace's open loops (Phase 4): ?pad=…&thread=… lands on
+// that exact place, then the query is dropped so a reload does not repeat it.
+const route = useRoute();
+const router = useRouter();
+watch(
+  [() => route.query.pad, padStoreIsLoaded],
+  ([padId, loaded]) => {
+    if (!loaded || typeof padId !== "string" || !padId) return;
+    if (padStore.setActivePad(padId)) {
+      const thread = route.query.thread;
+      padStore.navigateToThread(typeof thread === "string" && thread ? thread : null);
+    }
+    const { pad: _p, thread: _t, ...rest } = route.query;
+    router.replace({ name: "thinkpad", query: rest });
+  },
+  { immediate: true },
+);
 
 function handlePickerSelect(id) {
   surface.restoreResumableContext({ id });
@@ -111,6 +130,9 @@ watch(
                     <span class="thinkpad-doc-card__title text-body-2">{{ item.title || 'Untitled' }}</span>
                     <span v-if="item.updatedAt" class="thinkpad-doc-card__date text-caption text-disabled">
                       {{ welcome.formatRelativeTime(item.updatedAt) }}
+                    </span>
+                    <span v-if="item.whereLeft" class="thinkpad-doc-card__date text-caption text-disabled">
+                      In: {{ item.whereLeft }}
                     </span>
                   </span>
                 </button>
