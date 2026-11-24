@@ -29,9 +29,11 @@ function goHome() {
           </div>
         </div>
       </v-app-bar>
-      <v-fade-transition>
-        <router-view />
-      </v-fade-transition>
+      <router-view v-slot="{ Component }">
+        <v-fade-transition>
+          <component :is="Component" />
+        </v-fade-transition>
+      </router-view>
     </v-app>
   </v-responsive>
 </template>

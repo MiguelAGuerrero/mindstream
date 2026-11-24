@@ -79,8 +79,7 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
                     </span>
                   </span>
                 </button>
-              </div>  <ThinkPadAppBar />
-  
+              </div>
             </div>
           </v-expand-transition>
 

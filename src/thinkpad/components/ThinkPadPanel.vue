@@ -175,7 +175,7 @@ const editor = useEditor({
     History,
     UniqueID.configure({ types: ["paragraph"] }),
     Placeholder.configure({
-      placeholder: "Write freely. Right-click highlighted text to make a move.",
+      placeholder: "Write freely. Choose Begin Reflect when you are ready to make moves.",
     }),
     ThinkPadHighlights.configure({
       annotations: paintedAnnotations.value,
