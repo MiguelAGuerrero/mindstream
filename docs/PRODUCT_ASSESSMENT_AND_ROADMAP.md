@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 27)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 28)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 28 (2026-11-24): Phase 4 exit test passed; landed on master.** Taken ahead of Phase 3's remainder because Phase 3's next item (the multi-tool layout) needs a decision under mobile-first, while Phase 4 was settled and is what multi-day research on a phone needs most. Built: each tool reports its own open loops (ThinkPad: unresolved threads at any depth; runner: live and parked contexts, parked ones with how long they have waited; plus requests still waiting on a reply), and Home lists them above the tools as "Pick up", each with one next step; tapping one lands on the exact thread or context through new deep links. Pad cards say which thread you were in. Export writes a pad as Markdown (draft with links on top, threads nested below with state, source passage and caveats). The exit test (a simulated week away; Home lists every unfinished thread and waiting task; one tap lands on the exact node) passed at phone size. Not done: "Home restores the layout you left" depends on the layout decision (question 17).
 
 **Revision 27 (2026-11-24): Phase 2 exit test passed; landed on master.** Built: a workflow can be written out as a ThinkPad document (ThinkPad registers text-only steps; the library's editor offers "Write it out"; each step is a # heading); a workflow can be slotted into a thread ("Workflow" in a thread asks for saved steps and writes them in as headings); steps can be marked as actions in the editor (decision 15), which keeps them out of ThinkPad; items accepted at a gate travel up as caveats, shown in the thread list and the study beat. The exit test (a doubted claim, a workflow slotted into its thread, a second level resolved, Resolve refused once by an undecided item, the item accepted as a caveat, the claim carrying the call with the caveat) passed in the browser at phone size. Two Phase 2 items remain, both waiting on decisions in §6: where tag shortcuts come from (question 3) and pins (question 16). Landed on `master` under the standing instruction.
 
@@ -386,7 +388,7 @@ One consequence for the capture-templates proposal: it models a run as a thread 
 
 **Exit test:** (a) In ThinkPad, start Doubt on a claim; it opens in the runner; one step needs thinking, so you send it to ThinkPad, resolve that pad, and land back on the step with its result; finish the run; the claim in the original pad carries the call. (b) Separately, open the runner cold, author a focus, decompose it twice, and finish, never touching ThinkPad. Reload at any point in either without losing your place.
 
-### Phase 4 — Resume and the open-loop ledger (about 1 to 2 weeks)
+### Phase 4 — Resume and the open-loop ledger (about 1 to 2 weeks) — exit test passed (Revision 28); restoring a multi-tool layout waits on question 17
 
 With the broker in place, the workspace home can answer "what is my next small step?".
 
@@ -485,6 +487,8 @@ Open:
     - **Deferred** until a real document shows the need: Arrange (question 14), a Themes view, inline reference marks, multi-select in the stream.
 
 16. **Pins under mobile-first.** The roadmap's pins are "one keystroke in Stream marks the current block", and the lifecycle doc says a pin "lives in the keystream, never the mouse". A phone has no keystrokes, and since Revision 16 Reflect is a state you can enter at any time, where every paragraph already offers its moves. Options: drop pins; make a pin an inline token typed at the end of a paragraph (for example "??"), lifted out and shown as a mark in Reflect; or a pin button in the writing pill. Recommended: drop pins for now. Their job (marking a passage to come back to while writing) is mostly done by switching to Reflect, and a token or button adds a second way to do the same thing.
+
+17. **The multi-tool layout under mobile-first.** Phase 3's first item is "several tools on screen at once", and Phase 4's "Home restores the layout you left" builds on it. Mobile-first (Revision 14) means a phone shows one tool at a time. Options: drop the multi-tool layout and keep one tool per screen everywhere, with Home and the open-loop list as the way between them; keep it as a desktop-only extra; or show the asking item as a thin strip when one tool opens another (the "where you are across hops" item). Recommended: one tool per screen everywhere, plus the thin return strip. It is the only option that works on a phone, it is what exists now, and the return strip covers the real need (knowing what asked and how to send back). The shelf and one-way "Send to…" do not depend on this and can be built either way.
 
 Settled:
 
