@@ -6,7 +6,7 @@ A compact summary of what is settled, for checking proposals quickly. The source
 - `docs/capture-templates-proposal.md`: workflows, the open-item gate, resolution. Read its decisions table first.
 - `reports/`: research on comparable apps.
 
-If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 18 and proposal decisions 1 to 22.
+If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 19 and proposal decisions 1 to 22.
 
 ## Contents
 
@@ -153,7 +153,7 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 Check the documents for the current list. At last sync:
 
 - Revision 8 questions: the runner's opt-in Reflect button vs decision 17; ThinkPad's typed synthesis vs "one block"; whether a call can branch; the library access rule as built.
-- Whether the intellectual moves collapse into one core (passages, references, investigations, the thesis) with every move as a library workflow (roadmap §6 question 15, Revision 18). Arranging by theme (question 14) waits on it.
+- The core model for synthesis (roadmap §6 question 15, revised after an adversarial review, Revision 19): synthesis in a thread with quoted passages; landing decided by anchor count; references follow a resolved passage; moves stay built in; a thesis is a kind of resolution, not a mechanic. Not decided.
 - Where tag shortcuts to workflows come from: pinned per tag, recent use, or the library only.
 - Who may read the workflow library. Built as: the runner never reads it, asks with `choose-steps`; only the library page writes. Not yet confirmed by Miguel.
 - How much of the shell already exists in the undeployed multi-tool layout work.

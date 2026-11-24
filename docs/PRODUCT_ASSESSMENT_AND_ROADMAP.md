@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 18)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 19)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 19 (2026-11-24): adversarial review of the core model.** At Miguel's request a separate agent stress-tested Revisions 17 and 18 and the "four mechanics" proposal. Its report is in `reports/Mindstream core model adversarial review.md`; its cited repo facts were checked. Question 15 was rewritten around what survived. Nothing in it is decided.
 
 **Revision 18 (2026-11-24): theme and thesis.** Settled by Miguel:
 - **A theme** is a collection of text that represents a pattern: a connection shown repeatedly through a text, which is evidence that an idea is true and should be considered. A passage can serve several themes; redundancy is allowed, and themes let ideas persist on the document without blocking resolution.
@@ -448,12 +450,13 @@ Open:
     - **Where a new connection lands:** directly after the last passage it references, showing small marks for each passage it points to. From there you move it in Arrange. Its references survive moving because passages are found by their words (Revision 16).
     - **Not an outliner you browse.** Arrange works on one draft at a time and is temporary; it is not navigation across notes, so the "not an outliner" line holds.
 
-15. **One core, with moves as workflows.** Proposed. The test is capture-templates decision 11, applied to moves: *a move gets its own machinery only if the app must treat it differently; otherwise it is a workflow, an explicit, reusable specification of prompts.* Applied, the app needs four mechanics and nothing else:
-    1. **Passages**: what you write, paste or cite.
-    2. **References**: a thought can point at passages in the document or at sources outside it. A connection, a theme and a citation are all references from text.
-    3. **Investigations**: a thread opened on one or more passages that ends in a written thought. It lands either by replacing the passage it was opened on (a sharper wording) or by adding beside it (a connection or a caveat), chosen when you resolve.
-    4. **The thesis**: the one thought, with its references, that resolves a level, gated by undecided open items as today. Converging a paragraph to one sentence is a small thesis.
-    Doubt, challenge, clarify, compare, find themes and synthesize then have no machinery of their own. Each is a workflow run in an investigation, so it lives in the library where it can be read, edited and reused. The nine moves hard-coded in `moves.js` would become library workflows, and the tags remain shortcuts to them (decision 22). Consequences: rule 2's "one block" becomes "one thesis"; the Themes view is a reading of references, not a new object.
+15. **The core model for synthesis.** An adversarial review (`reports/Mindstream core model adversarial review.md`, Revision 19) rejected the first proposal ("four mechanics, every move a library workflow") on four verified points: it treats theme, connection and citation as one object although the app must treat them differently (decision 11); moving the moves into the library breaks "a tool stands alone" (contract 1, decision 16); "one thesis per level" conflicts with decision 9 ("a call or a sharper question") and rule 7, and the root has no gate (capture-templates §8.4); and it ignores that resolving a passage would silently break every reference to it, since a passage whose words are gone is marked lost (Revision 16). Revised proposal, smaller:
+    - **Synthesis happens in a thread, with quotes.** Drill on a passage, several passages, or the whole draft. In the sub-pad, one new action: *quote a passage in* (a copy that keeps a link to where it came from). You write the synthesis in thematic order from the start; headings in the sub-pad are themes; quoting the same passage under two headings gives redundancy. The thread's resolution is the thesis (or call), its quotes are its evidence.
+    - **Where a result lands follows from its anchors:** exactly one passage, you choose replace or add; two or more, it is added. The per-move `writeBack` in `moves.js` goes.
+    - **References follow a passage into its resolution**, with provenance, instead of going lost.
+    - **The moves stay built in** (one prompt each, ThinkPad stands alone); library workflows are for multi-step methods; tags stay shortcuts.
+    - **A thesis is a name for a resolution that argues**, not a new mechanic; rule 2 reads "one resolution". Evidence travels as pointers ("3 sources"), opening the archived working-out, so rule 3 holds.
+    - **Deferred** until a real document shows the need: Arrange (question 14), a Themes view, inline reference marks, multi-select in the stream.
 
 Settled:
 
