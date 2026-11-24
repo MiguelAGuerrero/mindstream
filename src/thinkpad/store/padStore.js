@@ -29,10 +29,9 @@ import {
   stampDraft as stampDraftOnPad,
   stageStepOutput as stageStepOutputOnPad,
   advanceToNextDraft as advanceToNextDraftOnPad,
-  beginWriteMore as beginWriteMoreOnPad,
-  setWriteMoreText as setWriteMoreTextOnPad,
-  cancelWriteMore as cancelWriteMoreOnPad,
-  addWriteMore as addWriteMoreOnPad,
+  enterReflect as enterReflectOnPad,
+  leaveReflect as leaveReflectOnPad,
+  resolveThreadIntoParent as resolveThreadIntoParentOnPad,
   stagedConflicts as stagedConflictsOnPad,
   unstageOutput as unstageOutputOnPad,
   openItems as openItemsOnPad,
@@ -167,12 +166,6 @@ export const usePadStore = defineStore("pad", {
         n: t.n,
         changes: (entry.contributions ?? []).map((c) => ({ source: c.source ?? "", output: c.output ?? "" })),
       };
-    },
-
-    /** Text being added by Write more on the surface; null when the area is closed. */
-    writeMoreText() {
-      const v = this.viewPad?.writeMore;
-      return typeof v === "string" ? v : null;
     },
 
     draftHistory() {
@@ -319,12 +312,9 @@ export const usePadStore = defineStore("pad", {
       persistPadToDb(nextPad);
     },
 
+    /** Kept for older callers: entering Reflect is the stamp now. */
     stampDraft({ padLocator = null } = {}) {
-      if (!this.currentPad) return;
-      const now = nowIso();
-      const stamped = stampDraftOnPad(this.currentPad, { padLocator }, { now });
-      if (stamped === this.currentPad) return;
-      this._replaceCurrent(stamped);
+      this.enterReflect({ padLocator });
     },
 
     advanceToNextDraft({ padLocator = null } = {}) {
@@ -340,21 +330,25 @@ export const usePadStore = defineStore("pad", {
       this.studyTarget = { padId: this.currentPadId, padLocator, n: history.length - 1 };
     },
 
-    /** Write more (append-only, G4): open, edit, cancel, add. Each acts on one level. */
-    beginWriteMore({ padLocator = null } = {}) {
-      this._applyOnPad((pad, now) => beginWriteMoreOnPad(pad, { padLocator }, { now }));
+    /**
+     * Reflect is a state (Revisions 14-15). Entering freezes the draft and
+     * records a version if it changed; leaving applies waiting results first,
+     * opens the study beat for them, and returns to writing.
+     */
+    enterReflect({ padLocator = null } = {}) {
+      this._applyOnPad((pad, now) => enterReflectOnPad(pad, { padLocator }, { now, makeId }));
     },
 
-    setWriteMoreText({ padLocator = null, text = "" } = {}) {
-      this._applyOnPad((pad, now) => setWriteMoreTextOnPad(pad, { padLocator, text }, { now }));
-    },
-
-    cancelWriteMore({ padLocator = null } = {}) {
-      this._applyOnPad((pad, now) => cancelWriteMoreOnPad(pad, { padLocator }, { now }));
-    },
-
-    addWriteMore({ padLocator = null } = {}) {
-      this._applyOnPad((pad, now) => addWriteMoreOnPad(pad, { padLocator }, { now, makeId }));
+    leaveReflect({ padLocator = null } = {}) {
+      if (!this.currentPad) return;
+      const before = padForThreadOnPad(this.currentPad, padLocator);
+      const applying = (before?.staged ?? []).length > 0;
+      this._applyOnPad((pad, now) => leaveReflectOnPad(pad, { padLocator }, { now, makeId }));
+      const after = padForThreadOnPad(this.currentPad, padLocator);
+      if (applying && after?.phase === "stream") {
+        const history = after.draftHistory ?? [];
+        this.studyTarget = { padId: this.currentPadId, padLocator, n: history.length - 1 };
+      }
       this.viewingDraftN = null;
     },
 
@@ -481,8 +475,16 @@ export const usePadStore = defineStore("pad", {
         return { resolved: true, delta: null };
       }
 
+      // A parent being written is a living document: splice the result straight
+      // in. A parent in Reflect keeps it waiting for the next draft.
+      if (parentDoc?.phase !== "cultivate") {
+        const direct = resolveThreadIntoParentOnPad(this.currentPad, { threadId, result: rollUpText }, { now });
+        if (!direct.resolved) return null;
+        this._replaceCurrent(popSurfaceOnPad(direct.pad, { now }));
+        return { resolved: true, delta: direct.delta ?? null };
+      }
+
       let pad = setStepOutputOnPad(this.currentPad, { stepId: childStep.id, output: rollUpText }, { now });
-      pad = stampDraftOnPad(pad, { padLocator: parentFrameId }, { now });
       pad = stageStepOutputOnPad(pad, {
         stepId: childStep.id, annotationId, text: rollUpText, padLocator: parentFrameId,
       }, { now, makeId });

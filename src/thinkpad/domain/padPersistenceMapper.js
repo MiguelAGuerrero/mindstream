@@ -170,7 +170,6 @@ function normalizeDoc(value, { now } = {}) {
     return {
       text: "", ideas: [], annotations: [], phase: "stream",
       frozenText: null, frozenIdeas: null, staged: [], draftHistory: [], lifted: [],
-      writeMore: null,
     };
   }
   const text = typeof value.text === "string" ? value.text : "";
@@ -209,7 +208,6 @@ function normalizeDoc(value, { now } = {}) {
     lifted: Array.isArray(value.lifted)
       ? value.lifted.map(normalizeLiftedItem).filter(Boolean)
       : [],
-    writeMore: typeof value.writeMore === "string" ? value.writeMore : null,
   };
 }
 

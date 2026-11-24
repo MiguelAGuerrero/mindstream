@@ -13,18 +13,18 @@ const draftCount         = computed(() => draftHistory.value.length);
 const viewingDraftN      = computed(() => padStore.viewingDraftN);
 const isDraftHistoryView = computed(() => padStore.isDraftHistoryView);
 
-// Stream → Reflect: the first stamp. The way back to writing is Write more,
-// which adds after the frozen draft and never reopens it.
-function handleStamp() {
+// Reflect is a state (Revisions 14-15): the draft is frozen only while you
+// reflect. Entering records a version; going back to writing applies any
+// waiting results first. Overlapping results are settled before either.
+function handleReflect() {
   if (!isDraftFrozen.value && !isDraftHistoryView.value) {
-    padStore.stampDraft({ padLocator: padLocator.value });
+    padStore.enterReflect({ padLocator: padLocator.value });
   }
 }
 
-// Write more (append-only): open the writing area under the frozen draft.
-const writeMoreOpen = computed(() => padStore.writeMoreText !== null);
-function handleWriteMore() {
-  padStore.beginWriteMore({ padLocator: padLocator.value });
+function handleWrite() {
+  if (conflicts.value.length) { overlapOpen.value = true; return; }
+  padStore.leaveReflect({ padLocator: padLocator.value });
 }
 
 // Apply all staged outputs and advance to the next draft version. Overlapping
@@ -61,19 +61,19 @@ function handleNavigateDraft(dir) {
 <template>
   <div class="phase-pill" role="toolbar" aria-label="Writing phase">
 
-    <!-- ── Stream mode: bootstrap dump, one-way stamp action ── -->
+    <!-- ── Writing: the living document; Reflect freezes it while you reflect ── -->
     <template v-if="!isDraftFrozen && !isDraftHistoryView">
-      <span class="phase-pill__mode-label phase-pill__mode-label--stream">Stream</span>
+      <span class="phase-pill__mode-label phase-pill__mode-label--stream">Writing</span>
       <span class="phase-pill__sep" aria-hidden="true" />
       <button
         type="button"
         class="phase-pill__stamp-btn"
         :disabled="!hasContent"
-        title="Done streaming — begin reflect (one-way)"
-        @click="handleStamp"
+        title="Reflect — freeze this draft while you think about it"
+        @click="handleReflect"
       >
         <v-icon icon="mdi-lightbulb-on-outline" size="15" />
-        <span>Begin Reflect</span>
+        <span>Reflect</span>
       </button>
     </template>
 
@@ -110,17 +110,19 @@ function handleNavigateDraft(dir) {
         </div>
       </template>
 
-      <!-- Write more: the append-only way back to writing (live view only) -->
-      <template v-if="!isDraftHistoryView && !writeMoreOpen">
+      <!-- Back to writing (live view only); applies waiting results first -->
+      <template v-if="!isDraftHistoryView">
         <span class="phase-pill__sep" aria-hidden="true" />
         <button
           type="button"
           class="phase-pill__write-more"
-          title="Write more — add new text after this draft"
-          @click="handleWriteMore"
+          :title="stagedCount
+            ? `Write — apply ${stagedCount} waiting result${stagedCount !== 1 ? 's' : ''} first, then edit freely`
+            : 'Write — unfreeze the draft and edit freely'"
+          @click="handleWrite"
         >
-          <v-icon icon="mdi-pencil-plus-outline" size="14" />
-          <span>Write more</span>
+          <v-icon icon="mdi-pencil-outline" size="14" />
+          <span>Write</span>
         </button>
       </template>
 
@@ -226,7 +228,7 @@ function handleNavigateDraft(dir) {
 .overlap-item__arrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.55; }
 .overlap-item__text { margin-bottom: 8px !important; }
 
-/* Write more: quiet, so the easy path stays the reflect loop */
+/* Write: quiet, so the easy path while reflecting stays the reflect loop */
 .phase-pill__write-more {
   display: inline-flex;
   align-items: center;

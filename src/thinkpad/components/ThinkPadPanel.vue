@@ -137,13 +137,14 @@ const hoverPickerStyle = computed(() => ({
 const cuedAnnotations = computed(() => {
   const id = props.highlightStepId;
   if (!id) return [];
-  return (props.thinkPad?.annotations ?? []).filter((a) => a.stepId === id);
+  return (props.thinkPad?.annotations ?? []).filter((a) => a.stepId === id && !a.lost);
 });
 
 // Hidden spans collapse ALWAYS (independent of the hover cue); the cued span
 // (a hovered move) paints on top. The editor's decoration set is the union.
 const hiddenAnnotations = computed(() =>
-  (props.thinkPad?.annotations ?? []).filter((a) => a.hidden === true),
+  // A passage whose words are gone is `lost`; painting it would mark the wrong text.
+  (props.thinkPad?.annotations ?? []).filter((a) => a.hidden === true && !a.lost),
 );
 const paintedAnnotations = computed(() => [...hiddenAnnotations.value, ...cuedAnnotations.value]);
 const hiddenCount = computed(() => hiddenAnnotations.value.length);
@@ -203,7 +204,7 @@ const editor = useEditor({
     History,
     UniqueID.configure({ types: ["paragraph"] }),
     Placeholder.configure({
-      placeholder: "Write freely. Choose Begin Reflect when you are ready to make moves.",
+      placeholder: "Write freely. Switch to Reflect when you want to work on what you wrote.",
     }),
     ThinkPadHighlights.configure({
       annotations: paintedAnnotations.value,

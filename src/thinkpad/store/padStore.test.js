@@ -58,21 +58,41 @@ describe("padStore", () => {
     expect(store.currentPad?.title).toBe("In progress");
   });
 
-  it("Write more opens under a frozen draft and adds text as a new version", () => {
+  it("Reflect is a state: enter freezes and versions, leaving applies results and opens the study beat", () => {
     const store = usePadStore();
     store.createNewPad({ title: "Plan" });
     store.setPadText({ text: "The plan is a mess." });
-    store.stampDraft();
-    expect(store.writeMoreText).toBeNull();
-    store.beginWriteMore();
-    expect(store.writeMoreText).toBe("");
-    store.setWriteMoreText({ text: "Dates slip." });
-    expect(store.writeMoreText).toBe("Dates slip.");
-    store.addWriteMore();
-    expect(store.writeMoreText).toBeNull();
-    expect(store.viewPad.frozenText).toBe("The plan is a mess.\n\nDates slip.");
-    expect(store.draftHistory).toHaveLength(2);
+    store.enterReflect();
     expect(store.isDraftFrozen).toBe(true);
+    expect(store.draftHistory).toHaveLength(1);
+    store.drillIntoSpan({ parentThreadId: null, title: "mess", selectionStart: 14, selectionEnd: 18, selectedText: "mess" });
+    const thread = store.currentPad.threads[0];
+    store.navigateToThread(thread.id);
+    store.setPadText({ padLocator: thread.id, text: "set of open questions" });
+    store.resolveThreadIntoParent({ threadId: thread.id });
+    store.leaveReflect();
+    expect(store.isDraftFrozen).toBe(false);
+    expect(store.viewPad.text).toBe("The plan is a set of open questions.");
+    expect(store.studyBeat).toMatchObject({ n: 1, changes: [{ source: "mess", output: "set of open questions" }] });
+    store.setPadText({ text: "The plan is a set of open questions. Dates slip." });
+    store.enterReflect();
+    expect(store.draftHistory).toHaveLength(3);
+  });
+
+  it("a thread resolving into a parent that is being written splices straight in", () => {
+    const store = usePadStore();
+    store.createNewPad({ title: "Plan" });
+    store.setPadText({ text: "The plan is a mess." });
+    store.enterReflect();
+    store.drillIntoSpan({ parentThreadId: null, title: "mess", selectionStart: 14, selectionEnd: 18, selectedText: "mess" });
+    const thread = store.currentPad.threads[0];
+    store.leaveReflect(); // parent back to writing, thread still open
+    store.navigateToThread(thread.id);
+    store.setPadText({ padLocator: thread.id, text: "set of open questions" });
+    store.resolveThreadIntoParent({ threadId: thread.id });
+    expect(store.surfaceHead).toBeNull();
+    expect(store.isDraftFrozen).toBe(false); // not forced into Reflect
+    expect(store.viewPad.text).toBe("The plan is a set of open questions.");
   });
 
   it("overlapping staged results block Next Draft until one is kept", () => {
@@ -169,6 +189,7 @@ describe("padStore", () => {
     it("drillIntoSpan descends onto an empty sub-pad; resolveThreadIntoParent stages and ascends; Next Draft applies", () => {
       const store = usePadStore();
       withDoc(store, "the mess here");
+      store.enterReflect(); // drills are made in Reflect; the result waits for the next draft
       const frame = store.drillIntoSpan({ parentThreadId: null, title: "work it", selectionStart: 4, selectionEnd: 8, selectedText: "mess" });
       expect(frame).not.toBeNull();
       expect(store.viewThreadId).toBe(frame.id);
@@ -185,7 +206,7 @@ describe("padStore", () => {
       expect(store.currentThinkPad.text).toBe("the a clean result here");
     });
 
-    it("drill within a sub-pad nests on subThreads; resolve stages into parent pad; Next Draft applies", () => {
+    it("drill within a sub-pad nests on subThreads; resolving into a parent being written splices straight in", () => {
       const store = usePadStore();
       withDoc(store, "outer span text");
       const parent = store.drillIntoSpan({ parentThreadId: null, title: "p", selectionStart: 0, selectionEnd: 5, selectedText: "outer" });
@@ -194,15 +215,16 @@ describe("padStore", () => {
       store.setPadText({ padLocator: child.id, text: "inner done" });
       store.resolveThreadIntoParent({ threadId: child.id });
       expect(store.viewThreadId).toBe(parent.id);
-      expect(store.viewPad.text).toBe("");
-      expect(store.stagedOutputs).toHaveLength(1);
-      store.advanceToNextDraft({ padLocator: parent.id });
+      // The parent sub-pad is being written (never entered Reflect), so the
+      // result lands at once; its anchor text is absent here, so it appends.
+      expect(store.stagedOutputs).toHaveLength(0);
       expect(store.viewPad.text).toBe("inner done");
     });
 
     it("open thread requires an explicit synthesized result; then resolves up", () => {
       const store = usePadStore();
       withDoc(store, "the mess here");
+      store.enterReflect();
       const frame = store.drillIntoSpan({ parentThreadId: null, title: "work it", selectionStart: 4, selectionEnd: 8, selectedText: "mess" });
       store.setPadText({ padLocator: frame.id, text: "idea one\n\nidea two" });
       expect(store.resolveThreadIntoParent({ threadId: frame.id })).toBeNull();

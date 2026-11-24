@@ -54,7 +54,6 @@ describe("normalizePad", () => {
     expect(result.doc).toEqual({
       text: "", ideas: [], annotations: [], phase: "stream",
       frozenText: null, frozenIdeas: null, staged: [], draftHistory: [], lifted: [],
-      writeMore: null,
     });
   });
 

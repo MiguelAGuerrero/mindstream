@@ -17,7 +17,7 @@ import { ideaRanges } from "./ideas";
 export function computeBlockActionStates(ideas, annotations, drillThreads) {
   const ranges = ideaRanges(ideas);
   const drillByAnnotationId = new Map((drillThreads ?? []).map((d) => [d.annotationId, d]));
-  const anns = (annotations ?? []).filter((a) => a.hidden !== true);
+  const anns = (annotations ?? []).filter((a) => a.hidden !== true && !a.lost);
 
   return ranges.map(({ id: nodeId, text, start, end }) => {
     const drill =

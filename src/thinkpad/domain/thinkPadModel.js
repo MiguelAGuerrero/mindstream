@@ -32,8 +32,6 @@ import {
   ideaIdForRange,
   docHasMultipleIdeas,
   remapAnnotationsForIdeaReorder,
-  ideasFromText,
-  readFrozenIdeas,
 } from "./ideas";
 
 const DEFAULT_CONFIG = Object.freeze({
@@ -517,7 +515,9 @@ export function setPadText(pad, { padLocator = null, text, nodes = null } = {}, 
     && prevIdeas.length === ideas.length
     && prevIdeas.every((i, idx) => i.id === ideas[idx]?.id && i.text === ideas[idx]?.text);
   if (unchanged) return pad;
-  return withPad(pad, padLocator, { ...base, text: syncedText, ideas }, { now });
+  // Writing moves offsets; keep drilled and hidden passages on their words.
+  const annotations = reanchorAnnotations(syncedText, base.annotations ?? []);
+  return withPad(pad, padLocator, { ...base, text: syncedText, ideas, annotations }, { now });
 }
 
 // ---------------------------------------------------------------------------
@@ -1429,76 +1429,84 @@ export function advanceToNextDraft(pad, { padLocator = null } = {}, { now, makeI
 }
 
 // ---------------------------------------------------------------------------
-// Write more — the append-only escape hatch from Reflect (G4, roadmap Rev. 11).
+// Reflect as a state (roadmap Revisions 14 and 15).
 //
-// The frozen draft is never reopened. doc.writeMore holds text being added
-// (null = closed); adding it appends new paragraphs AFTER the frozen draft and
-// records a stream pass in draftHistory. Appending at the end keeps every
-// anchor offset into frozenText valid, so staged results are left untouched.
+// The document is living. Entering Reflect freezes it and records a draft
+// version when the text changed since the last one; leaving Reflect applies
+// any waiting results first (a reflect pass), then returns to writing.
+// Writing moves offsets, so drilled passages are re-found by their words on
+// the way in; one whose words are gone is marked `lost`.
 // ---------------------------------------------------------------------------
 
-/** Open an empty writing area under a frozen draft. Same ref unless in Reflect and closed. */
-export function beginWriteMore(pad, { padLocator = null } = {}, { now } = {}) {
-  if (!pad) return pad;
-  const doc = padForThread(pad, padLocator);
-  if (!doc || doc.phase !== "cultivate") return pad;
-  if (typeof doc.writeMore === "string") return pad; // already open
-  return withPad(pad, padLocator, { ...doc, writeMore: "" }, { now });
+/**
+ * Re-find each annotation's passage in `text` by its words, choosing the
+ * occurrence nearest its old start. Unchanged annotations keep their object;
+ * the array is returned as-is when nothing moved. Annotations without anchor
+ * text (pins) are left alone.
+ */
+export function reanchorAnnotations(text, annotations) {
+  const source = typeof text === "string" ? text : "";
+  let changed = false;
+  const next = (annotations ?? []).map((ann) => {
+    const words = typeof ann?.selectedText === "string" ? ann.selectedText : "";
+    if (!words) return ann;
+    const start = Number.isFinite(ann.selectionStart) ? ann.selectionStart : 0;
+    if (source.slice(start, start + words.length) === words && ann.selectionEnd === start + words.length && !ann.lost) {
+      return ann;
+    }
+    let best = -1;
+    for (let at = source.indexOf(words); at !== -1; at = source.indexOf(words, at + 1)) {
+      if (best === -1 || Math.abs(at - start) < Math.abs(best - start)) best = at;
+    }
+    changed = true;
+    if (best === -1) return ann.lost ? ann : { ...ann, lost: true };
+    const { lost: _lost, ...rest } = ann;
+    return { ...rest, selectionStart: best, selectionEnd: best + words.length };
+  });
+  return changed ? next : annotations;
 }
 
-/** Update the text being added. Same ref when the area is closed or the text is unchanged. */
-export function setWriteMoreText(pad, { padLocator = null, text = "" } = {}, { now } = {}) {
+/** Enter Reflect: re-anchor, freeze, and record a version if the text changed. */
+export function enterReflect(pad, { padLocator = null } = {}, { now, makeId } = {}) {
   if (!pad) return pad;
   const doc = padForThread(pad, padLocator);
-  if (!doc || typeof doc.writeMore !== "string") return pad;
-  const next = typeof text === "string" ? text : "";
-  if (next === doc.writeMore) return pad;
-  return withPad(pad, padLocator, { ...doc, writeMore: next }, { now });
-}
-
-/** Close the writing area and drop its text. The draft is unchanged. */
-export function cancelWriteMore(pad, { padLocator = null } = {}, { now } = {}) {
-  if (!pad) return pad;
-  const doc = padForThread(pad, padLocator);
-  if (!doc || typeof doc.writeMore !== "string") return pad;
-  return withPad(pad, padLocator, { ...doc, writeMore: null }, { now });
+  if (!doc || doc.phase === "cultivate") return pad;
+  if (!(doc.text ?? "").trim()) return pad;
+  const annotations = reanchorAnnotations(doc.text ?? "", doc.annotations ?? []);
+  let next = annotations === (doc.annotations ?? [])
+    ? pad
+    : withPad(pad, padLocator, { ...doc, annotations }, { now });
+  next = stampDraft(next, { padLocator }, { now, makeId });
+  const stamped = padForThread(next, padLocator);
+  const text = stamped.frozenText ?? stamped.text ?? "";
+  const history = stamped.draftHistory ?? [];
+  if (history.length && history[history.length - 1].text === text) return next;
+  const entry = history.length === 0
+    ? { n: 0, text, at: now, contributions: [] }
+    : { n: history.length, text, at: now, contributions: [], pass: "stream" };
+  return withPad(next, padLocator, { ...stamped, draftHistory: [...history, entry] }, { now });
 }
 
 /**
- * Add the written text to the draft: new paragraphs after the frozen draft, a
- * stream pass in draftHistory (seeding the original draft as entry 0 first, as
- * advanceToNextDraft does), and the area closed. Blank text just closes it.
+ * Leave Reflect for writing. Waiting results are applied first (as a new
+ * version), so writing resumes on the newest draft. Same ref while results
+ * overlap (settle those first) or when not reflecting.
  */
-export function addWriteMore(pad, { padLocator = null } = {}, { now, makeId } = {}) {
+export function leaveReflect(pad, { padLocator = null } = {}, { now, makeId } = {}) {
   if (!pad) return pad;
   const doc = padForThread(pad, padLocator);
-  if (!doc || typeof doc.writeMore !== "string") return pad;
-  const added = ideasFromText(doc.writeMore, { makeId });
-  if (added.length === 0 || doc.phase !== "cultivate") {
-    return withPad(pad, padLocator, { ...doc, writeMore: null }, { now });
-  }
-  const base = ensureDocIdeas(doc, { makeId });
-  const frozenBefore = readFrozenIdeas(base);
-  const ideas = [...(base.ideas ?? []), ...added];
-  const frozenIdeas = [...frozenBefore.map((i) => ({ ...i })), ...added.map((i) => ({ ...i }))];
-  const text = ideasToText(ideas);
-  const frozenText = ideasToText(frozenIdeas);
-  const history = base.draftHistory ?? [];
-  const seeded = history.length > 0
-    ? history
-    : [{ n: 0, text: base.frozenText ?? base.text ?? "", at: now, contributions: [] }];
-  const draftHistory = [
-    ...seeded,
-    { n: seeded.length, text: frozenText, at: now, contributions: [], pass: "stream" },
-  ];
-  return withPad(pad, padLocator, {
-    ...base,
-    ideas,
-    text,
-    frozenIdeas,
-    frozenText,
-    draftHistory,
-    writeMore: null,
+  if (!doc || doc.phase !== "cultivate") return pad;
+  if (stagedConflicts(pad, padLocator).length > 0) return pad;
+  const next = (doc.staged ?? []).length > 0
+    ? advanceToNextDraft(pad, { padLocator }, { now, makeId })
+    : pad;
+  const applied = padForThread(next, padLocator);
+  return withPad(next, padLocator, {
+    ...applied,
+    phase: "stream",
+    staged: [],
+    frozenText: null,
+    frozenIdeas: null,
   }, { now });
 }
 

@@ -114,7 +114,7 @@ export function useThinkPadReflect({ surface, sessionUi, isBlankPad, dismissed, 
     if (e.key !== "Escape" || !sessionUi.padExpanded) return;
     if (peekOpen.value) return;
     e.preventDefault();
-    padStore.stampDraft({ padLocator: padStore.surfaceHead });
+    padStore.enterReflect({ padLocator: padStore.surfaceHead });
   }
 
   function flushLivePadToStorage() {
