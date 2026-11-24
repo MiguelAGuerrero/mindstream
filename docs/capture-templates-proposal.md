@@ -75,7 +75,10 @@ How this fits the workspace shell (decisions 15, 16, 20):
   - Keep exactly these two values until a third one would make some tool behave differently (§7's test).
 - **Library.** Workflow definitions live in a **shell-level library**, a sibling of the shelf. They are not a ThinkPad or runner construct, and they are not copied per tool, because copies would drift and runs would stop being comparable.
   - The library **can be its own page** in the workspace, where you browse, write and edit workflows.
-  - **Receivers never look anything up.** Whoever starts a run (the library page, or a tag shortcut) reads the workflow from the library and attaches its steps to the request. The receiving tool works only with what it was sent.
+  - **Who reads and writes the library** *(proposed by the roadmap session; not yet confirmed by Miguel; §10 item 8)*:
+    - **Receivers never read it.** The receiving tool works only with what it was sent.
+    - **Senders may read it through the shell**, to list workflows and attach their steps. Senders include the library page, and a tag shortcut starting a workflow from a span.
+    - **Only the library page writes to it**, including save as variant.
   - Pivots made during a run stay in the running tool's own state.
   - **Save as variant** sends the run's changed list of prompts back, with the opaque tag, as ordinary text. The library page files it as a variant of the tagged workflow.
 - **Travel: a routing slip** (decision 20). The roadmap owns the envelope; this is what it means for workflows:
@@ -289,6 +292,7 @@ step.resolution        = { text, type: Type | null, caveats: string[] }   // cav
    - the ones you've used most recently with it;
    - only the library, with no shortcuts until you pin some.
 7. **Renaming "Complete" back to "Resolve" in code.** `master` renamed "Resolve up" to "Complete" in the ThinkPad surface and the Focus runner (decision 21). This rename should land before the gate UI.
+8. **Library access rule (proposed).** Receivers never read the library; senders read it through the shell; only the library page writes to it (§3.1). The roadmap session is raising this with Miguel.
 
 ---
 
