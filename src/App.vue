@@ -29,6 +29,16 @@ const showAppBar = computed(
 );
 const showPreloader = ref(true);
 
+// A screen that is still loading shows a thin progress line instead of a blank page.
+const routeLoading = ref(false);
+let loadingTimer = null;
+router.beforeEach(() => {
+  clearTimeout(loadingTimer);
+  loadingTimer = setTimeout(() => { routeLoading.value = true; }, 120);
+});
+router.afterEach(() => { clearTimeout(loadingTimer); routeLoading.value = false; });
+router.onError(() => { clearTimeout(loadingTimer); routeLoading.value = false; });
+
 function goHome() {
   emitAudioEvent("home", "goHome");
   router.push({ name: "home" });
@@ -49,6 +59,14 @@ function goHome() {
           </div>
         </div>
       </v-app-bar>
+      <v-progress-linear
+        v-if="routeLoading"
+        indeterminate
+        color="primary"
+        height="3"
+        class="ms-route-loading"
+        aria-label="Loading"
+      />
       <router-view v-slot="{ Component }">
         <v-fade-transition>
           <component :is="Component" />
@@ -73,5 +91,13 @@ function goHome() {
   display: flex;
   flex-direction: column;
   gap: 0;
+}
+
+.ms-route-loading {
+  position: fixed !important;
+  top: env(safe-area-inset-top, 0px);
+  left: 0;
+  right: 0;
+  z-index: 3000;
 }
 </style>

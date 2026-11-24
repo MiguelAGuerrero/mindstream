@@ -1,5 +1,5 @@
 <script setup>
-import { toRef, ref, watch, nextTick } from "vue";
+import { toRef, ref, watch, nextTick, computed } from "vue";
 import { useDisplay } from "vuetify";
 import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
@@ -104,6 +104,19 @@ watch(
   },
 );
 
+// The empty-page hint says what each kind of level is for.
+const surfaceHint = computed(() => {
+  if (surface.isAtRoot) return "";
+  if (surface.currentStance?.label === "Synthesis") {
+    return "Quote passages from the draft (Quote, above), start a line with # to name a theme, and write the thesis they add up to.";
+  }
+  const goal = surface.currentGoal;
+  const tag = surface.currentAnchor?.tag;
+  if (tag === "question") return `Answer it: “${goal}”. Write freely, then Resolve to send your answer up.`;
+  if (tag === "expand") return `Say more about “${goal}”. Write freely, then Resolve to send it up.`;
+  return `Work on “${goal}”. Write freely, then Resolve to send the result up.`;
+});
+
 // Notices close on their own timer (see the template).
 let leftOpenTimer = null;
 watch(() => surface.leftOpen, (v) => {
@@ -198,14 +211,17 @@ watch(
                   <v-card-title class="text-subtitle-1 pt-4">New think-pad</v-card-title>
                   <v-card-text class="pb-1">
                     <form @submit.prevent="sessionUi.newPadDialogOpen = false; welcome.submitQuestion()">
-                      <v-text-field
+                      <v-textarea
                         v-model="welcome.questionDraft"
                         label="What question are you trying to answer?"
                         variant="outlined"
                         density="comfortable"
+                        rows="1"
+                        auto-grow
                         autofocus
                         hide-details
                         autocomplete="off"
+                        @keydown.enter.exact.prevent="welcome.questionDraft.trim() && (sessionUi.newPadDialogOpen = false, welcome.submitQuestion())"
                       />
                     </form>
                   </v-card-text>
@@ -369,6 +385,13 @@ watch(
 
               <div class="thinkpad-page-row">
               <div class="thinkpad-page-stack">
+                <!-- Reading an earlier draft: say so, with the way back. -->
+                <div v-if="padStore.isDraftHistoryView" class="draft-reading" role="status">
+                  <v-icon icon="mdi-history" size="16" />
+                  <span>Reading Draft {{ padStore.viewingDraftN + 1 }} · read-only</span>
+                  <v-spacer />
+                  <v-btn size="small" variant="text" color="primary" @click="padStore.exitDraftHistory()">Back to current</v-btn>
+                </div>
                 <div
                   class="thinkpad-page"
                   :class="{ 'thinkpad-page--expanded': sessionUi.padExpanded }"
@@ -380,6 +403,7 @@ watch(
                     :think-pad="reflect.displayThinkPad"
                     :pad-locator="surface.surfaceHead"
                     :title="surface.surfaceTitle"
+                    :hint="surfaceHint"
                     :active="true"
                     :expanded="sessionUi.padExpanded"
                     :highlight-step-id="reflect.peekedStepId"
@@ -513,7 +537,8 @@ watch(
         content-class="ms-raised-notice"
         @update:model-value="(v) => { if (!v) surface.leftOpen = null; }"
       >
-        <template v-if="surface.leftOpen">
+        <template v-if="surface.leftOpen?.status === 'removed'">Empty thread removed.</template>
+        <template v-else-if="surface.leftOpen">
           “{{ surface.leftOpen.title }}” is
           {{ surface.leftOpen.status === "converged" ? "ready to resolve" : "still open" }}.
           It is under Threads here when you want it.
@@ -1344,5 +1369,18 @@ watch(
 :global(.v-dialog .v-card-title) {
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+.draft-reading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 40px;
+  padding: 0 4px 0 12px;
+  font-size: 0.85rem;
+  color: rgba(var(--v-theme-on-surface), 0.8);
+  background: rgba(var(--v-theme-primary), 0.1);
+  border-bottom: 1px solid rgba(var(--v-theme-primary), 0.25);
 }
 </style>

@@ -232,7 +232,9 @@ export function useThinkPadSurface() {
     const head = padStore.surfaceHead;
     padStore.ascendThread();
     const left = drillThreads.value.find((d) => d.threadId === head);
-    leftOpen.value = left && left.hasWork && left.status !== "resolved"
+    // A thread with nothing written in it is removed on the way out; say so.
+    if (!left) { leftOpen.value = { status: "removed", title: "", threadId: head }; return; }
+    leftOpen.value = left.hasWork && left.status !== "resolved"
       ? { title: left.title, status: left.status, threadId: head }
       : null;
   }

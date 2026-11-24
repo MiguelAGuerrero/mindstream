@@ -64,6 +64,8 @@ const props = defineProps({
   candidateSpans: { type: Array, default: () => [] },
   /** Staged move outputs shown as inline markers beside their anchor blocks. */
   stagedIdeas: { type: Array, default: () => [] },
+  /** The empty-page hint; each kind of level says what it is for. */
+  hint: { type: String, default: "" },
 });
 
 const emit = defineEmits(["update:text", "update:nodes", "update:title", "extract-step", "drill-span", "hide-span", "reveal-hidden", "focus", "reopen-drill", "tag-span", "reorder-block", "idea-peek", "link-span", "source-span", "open-link", "send-span"]);
@@ -410,7 +412,7 @@ const editor = useEditor({
     History,
     UniqueID.configure({ types: ["paragraph"] }),
     Placeholder.configure({
-      placeholder: "Write freely. Switch to Reflect when you want to work on what you wrote.",
+      placeholder: () => props.hint || "Write freely. Switch to Reflect when you want to work on what you wrote.",
     }),
     ThinkPadHighlights.configure({
       annotations: paintedAnnotations.value,
@@ -962,6 +964,8 @@ function handleTitleKeydown(e) {
   if (e.key !== "Enter") return;
   e.preventDefault(); // never insert a newline; Enter commits and leaves the field
   e.target.blur(); // blur commits via @blur
+  // ...and carries on into the text, so you can start writing straight away.
+  if (!props.readOnly) nextTick(() => editor.value?.commands.focus("end"));
 }
 
 function flushText() {
@@ -1821,9 +1825,9 @@ defineExpose({ flushText, dismissSelection });
   border: none;
   border-radius: 5px;
   background: transparent;
-  color: rgba(var(--v-theme-on-surface), 0.4);
+  color: rgba(var(--v-theme-on-surface), 0.66);
   font-family: var(--font-sans);
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   cursor: pointer;
 }
 
