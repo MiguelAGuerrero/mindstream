@@ -89,10 +89,11 @@ function remove() {
         </template>
         <template v-else>
           <p class="text-medium-emphasis link-dlg__label">
-            Linked to{{ viewing.draftN != null ? ` (draft ${viewing.draftN + 1})` : "" }}:
+            {{ viewing.quote ? "Quoted from" : "Linked to" }}{{ viewing.draftN != null ? ` draft ${viewing.draftN + 1}` : "" }}:
           </p>
           <blockquote class="link-dlg__quote">{{ viewing.snapshot }}</blockquote>
-          <p v-if="viewing.lost" class="link-dlg__note">That paragraph is no longer in the draft. The link keeps it as it was.</p>
+          <p v-if="viewing.lost && viewing.quote" class="text-medium-emphasis link-dlg__label">The draft has moved on since; the quote keeps the passage as it was.</p>
+          <p v-else-if="viewing.lost" class="link-dlg__note">That paragraph is no longer in the draft. The link keeps it as it was.</p>
           <template v-else-if="viewing.refined">
             <p class="link-dlg__note">That paragraph was refined later. It now reads:</p>
             <blockquote class="link-dlg__quote link-dlg__quote--now">{{ viewing.current }}</blockquote>

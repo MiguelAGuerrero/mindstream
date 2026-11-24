@@ -38,6 +38,9 @@ import {
   removeLink as removeLinkOnPad,
   markNeedsSource as markNeedsSourceOnPad,
   linksAt as linksAtOnPad,
+  startSynthesis as startSynthesisOnPad,
+  quoteInto as quoteIntoOnPad,
+  synthesisToAcknowledge as synthesisToAcknowledgeOnPad,
   unstageOutput as unstageOutputOnPad,
   openItems as openItemsOnPad,
   disposeOpenItem as disposeOpenItemOnPad,
@@ -151,6 +154,28 @@ export const usePadStore = defineStore("pad", {
 
     stagedOutputs() {
       return this.viewPad?.staged ?? [];
+    },
+
+    /** Whether the surface is a synthesis thread (Revisions 19-22). */
+    isSynthesisSurface() {
+      const head = this.surfaceHead;
+      if (!head) return false;
+      return !!this.threadPath.find((t) => t.id === head)?.synthesis;
+    },
+
+    /** Open items a synthesis on the surface would replace; acknowledged before resolving. */
+    synthesisAcknowledge() {
+      if (!this.isSynthesisSurface) return [];
+      return synthesisToAcknowledgeOnPad(this.currentPad, this.surfaceHead);
+    },
+
+    /** Paragraphs that can be quoted into the synthesis on the surface. */
+    quoteSources() {
+      if (!this.isSynthesisSurface) return [];
+      const thread = this.threadPath.find((t) => t.id === this.surfaceHead);
+      const level = thread?.parentAnchor?.parentFrameId ?? null;
+      const doc = padForThreadOnPad(this.currentPad, level);
+      return (doc?.frozenIdeas ?? doc?.ideas ?? []).filter((i) => (i.text ?? "").trim());
     },
 
     /** Links on the surface (URLs and passage snapshots), in document order. */
@@ -361,6 +386,20 @@ export const usePadStore = defineStore("pad", {
         this.studyTarget = { padId: this.currentPadId, padLocator, n: history.length - 1 };
       }
       this.viewingDraftN = null;
+    },
+
+    /** Open (or return to) the synthesis of the surface level, and go into it. */
+    startSynthesis() {
+      if (!this.currentPad) return;
+      const { pad, frame } = startSynthesisOnPad(this.currentPad, { padLocator: this.surfaceHead }, { now: nowIso(), makeId });
+      if (!frame) return;
+      if (pad !== this.currentPad) this._replaceCurrent(pad);
+      this.navigateToThread(frame.id);
+    },
+
+    quoteInto({ sourceIdeaId } = {}) {
+      const threadId = this.surfaceHead;
+      this._applyOnPad((pad, now) => quoteIntoOnPad(pad, { threadId, sourceIdeaId }, { now, makeId }));
     },
 
     /** Links and "needs a source" (Revisions 15 and 22), on one level. */

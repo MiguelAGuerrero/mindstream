@@ -17,6 +17,7 @@ export function computeHighlightSegments(text, annotations = []) {
       start: Math.max(0, Math.min(len, Number(a.selectionStart))),
       end: Math.max(0, Math.min(len, Number(a.selectionEnd))),
       kind: a.hidden === true ? "hidden"
+        : a.link?.quote ? "quote"
         : a.link ? "link"
         : a.needsSource === true ? "source"
         : a.resolved === true ? "resolved" : "anchored",
@@ -66,5 +67,17 @@ export function findBareUrls(text) {
   const re = /https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"]/gi;
   let m;
   while ((m = re.exec(text ?? "")) !== null) out.push({ start: m.index, end: m.index + m[0].length, href: m[0] });
+  return out;
+}
+
+/** Lines that name a theme ("# Drivers of growth"), styled as headings; the text is unchanged. */
+export function findThemeLines(text) {
+  const out = [];
+  const re = /(^|\n)(#{1,3} [^\n]+)/g;
+  let m;
+  while ((m = re.exec(text ?? "")) !== null) {
+    const start = m.index + m[1].length;
+    out.push({ start, end: start + m[2].length });
+  }
   return out;
 }

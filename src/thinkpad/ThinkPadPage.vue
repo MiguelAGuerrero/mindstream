@@ -63,6 +63,7 @@ const drillContextExpanded = ref(false);
 const resolveFieldRef = ref(null);
 // Links: the selection being linked, and the link whose sheet is open.
 const linkPending = ref(null);
+const quoteOpen = ref(false);
 const viewingLinkId = ref(null);
 
 watch(
@@ -302,6 +303,29 @@ watch(
                     <template #footer>
                       <DraftPhaseBar />
                     </template>
+                    <template #bar-end>
+                      <!-- Synthesize (Revisions 19-22): one thread over the whole draft. -->
+                      <button
+                        v-if="isDraftFrozen && !padStore.isDraftHistoryView && !padStore.isSynthesisSurface"
+                        type="button"
+                        class="thinkpad-bar-action"
+                        title="Synthesize — work this whole draft into one thesis"
+                        @click="padStore.startSynthesis()"
+                      >
+                        <v-icon icon="mdi-set-merge" size="14" />
+                        <span>Synthesize</span>
+                      </button>
+                      <button
+                        v-if="padStore.isSynthesisSurface && !isDraftFrozen && padStore.quoteSources.length"
+                        type="button"
+                        class="thinkpad-bar-action"
+                        title="Quote a paragraph of the draft"
+                        @click="quoteOpen = true"
+                      >
+                        <v-icon icon="mdi-format-quote-open" size="14" />
+                        <span>Quote</span>
+                      </button>
+                    </template>
                   </ThinkPadPanel>
                   <StudyBeatCard
                     v-if="!padStore.isDraftHistoryView"
@@ -326,6 +350,52 @@ watch(
           It is under Threads here when you want it.
         </template>
       </v-snackbar>
+
+      <v-dialog v-model="quoteOpen" max-width="520" scrim="rgba(0,0,0,0.35)">
+        <v-card rounded="lg">
+          <v-card-title class="px-6 pt-6 pb-1">Quote a passage</v-card-title>
+          <v-card-text class="px-6 py-3">
+            <p class="text-body-2 text-medium-emphasis mb-3">
+              The quote keeps the paragraph as it reads now. Quote it under more than one theme if it fits more than one.
+              Start a line with # to name a theme.
+            </p>
+            <button
+              v-for="src in padStore.quoteSources"
+              :key="src.id"
+              type="button"
+              class="quote-src"
+              @click="padStore.quoteInto({ sourceIdeaId: src.id }); quoteOpen = false"
+            >{{ src.text }}</button>
+          </v-card-text>
+          <v-card-actions class="px-6 pb-5">
+            <v-spacer />
+            <v-btn variant="text" @click="quoteOpen = false">Cancel</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
+      <v-dialog v-model="surface.acknowledgeOpen" max-width="520" scrim="rgba(0,0,0,0.35)">
+        <v-card rounded="lg">
+          <v-card-title class="px-6 pt-6 pb-1">Converge over open threads?</v-card-title>
+          <v-card-text class="px-6 py-3">
+            <p class="text-body-2 text-medium-emphasis mb-3">
+              The thesis will replace the draft. These are still open in it. You don't have to settle them:
+              their work is kept and moves under the thesis, where you can still finish them.
+            </p>
+            <ul class="ack-list">
+              <li v-for="item in padStore.synthesisAcknowledge" :key="item.id">
+                <span class="ack-list__kind">{{ item.kind === "source" ? "Needs a source" : "Open thread" }}</span>
+                {{ item.text }}
+              </li>
+            </ul>
+          </v-card-text>
+          <v-card-actions class="px-6 pb-5">
+            <v-btn variant="text" @click="surface.acknowledgeOpen = false">Not yet</v-btn>
+            <v-spacer />
+            <v-btn color="primary" variant="flat" @click="surface.confirmAcknowledge()">Converge anyway</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <LinkDialogs
         :pending="linkPending"
@@ -576,6 +646,45 @@ watch(
   font-size: 0.85rem;
   line-height: 1.4;
   color: rgb(var(--v-theme-primary));
+}
+
+.thinkpad-bar-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 2px 10px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.45);
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(var(--v-theme-primary));
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.quote-src {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  margin-bottom: 6px;
+  padding: 8px 12px;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.quote-src:hover { border-color: rgb(var(--v-theme-primary)); }
+
+.ack-list { margin: 0; padding-left: 1.1rem; font-size: 0.9rem; }
+.ack-list li { margin-bottom: 4px; }
+.ack-list__kind { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.6; margin-right: 6px; }
+
+@media (max-width: 600px) {
+  .thinkpad-bar-action { min-height: 40px; }
 }
 
 .drill-bar__tags {

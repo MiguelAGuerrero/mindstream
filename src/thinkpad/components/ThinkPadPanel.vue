@@ -1398,6 +1398,19 @@ defineExpose({ flushText, dismissSelection });
   cursor: pointer;
 }
 
+.thinkpad-editor :deep(.thinkpad-hl--quote) {
+  font-style: italic;
+  color: rgba(var(--v-theme-on-surface), 0.78);
+  border-left: 3px solid rgba(var(--v-theme-primary), 0.5);
+  padding-left: 8px;
+  cursor: pointer;
+}
+
+.thinkpad-editor :deep(.thinkpad-theme) {
+  font-weight: 700;
+  color: rgb(var(--v-theme-primary));
+}
+
 .thinkpad-editor :deep(.thinkpad-hl--source) {
   text-decoration: underline wavy rgba(var(--v-theme-warning), 0.8);
   text-decoration-thickness: 1px;
@@ -1774,6 +1787,7 @@ defineExpose({ flushText, dismissSelection });
 @media (max-width: 600px) {
   .thinkpad-panel--card {
     --thinkpad-footer-height: 56px;
+    --thinkpad-chrome-height: 48px; /* room for 40px bar actions (Synthesize, Quote) */
   }
 }
 </style>

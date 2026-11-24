@@ -37,6 +37,8 @@ export function useThinkPadSurface() {
   });
 
   const resolveDialog = reactive({ open: false, value: "" });
+  const acknowledgeOpen = ref(false);
+  const synthesisAcknowledged = ref(false);
   const resolveMove = getMoveById("resolve");
 
   // Converged: the surface thread's sub-pad holds one non-empty block — the
@@ -84,6 +86,7 @@ export function useThinkPadSurface() {
     const frame = viewFrame.value;
     const pad = currentContext.value;
     if (!frame || !pad) return getStanceDisplay();
+    if (frame.synthesis) return { label: "Synthesis", icon: "mdi-set-merge", symbol: "" };
 
     let moveId = frame.move || "";
     let tag = null;
@@ -243,6 +246,13 @@ export function useThinkPadSurface() {
       return;
     }
     gateOpen.value = false;
+    // A synthesis replaces the whole draft: threads still open there are
+    // acknowledged first (not resolved); their work moves under the thesis.
+    if (padStore.synthesisAcknowledge.length && !synthesisAcknowledged.value) {
+      acknowledgeOpen.value = true;
+      return;
+    }
+    synthesisAcknowledged.value = false;
     // Not converged to one block: ask for the synthesized result.
     if (needsSynthesis.value) {
       resolveDialog.value = "";
@@ -250,6 +260,12 @@ export function useThinkPadSurface() {
       return;
     }
     padStore.resolveThreadIntoParent({ threadId: head });
+  }
+
+  function confirmAcknowledge() {
+    acknowledgeOpen.value = false;
+    synthesisAcknowledged.value = true;
+    handleResolve();
   }
 
   function confirmResolve() {
@@ -326,6 +342,8 @@ export function useThinkPadSurface() {
     tagChoices,
     setCurrentTag,
     leftOpen,
+    acknowledgeOpen,
+    confirmAcknowledge,
     peekOpen,
     peekPad,
     peekHighlightStepId,

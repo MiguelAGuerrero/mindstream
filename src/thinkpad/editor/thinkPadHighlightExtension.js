@@ -18,7 +18,7 @@
 import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import { computeHighlightSegments, findBareUrls } from "./thinkPadHighlights";
+import { computeHighlightSegments, findBareUrls, findThemeLines } from "./thinkPadHighlights";
 import { charToPos, docJSONToText } from "./thinkPadDoc";
 
 export const thinkPadHighlightKey = new PluginKey("thinkPadHighlights");
@@ -42,6 +42,8 @@ function buildDecorations(doc, annotations, candidateSpans, focusedBlockIndex) {
           ? "thinkpad-hl thinkpad-hl--resolved"
           : seg.kind === "hidden"
             ? "thinkpad-hl thinkpad-hl--hidden"
+            : seg.kind === "quote"
+              ? "thinkpad-hl thinkpad-hl--quote"
             : seg.kind === "link"
               ? "thinkpad-hl thinkpad-hl--link"
               : seg.kind === "source"
@@ -55,9 +57,14 @@ function buildDecorations(doc, annotations, candidateSpans, focusedBlockIndex) {
         attrs["data-annotation-id"] = seg.annotationId;
         attrs["data-annotation-start"] = String(seg.start);
         attrs["data-annotation-end"] = String(seg.end);
-        attrs["data-annotation-kind"] = seg.kind;
+        attrs["data-annotation-kind"] = seg.kind === "quote" ? "link" : seg.kind;
       }
       decos.push(Decoration.inline(charToPos(seg.start), charToPos(seg.end), attrs));
+    }
+
+    // Theme headings ("# …") in a synthesis read as headings; the text is unchanged.
+    for (const t of findThemeLines(text)) {
+      decos.push(Decoration.inline(charToPos(t.start), charToPos(t.end), { class: "thinkpad-theme" }));
     }
 
     // Bare URLs read as links (Revision 15); the text itself is unchanged.
