@@ -537,6 +537,12 @@ function reorderBlockDown() {
   dismissSelection();
 }
 
+// How a thread's state reads in the thread menu (open-thread hygiene, Phase 1).
+const THREAD_STATUS_LABEL = { open: "open", converged: "ready to resolve", resolved: "resolved" };
+const unresolvedThreadCount = computed(() =>
+  (props.drillThreads ?? []).filter((d) => d.status !== "resolved").length,
+);
+
 function drillTagIcon(tag) {
   if (tag === "question") return "mdi-help-circle-outline";
   if (tag === "expand") return "mdi-exclamation-thick";
@@ -784,14 +790,14 @@ defineExpose({ flushText, dismissSelection });
             type="button"
             class="thinkpad-reveal-chip"
             v-bind="menuProps"
-            :title="`${drillThreads.length} open thread${drillThreads.length !== 1 ? 's' : ''}`"
+            :title="`${drillThreads.length} thread${drillThreads.length !== 1 ? 's' : ''}, ${unresolvedThreadCount} not resolved`"
           >
             <v-icon icon="mdi-call-split" size="13" />
-            <span>{{ drillThreads.length }} thread{{ drillThreads.length !== 1 ? 's' : '' }}</span>
+            <span>{{ drillThreads.length }} thread{{ drillThreads.length !== 1 ? 's' : '' }}<template v-if="unresolvedThreadCount"> · {{ unresolvedThreadCount }} open</template></span>
           </button>
         </template>
         <v-list density="compact" min-width="220" max-width="280" max-height="320">
-          <v-list-subheader>Open Threads</v-list-subheader>
+          <v-list-subheader>Threads</v-list-subheader>
           <v-list-item
             v-for="drill in drillThreads"
             :key="drill.threadId"
@@ -805,6 +811,7 @@ defineExpose({ flushText, dismissSelection });
               />
             </template>
             <v-list-item-title class="text-body-2 text-truncate">{{ drill.title }}</v-list-item-title>
+            <v-list-item-subtitle class="text-caption">{{ THREAD_STATUS_LABEL[drill.status] ?? "" }}</v-list-item-subtitle>
           </v-list-item>
         </v-list>
       </v-menu>

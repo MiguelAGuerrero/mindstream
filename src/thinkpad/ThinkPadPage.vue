@@ -291,6 +291,19 @@ watch(
         </div>
       </div>
 
+      <v-snackbar
+        :model-value="!!surface.leftOpen"
+        timeout="4000"
+        location="bottom"
+        @update:model-value="(v) => { if (!v) surface.leftOpen = null; }"
+      >
+        <template v-if="surface.leftOpen">
+          “{{ surface.leftOpen.title }}” is
+          {{ surface.leftOpen.status === "converged" ? "ready to resolve" : "still open" }}.
+          It is under Threads here when you want it.
+        </template>
+      </v-snackbar>
+
       <DocumentPickerDialog
         v-model="sessionUi.documentPickerOpen"
         :items="surface.padListItems"

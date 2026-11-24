@@ -1709,7 +1709,9 @@ export function clearDisposition(pad, { padLocator = null, id } = {}, { now } = 
 
 /**
  * The threads drilled from one level, in creation order, as the surface lists
- * them: { threadId, annotationId, title, anchorText, hasWork, completed, tag }.
+ * them: { threadId, annotationId, title, anchorText, hasWork, completed, tag,
+ * status }. status is "resolved" (its result has come back up), "converged"
+ * (ready to resolve: one block, no undecided open items) or "open".
  * padLocator null = the root document; a thread id = that sub-pad. Every level
  * is the same primitive, so a sub-pad lists its own threads exactly as the
  * root does. [] for no pad, an unknown level, or a level with no threads.
@@ -1726,14 +1728,21 @@ export function drillThreadsAt(pad, padLocator = null) {
     .filter((t) => t.parentAnchor)
     .map((t) => {
       const ann = annotations.find((a) => a.id === t.parentAnchor.annotationId);
+      // Resolved = its result went up: the step carries an output (staged or
+      // applied) or the anchor was spliced. completedAt is no longer written.
+      const step = t.steps?.[0];
+      const isResolved = ann?.resolved === true
+        || (typeof step?.output === "string" && step.output.trim() !== "")
+        || !!step?.completedAt;
       return {
         threadId: t.id,
         annotationId: t.parentAnchor.annotationId,
         title: t.steps?.[0]?.title ?? "Untitled",
         anchorText: ann?.selectedText ?? "",
         hasWork: (t.doc?.text ?? "").trim() !== "",
-        completed: !!(t.steps?.[0]?.completedAt),
+        completed: isResolved,
         tag: ann?.tag ?? null,
+        status: isResolved ? "resolved" : canResolve(pad, t.id) ? "converged" : "open",
       };
     });
 }

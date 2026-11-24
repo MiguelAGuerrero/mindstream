@@ -204,8 +204,17 @@ export function useThinkPadSurface() {
     padStore.navigateToThread(threadId);
   }
 
+  // Set when Back leaves a thread that has work but is not resolved, so the
+  // page can say where it went. Informational only; nothing blocks Back.
+  const leftOpen = ref(null);
+
   function handleAscend() {
+    const head = padStore.surfaceHead;
     padStore.ascendThread();
+    const left = drillThreads.value.find((d) => d.threadId === head);
+    leftOpen.value = left && left.hasWork && left.status !== "resolved"
+      ? { title: left.title, status: left.status }
+      : null;
   }
 
   function handleResolve() {
@@ -296,6 +305,7 @@ export function useThinkPadSurface() {
     currentGoal,
     currentStance,
     drillThreads,
+    leftOpen,
     peekOpen,
     peekPad,
     peekHighlightStepId,
