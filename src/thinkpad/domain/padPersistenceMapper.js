@@ -24,6 +24,7 @@
 // ---------------------------------------------------------------------------
 
 import { INTENT_CLASSES } from "../moves";
+import { DISPOSITION_KINDS } from "./thinkPadModel";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -76,6 +77,36 @@ function normalizeThinkPadAnnotation(value, { now } = {}) {
     hidden: value.hidden === true,
     placement: ["appended", "annotated"].includes(value.placement) ? value.placement : "anchored",
     resolvedAt: asString(value.resolvedAt),
+    // Open-item gate: the decision taken on an open move (accepted / lifted / parked).
+    disposition: normalizeDisposition(value.disposition),
+  };
+}
+
+/** A decision on an open item (capture-templates-proposal §8.2), or null. */
+function normalizeDisposition(value) {
+  if (!value || typeof value !== "object") return null;
+  if (!DISPOSITION_KINDS.includes(value.kind)) return null;
+  return {
+    kind: value.kind,
+    note: typeof value.note === "string" ? value.note : "",
+    target: value.kind === "lifted" ? asString(value.target) : null,
+    at: asString(value.at),
+  };
+}
+
+/** An item lifted into this level from a lower one (capture-templates-proposal §8.2). */
+function normalizeLiftedItem(value) {
+  if (!value || typeof value !== "object") return null;
+  const id = asString(value.id);
+  const annotationId = asString(value.from?.annotationId);
+  if (!id || !annotationId) return null;
+  return {
+    id,
+    text: typeof value.text === "string" ? value.text : "",
+    source: typeof value.source === "string" ? value.source : "",
+    from: { padLocator: asString(value.from?.padLocator), annotationId },
+    at: asString(value.at),
+    disposition: normalizeDisposition(value.disposition),
   };
 }
 
@@ -122,7 +153,7 @@ function normalizeDraftHistoryEntry(value) {
 
 function normalizeDoc(value, { now } = {}) {
   if (!value || typeof value !== "object") {
-    return { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], draftHistory: [] };
+    return { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], draftHistory: [], lifted: [] };
   }
   return {
     text: typeof value.text === "string" ? value.text : "",
@@ -138,6 +169,9 @@ function normalizeDoc(value, { now } = {}) {
       : [],
     draftHistory: Array.isArray(value.draftHistory)
       ? value.draftHistory.map(normalizeDraftHistoryEntry).filter(Boolean)
+      : [],
+    lifted: Array.isArray(value.lifted)
+      ? value.lifted.map(normalizeLiftedItem).filter(Boolean)
       : [],
   };
 }

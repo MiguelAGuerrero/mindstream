@@ -5,6 +5,7 @@ import ThinkPadPanel from "./components/ThinkPadPanel.vue";
 import IdeasPanel from "./components/IdeasPanel.vue";
 import DraftPhaseBar from "./components/DraftPhaseBar.vue";
 import DocumentPickerDialog from "./dialogs/DocumentPickerDialog.vue";
+import OpenItemsDialog from "./dialogs/OpenItemsDialog.vue";
 import { usePadStore } from "./store/padStore";
 import { useSessionUi } from "./composables/useSessionUi";
 import { useThinkPadSurface } from "./composables/useThinkPadSurface";
@@ -96,6 +97,7 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
                   <button type="button" class="drill-crumb" @click="surface.jumpToSurface(0)">
                     <v-icon icon="mdi-home-outline" size="14" />
                     <span class="drill-crumb__label">{{ currentContext.title || 'Document' }}</span>
+                    <span v-if="surface.openCountAt(null)" class="drill-crumb__open">· {{ surface.openCountAt(null) }} open</span>
                   </button>
                   <template v-for="(frame, i) in surface.threadPath" :key="frame.id">
                     <v-icon icon="mdi-chevron-right" size="13" class="drill-crumb__sep" />
@@ -107,6 +109,7 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
                       @click="surface.jumpToSurface(i + 1)"
                     >
                       <span class="drill-crumb__label">{{ frame.steps?.[0]?.title || 'Untitled' }}</span>
+                      <span v-if="surface.openCountAt(frame.id)" class="drill-crumb__open">· {{ surface.openCountAt(frame.id) }} open</span>
                     </button>
                   </template>
                 </nav>
@@ -118,7 +121,27 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
                 <div class="drill-bar__actions">
                   <v-btn size="small" variant="text" prepend-icon="mdi-eye-outline" @click="surface.peekOpen = true">Peek parent</v-btn>
                   <v-btn size="small" variant="text" prepend-icon="mdi-arrow-up-left" @click="surface.handleAscend()">Back</v-btn>
-                  <v-btn size="small" color="primary" variant="flat" prepend-icon="mdi-arrow-up-bold-box-outline" :disabled="!surface.canComplete" @click="surface.handleComplete()">Complete</v-btn>
+                  <v-btn
+                    v-if="surface.converged && surface.openItems.length"
+                    size="small"
+                    color="warning"
+                    variant="tonal"
+                    prepend-icon="mdi-arrow-up-bold-box-outline"
+                    @click="surface.gateOpen = true"
+                  >
+                    Resolve · {{ surface.openItems.length }} open
+                  </v-btn>
+                  <v-btn
+                    v-else
+                    size="small"
+                    color="primary"
+                    variant="flat"
+                    prepend-icon="mdi-arrow-up-bold-box-outline"
+                    :disabled="!surface.canComplete"
+                    @click="surface.handleComplete()"
+                  >
+                    Resolve
+                  </v-btn>
                 </div>
               </div>
 
@@ -183,6 +206,19 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
         @select="handlePickerSelect"
         @new="handlePickerNew"
         @delete="surface.handleDeleteDocument"
+      />
+
+      <OpenItemsDialog
+        v-model="surface.gateOpen"
+        :goal="surface.currentGoal"
+        :items="surface.openItems"
+        :decided="surface.decidedItems"
+        :lift-targets="surface.liftTargets"
+        :can-resolve="surface.canComplete"
+        @dispose="surface.handleDisposeOpenItem"
+        @clear="surface.handleClearDisposition"
+        @go-to="surface.handleGoToOpenItem"
+        @resolve="surface.handleComplete()"
       />
 
       <v-dialog v-model="surface.peekOpen" max-width="760">
@@ -362,6 +398,12 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
 .drill-crumb__label {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drill-crumb__open {
+  margin-left: 4px;
+  color: rgb(var(--v-theme-warning));
   white-space: nowrap;
 }
 

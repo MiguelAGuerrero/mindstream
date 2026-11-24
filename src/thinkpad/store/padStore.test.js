@@ -221,4 +221,81 @@ describe("padStore", () => {
       expect(store.viewingDraftEntry).toMatchObject({ n: 1, text: "second text" });
     });
   });
+  describe("open-item gate", () => {
+    function withDoc(store, text) {
+      store.createNewPad({ title: "doc" });
+      store.setPadText({ padLocator: null, text });
+    }
+
+    /** root "outer span text" → drill "outer" (parent) → drill inside it (child). Leaves the surface on the parent. */
+    function parentWithOpenChild(store) {
+      withDoc(store, "outer span text");
+      const parent = store.drillIntoSpan({ parentThreadId: null, title: "parent goal", selectionStart: 0, selectionEnd: 5, selectedText: "outer" });
+      store.setPadText({ padLocator: parent.id, text: "one clear call" });
+      const child = store.drillIntoSpan({ parentThreadId: parent.id, title: "Why might this be wrong?", selectionStart: 4, selectionEnd: 9, selectedText: "clear" });
+      store.navigateToThread(parent.id);
+      const childAnn = store.currentPad.threads[0].doc.annotations.find((a) => a.stepId === child.steps[0].id);
+      return { parent, child, childAnnotationId: childAnn.id };
+    }
+
+    it("openItemsAt lists the undecided open items of a level", () => {
+      const store = usePadStore();
+      const { parent, childAnnotationId } = parentWithOpenChild(store);
+      expect(store.openItemsAt(parent.id).map((i) => i.id)).toEqual([childAnnotationId]);
+      expect(store.openItemsAt(null)).toHaveLength(1); // the parent drill itself, open at the root
+    });
+
+    it("canResolveSurface is false while the surface has an undecided open item", () => {
+      const store = usePadStore();
+      const { childAnnotationId, parent } = parentWithOpenChild(store);
+      expect(store.viewThreadId).toBe(parent.id);
+      expect(store.canResolveSurface).toBe(false);
+      store.disposeOpenItem({ padLocator: parent.id, id: childAnnotationId, kind: "accepted", note: "fine for now" });
+      expect(store.canResolveSurface).toBe(true);
+    });
+
+    it("canResolveSurface is false on the root document and on an empty sub-pad", () => {
+      const store = usePadStore();
+      withDoc(store, "alpha beta");
+      expect(store.canResolveSurface).toBe(false);
+      store.drillIntoSpan({ parentThreadId: null, title: "g", selectionStart: 0, selectionEnd: 5, selectedText: "alpha" });
+      expect(store.canResolveSurface).toBe(false);
+    });
+
+    it("resolveThreadIntoParent refuses while an open item is undecided, then resolves once decided", () => {
+      const store = usePadStore();
+      const { parent, childAnnotationId } = parentWithOpenChild(store);
+      expect(store.resolveThreadIntoParent({ threadId: parent.id })).toBeNull();
+      expect(store.viewThreadId).toBe(parent.id);
+      store.disposeOpenItem({ padLocator: parent.id, id: childAnnotationId, kind: "parked" });
+      expect(store.resolveThreadIntoParent({ threadId: parent.id })).toMatchObject({ resolved: true });
+      expect(store.viewThreadId).toBeNull();
+    });
+
+    it("disposeOpenItem with a lift opens the item at the target level and persists", async () => {
+      const { upsertPad } = await import("../persistence/padsDb");
+      const store = usePadStore();
+      const { parent, childAnnotationId } = parentWithOpenChild(store);
+      upsertPad.mockClear();
+      store.disposeOpenItem({ padLocator: parent.id, id: childAnnotationId, kind: "lifted", target: null, note: "bigger question" });
+      expect(store.openItemsAt(parent.id)).toEqual([]);
+      expect(store.openItemsAt(null).map((i) => i.text)).toContain("bigger question");
+      expect(upsertPad).toHaveBeenCalled();
+    });
+
+    it("clearDisposition re-opens an item", () => {
+      const store = usePadStore();
+      const { parent, childAnnotationId } = parentWithOpenChild(store);
+      store.disposeOpenItem({ padLocator: parent.id, id: childAnnotationId, kind: "accepted" });
+      store.clearDisposition({ padLocator: parent.id, id: childAnnotationId });
+      expect(store.openItemsAt(parent.id).map((i) => i.id)).toEqual([childAnnotationId]);
+    });
+
+    it("openCountAt counts a level's open items (0 for an unknown level)", () => {
+      const store = usePadStore();
+      const { parent } = parentWithOpenChild(store);
+      expect(store.openCountAt(parent.id)).toBe(1);
+      expect(store.openCountAt("thread:nope")).toBe(0);
+    });
+  });
 });
