@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 12)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 13)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -45,6 +45,14 @@
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
 
+**Revision 13 (2026-11-24): Phase 1 done.** Every Phase 1 item is built and its exit test passed in the browser, so it lands on `master` under Miguel's standing instruction (Revision 11). What changed for the person using ThinkPad:
+- **Write more** (G4): an append-only way back to writing from Reflect.
+- **Sub-pads list their own threads** (G6) at any depth, with Continue / Reopen.
+- **Threads show their state**: open, ready to resolve, or resolved; the thread chip counts the open ones, and Back from an unresolved thread with work says where it went.
+- **Study beat** (G7): after Next Draft, a card asks whether the gap to the goal narrowed and lists what changed, before → after.
+- **Overlapping results** (D6) are settled in a dialog before the next draft.
+- **Fixes**: D2 (why Resolve is disabled), D11 (a drag drilled the whole block), D12 (Next Draft stayed after running), D13 (the paragraph list fell out of step after Next Draft), and resolved threads now show as resolved.
+
 **Revision 12 (2026-11-24): Write more built.** G4 is fixed, append-only as settled in Revision 11. Two pre-existing defects found while verifying it, D11 and D12, are logged in §3.3.
 
 **Revision 11 (2026-11-24): three answers from Miguel.**
@@ -85,13 +93,14 @@ Everything in the roadmap is judged by two questions: does it help a big thing b
 | **ThinkPad: stream / reflect phases** | Working. Stamp freezes the draft, block chips appear, drafts are versioned and navigable. | `stampDraft`, `advanceToNextDraft`, `DraftPhaseBar.vue` |
 | **ThinkPad: recursive drill** | Working to arbitrary depth, with breadcrumb, goal line and parent peek. | `drillIntoSpan`, `surfaceThreadId`, drill bar in `ThinkPadPage.vue` |
 | **ThinkPad: fold-up** | Working. Completing a one-block sub-pad stages its text against the parent; "Next Draft" splices it in. | `resolveThreadIntoParent`, `revealReflectPass` |
+| **ThinkPad: closing the loop** | *(Revision 13)* Write more (append-only) from Reflect; every sub-pad lists its own threads with their state (open, ready to resolve, resolved); a notice when Back leaves a thread open; overlapping results settled before Next Draft; a study beat after it. | `addWriteMore`, `drillThreadsAt`, `stagedConflicts`, `WriteMoreCard.vue`, `StudyBeatCard.vue` |
 | **ThinkPad: persistence** | Working. IndexedDB, survives reload, document picker and "pick up where you left off" grid. | `padsDb.js`, `padPersistenceMapper.js` |
 | **Focus runner** | *(Revision 8)* Persists to its own IndexedDB (contexts, stacks, parked state, `waitingOn`, time spent). A focus can hold an ordered **plan** of steps: done per step, out of order allowed, switch steps from the side panel, the card shows the current step only. Decision steps finish by choosing an output. Resolve never prompts; Reflect is an opt-in button per step. | `sessionRunStore.js`, `focusDb.js`, `ContextTrail.vue` |
 | **ThinkPad: open-item gate** | *(Revision 8)* Built (Phase 2's first item): open items, the three decisions, open counts in the breadcrumb, Resolve refused while any item is undecided. | `openItems`, `disposeOpenItem`, `OpenItemsDialog.vue` |
 | **Handoff (the §4.2 message)** | *(Revision 8)* Built as a store plus a registry, not yet a shell: requests, replies, `want` verbs, opaque `tag`, persisted pending requests. The URL carries only the request id. | `src/handoff/` |
 | **Bridges** | *(Revision 8)* ThinkPad → runner ("Focus on this", `step-through`). Runner → ThinkPad ("Think it through", `think`): a pad opens with a side column for the steps to send back. Runner ↔ library (`choose-steps`, `keep`). | `useFocusHandoff.js` (both tools), `useDecomposeHandoff.js`, `DecomposeHandoffPanel.vue` |
 | **Workflow library** | *(Revision 8)* Its own page (`/workflows`): library, editor (calls with options), picker. Workflows carry a version; runs carry `id@vN` as their tag. The five starter workflows from `GENERIC_PROBLEM_SOLVING_WORKFLOWS.md` seed once. | `src/workflows/` |
-| **Domain quality** | Strong. Pure reducers, injected clock and ids, 457 passing tests (Revision 9). | `thinkPadModel.js` and its test files |
+| **Domain quality** | Strong. Pure reducers, injected clock and ids, 490 passing tests (Revision 13). | `thinkPadModel.js` and its test files |
 | **Research base** | Unusually deep; design rules are traceable to literature. | `recursive-resolve-contract.md` §3, `research-productivity-science.md` |
 
 The recursive ThinkPad loop is real and it works. In the browser run, a two-level drill folded a converged sentence back into its parent and minted "Draft 2 / 2" exactly as the contract describes. That is the hard part, and it is built.
@@ -121,7 +130,7 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 
 **G6. Recursion is asymmetric below the root.** *Fixed in Revision 10 for the thread list and Continue / Reopen; the root is still special in the model (see below).* `drillThreads` is only computed at the root (`useThinkPadSurface.js:40`), so the thread list and "Continue / Reopen" affordances do not appear inside a sub-pad. The root is also special in the model (`pad.doc` vs `thread.doc`), which is why a reframe cannot rewrite the root's goal. The contract already names root-as-frame as the fix.
 
-**G7. Fold-up is harder to see than it should be.** Completing a child returns you to the parent with a badge and a "Next Draft" button. The moment the product exists for, the mess being replaced by the result, happens one click later and without a before/after. The "study beat" from the lifecycle doc is not built.
+**G7. Fold-up is harder to see than it should be.** *Fixed in Revision 13 by the study beat.* Completing a child returns you to the parent with a badge and a "Next Draft" button. The moment the product exists for, the mess being replaced by the result, happens one click later and without a before/after. The "study beat" from the lifecycle doc is not built.
 
 ### 3.3 Defects found
 
@@ -132,13 +141,14 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 | D3 | Stray `<ThinkPadAppBar />` in the page template; Vue warns "Failed to resolve component" on every render. | `ThinkPadPage.vue:81` | Fixed (Phase 0). |
 | D4 | `<router-view>` directly inside a transition; Vue Router warns and the fade does not apply. | `App.vue` | Fixed (Phase 0): the transition wraps the routed component. |
 | D5 | Placeholder says "Right-click highlighted text to make a move"; there is no right-click handler. | `ThinkPadPanel.vue:178` | Fixed (Phase 0): the placeholder now points to Begin Reflect, where moves are available. |
-| D6 | Overlapping staged moves are not detected at reveal (the lifecycle doc requires blocking). | `revealReflectPass` | Open (Phase 1). |
+| D6 | Overlapping staged moves are not detected at reveal (the lifecycle doc requires blocking). | `revealReflectPass` | Fixed (Revision 13): Next Draft becomes "Resolve overlap"; keep one result per group. Merging by hand is not offered. |
 | D7 | In the automated run, a single click on a block in Reflect descended immediately instead of only showing the chips. Not reproduced by hand; worth a manual check. | block click routing in `ThinkPadPanel.vue` | Not reproduced (Revision 10): a single click on a word or a block in Reflect stays on the level. Closed unless it recurs. |
 | D8 | Focus timer resets on every action and is display-only; time spent is never recorded. | `FocusRunnerPage.vue` | Fixed by the workflows build (Revision 8): time spent is recorded per focus. |
 | D9 | `snapshot.json` is a browser devtools dump of an old Rep-it graph, not valid JSON, and imported by nothing. | `src/thinkpad/domain/snapshot.json` | Open. Likely safe to delete; confirm it is not wanted as a reference. |
 | D10 | Vuetify warns that `dense` is deprecated on every visit to `/workflows`. | `WorkflowLibrary.vue` | Fixed (Revision 9): `density="comfortable"`. |
-| D11 | Dragging across a few words inside a block in Reflect drills the whole block: the thread's title and anchor are the full sentence, and its result replaces the full sentence. Seen in automated browser runs (mouse drag); not yet checked by hand. Whether a drag should select words or the block is a design point. | block selection in `ThinkPadPanel.vue` (candidate-span handling) | Open (Phase 1). |
-| D12 | "Next Draft" stays in the Reflect pill after it has run (e.g. "Draft 2 / 2 · Next Draft"). Seen in automated browser runs, with and without Write more; cause not traced. | `DraftPhaseBar.vue` (`stagedCount`), `advanceToNextDraft` | Open (Phase 1). |
+| D11 | Dragging across a few words inside a block in Reflect drills the whole block: the thread's title and anchor are the full sentence, and its result replaces the full sentence. Seen in automated browser runs (mouse drag); not yet checked by hand. Whether a drag should select words or the block is a design point. | block selection in `ThinkPadPanel.vue` (candidate-span handling) | Fixed (Revision 13): a click that ends a drag no longer widens the selection to the block. Dragging selects words; a whole block is acted on through its chips. |
+| D12 | "Next Draft" stays in the Reflect pill after it has run (e.g. "Draft 2 / 2 · Next Draft"). Seen in automated browser runs, with and without Write more; cause not traced. | `DraftPhaseBar.vue` (`stagedCount`), `advanceToNextDraft` | Fixed (Revision 13): the button's infinite pulse kept Vue's `<Transition>` waiting; it now waits on the fade only. |
+| D13 | After Next Draft, `doc.ideas` and `frozenIdeas` kept the previous draft while `text` showed the new one, although ideas are the source of truth. Anything rebuilding text from ideas undid the reveal; Write more did. Found by the Phase 1 exit test. | `advanceToNextDraft` | Fixed (Revision 13): both lists are reconciled from the revealed text, ids kept. |
 
 ### 3.4 Hygiene
 
@@ -275,16 +285,18 @@ Nothing here changes behaviour; it stops the repo from misdescribing itself.
 
 **Exit test:** `npm test` is green, the browser console is clean on both routes, and a fresh agent session given only `README.md` and this doc describes the product correctly.
 
-### Phase 1 — Close the ThinkPad loop (about 1 to 2 weeks)
+### Phase 1 — Close the ThinkPad loop (about 1 to 2 weeks) — done (Revision 13)
 
 Make the existing recursion complete and trustworthy before extending it.
 
 - **Escape hatch (G4).** *Done (Revision 12).* Verified in the browser: added text appears after the frozen draft as workable paragraphs, the draft count goes up, a staged result still lands at Next Draft, half-written text survives a reload, Cancel and a blank addition change nothing. The force-stamp below is now reachable only after branching from an old draft; left as is. A named "Write more" action in the phase bar opens an empty writing area after the frozen draft; adding it makes a new draft version recorded as a stream pass. The frozen text is never reopened for editing. Stop `resolveThreadIntoParent` from force-stamping a parent that is still in Stream; either stage without freezing, or ask.
 - **Symmetric recursion (G6).** *Done (Revision 10), except the root-as-thread unification, which did not fall out cheaply.* Compute `drillThreads` for the current surface at any depth so every sub-pad shows its own threads and Continue / Reopen. Take the root-as-thread unification from the contract (§13.3) only if it falls out cheaply.
-- **Make the fold-up the moment (G7).** After "Next Draft", show a short before/after of each replaced span, then the whole new draft. This is the study beat. Keep it skippable.
-- **Open-thread hygiene.** On the parent, mark threads as open, converged-not-completed, or completed. On Back from a thread with content, say it is being left open. Contract rule 6 calls unclosed drills "worse than no feature".
-- **Reveal conflicts (D6).** Block the reveal when two staged results overlap and let you pick.
+- **Make the fold-up the moment (G7).** *Done (Revision 13).* After "Next Draft", show a short before/after of each replaced span, then the whole new draft. This is the study beat. Keep it skippable.
+- **Open-thread hygiene.** *Done (Revision 13).* On the parent, mark threads as open, converged-not-completed, or completed. On Back from a thread with content, say it is being left open. Contract rule 6 calls unclosed drills "worse than no feature".
+- **Reveal conflicts (D6).** *Done (Revision 13).* Block the reveal when two staged results overlap and let you pick.
 - Check D7 by hand and fix if real. *Done (Revision 10): not reproduced.*
+
+*Exit test passed (Revision 13), scripted in a real browser: a question-titled pad, a dump, two levels of drilling, a reload in the middle that came back to the same sub-pad, Write more on the first level, a typed synthesis to resolve a multi-block level, a thread left and found again from the thread menu, and a one-paragraph root at the end with the study beat asking about the pad's question. No phase trapped the run and no console warnings. It was not done by hand by Miguel.*
 
 **Exit test:** take a real problem from dump to a one-paragraph resolved root in one sitting, going at least two levels deep, without ever being stuck in a phase and without losing track of an open thread.
 
