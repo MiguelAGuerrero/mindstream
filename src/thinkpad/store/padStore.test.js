@@ -98,6 +98,36 @@ describe("padStore", () => {
     expect(store.viewPad.text).toBe("The plan is pile of open questions.");
   });
 
+  it("Next Draft opens a study beat for that draft, cleared on dismiss or leaving the level", () => {
+    const store = usePadStore();
+    store.createNewPad({ title: "Plan" });
+    store.setPadText({ text: "The plan is a mess." });
+    store.stampDraft();
+    store.drillIntoSpan({ parentThreadId: null, title: "mess", selectionStart: 14, selectionEnd: 18, selectedText: "mess" });
+    const thread = store.currentPad.threads[0];
+    store.navigateToThread(thread.id);
+    store.setPadText({ padLocator: thread.id, text: "set of open questions" });
+    store.resolveThreadIntoParent({ threadId: thread.id });
+    expect(store.studyBeat).toBeNull();
+    store.advanceToNextDraft();
+    expect(store.studyBeat).toMatchObject({
+      n: 1,
+      changes: [{ source: "mess", output: "set of open questions" }],
+    });
+    store.dismissStudyBeat();
+    expect(store.studyBeat).toBeNull();
+    // leaving the level drops it too
+    store.drillIntoSpan({ parentThreadId: null, title: "plan", selectionStart: 4, selectionEnd: 8, selectedText: "plan" });
+    const t2 = store.currentPad.threads[1];
+    store.navigateToThread(t2.id);
+    store.setPadText({ padLocator: t2.id, text: "roadmap" });
+    store.resolveThreadIntoParent({ threadId: t2.id });
+    store.advanceToNextDraft();
+    expect(store.studyBeat?.n).toBe(2);
+    store.navigateToThread(t2.id);
+    expect(store.studyBeat).toBeNull();
+  });
+
   it("createNewPad adds a pad to the pool and sets it active", () => {
     const store = usePadStore();
     store.createNewPad({ title: "Fix auth bug" });

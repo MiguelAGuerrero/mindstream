@@ -86,6 +86,9 @@ export const usePadStore = defineStore("pad", {
     currentPadId: null,
     isLoaded: false,
     viewingDraftN: null,
+    // The draft just revealed by Next Draft, shown as a study beat (G7) until
+    // dismissed or until you move to another level or pad. In memory only.
+    studyTarget: null,
   }),
 
   getters: {
@@ -151,6 +154,21 @@ export const usePadStore = defineStore("pad", {
       return stagedConflictsOnPad(this.currentPad, this.surfaceHead);
     },
 
+    /**
+     * The study beat for the surface (G7): the draft just revealed and what
+     * changed in it, as { n, changes: [{ source, output }] }; null otherwise.
+     */
+    studyBeat() {
+      const t = this.studyTarget;
+      if (!t || t.padId !== this.currentPadId || t.padLocator !== this.surfaceHead) return null;
+      const entry = this.draftHistory[t.n];
+      if (!entry) return null;
+      return {
+        n: t.n,
+        changes: (entry.contributions ?? []).map((c) => ({ source: c.source ?? "", output: c.output ?? "" })),
+      };
+    },
+
     /** Text being added by Write more on the surface; null when the area is closed. */
     writeMoreText() {
       const v = this.viewPad?.writeMore;
@@ -205,6 +223,7 @@ export const usePadStore = defineStore("pad", {
     },
 
     setActivePad(padId) {
+      this.studyTarget = null;
       if (typeof padId !== "string" || !padId) return false;
       if (!this.pads.some((c) => c.id === padId)) return false;
       this.currentPadId = padId;
@@ -218,6 +237,7 @@ export const usePadStore = defineStore("pad", {
     },
 
     createNewPad({ title } = {}) {
+      this.studyTarget = null;
       const pad = createPad({ title, now: nowIso() }, { makeId });
       this.pads = [pad, ...this.pads];
       this.currentPadId = pad.id;
@@ -316,6 +336,8 @@ export const usePadStore = defineStore("pad", {
       if (next === this.currentPad) return;
       this._replaceCurrent(next);
       this.viewingDraftN = null;
+      const history = padForThreadOnPad(next, padLocator)?.draftHistory ?? [];
+      this.studyTarget = { padId: this.currentPadId, padLocator, n: history.length - 1 };
     },
 
     /** Write more (append-only, G4): open, edit, cancel, add. Each acts on one level. */
@@ -350,6 +372,10 @@ export const usePadStore = defineStore("pad", {
       this._replaceCurrent(next);
     },
 
+    dismissStudyBeat() {
+      this.studyTarget = null;
+    },
+
     navigateToDraft(n) {
       if (typeof n === "number" && n >= 0 && n < this.draftHistory.length) {
         this.viewingDraftN = n;
@@ -373,6 +399,7 @@ export const usePadStore = defineStore("pad", {
     },
 
     navigateToThread(threadId = null) {
+      this.studyTarget = null;
       if (!this.currentPad) return;
       const next = navigateToThreadOnPad(this.currentPad, threadId, { now: nowIso() });
       if (next === this.currentPad) return;
@@ -380,6 +407,7 @@ export const usePadStore = defineStore("pad", {
     },
 
     pushSurface(threadId = null) {
+      this.studyTarget = null;
       if (!this.currentPad || !threadId) return;
       const next = pushSurfaceOnPad(this.currentPad, threadId, { now: nowIso() });
       if (next === this.currentPad) return;
@@ -387,6 +415,7 @@ export const usePadStore = defineStore("pad", {
     },
 
     jumpToSurfaceIndex(index = 0) {
+      this.studyTarget = null;
       if (!this.currentPad) return;
       const next = jumpToSurfaceIndexOnPad(this.currentPad, index, { now: nowIso() });
       if (next === this.currentPad) return;
@@ -404,6 +433,7 @@ export const usePadStore = defineStore("pad", {
     },
 
     ascendThread() {
+      this.studyTarget = null;
       if (!this.currentPad) return;
       const viewId = this.surfaceHead;
       if (typeof viewId !== "string" || !viewId) return;

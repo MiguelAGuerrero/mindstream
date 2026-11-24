@@ -4,6 +4,7 @@ import { storeToRefs } from "pinia";
 import ThinkPadPanel from "./components/ThinkPadPanel.vue";
 import DraftPhaseBar from "./components/DraftPhaseBar.vue";
 import WriteMoreCard from "./components/WriteMoreCard.vue";
+import StudyBeatCard from "./components/StudyBeatCard.vue";
 import DocumentPickerDialog from "./dialogs/DocumentPickerDialog.vue";
 import OpenItemsDialog from "./dialogs/OpenItemsDialog.vue";
 import { usePadStore } from "./store/padStore";
@@ -283,6 +284,10 @@ watch(
                       <DraftPhaseBar />
                     </template>
                   </ThinkPadPanel>
+                  <StudyBeatCard
+                    v-if="!padStore.isDraftHistoryView"
+                    :goal="surface.isAtRoot ? (currentContext.title ?? '').trim() : (surface.currentGoal ?? '')"
+                  />
                   <WriteMoreCard
                     v-if="padStore.writeMoreText !== null && !padStore.isDraftHistoryView"
                     :key="`write-more:${currentContext.id}:${surface.surfaceHead ?? 'root'}`"
