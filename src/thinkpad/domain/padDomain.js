@@ -61,6 +61,8 @@ export {
   setWriteMoreText,
   cancelWriteMore,
   addWriteMore,
+  stagedConflicts,
+  unstageOutput,
   restreamFromDraftHistory,
   advanceToNextDraft,
   // Block reorder

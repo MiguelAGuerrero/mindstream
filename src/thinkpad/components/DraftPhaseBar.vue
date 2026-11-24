@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { usePadStore } from "../store/padStore";
 
 const padStore = usePadStore();
@@ -27,9 +27,21 @@ function handleWriteMore() {
   padStore.beginWriteMore({ padLocator: padLocator.value });
 }
 
-// Apply all staged outputs and advance to the next draft version.
+// Apply all staged outputs and advance to the next draft version. Overlapping
+// results would write over each other, so those are settled first (D6).
+const conflicts = computed(() => padStore.stagedConflictsOnSurface);
+const overlapOpen = ref(false);
 function handleNextDraft() {
+  if (conflicts.value.length) { overlapOpen.value = true; return; }
   padStore.advanceToNextDraft({ padLocator: padLocator.value });
+}
+function keep(group, item) {
+  padStore.keepStagedOutput({
+    padLocator: padLocator.value,
+    keepId: item.stagedId,
+    groupIds: group.map((g) => g.stagedId),
+  });
+  if (!conflicts.value.length) overlapOpen.value = false;
 }
 
 // Navigate draft history: dir = -1 (prev) or +1 (next / exit history).
@@ -120,15 +132,41 @@ function handleNavigateDraft(dir) {
           v-if="!isDraftHistoryView && isDraftFrozen && stagedCount > 0"
           type="button"
           class="phase-pill__reveal"
-          :title="`Apply ${stagedCount} staged move${stagedCount !== 1 ? 's' : ''} → next draft`"
+          :title="conflicts.length
+            ? 'Two results overlap — choose which to keep first'
+            : `Apply ${stagedCount} staged move${stagedCount !== 1 ? 's' : ''} → next draft`"
           @click="handleNextDraft"
         >
-          <v-icon icon="mdi-arrow-right-circle-outline" size="14" />
-          <span class="phase-pill__reveal-count">Next Draft</span>
+          <v-icon :icon="conflicts.length ? 'mdi-call-split' : 'mdi-arrow-right-circle-outline'" size="14" />
+          <span class="phase-pill__reveal-count">{{ conflicts.length ? "Resolve overlap" : "Next Draft" }}</span>
         </button>
       </Transition>
     </template>
 
+    <v-dialog v-model="overlapOpen" max-width="560" scrim="rgba(0,0,0,0.35)">
+      <v-card rounded="lg">
+        <v-card-title class="px-6 pt-6 pb-1">These results overlap</v-card-title>
+        <v-card-text class="px-6 py-3">
+          <p class="text-body-2 text-medium-emphasis mb-4">
+            They were drilled from overlapping text, so only one can replace it in the
+            next draft. Keep one; the others leave this draft and their threads stay, so
+            you can reopen them.
+          </p>
+          <div v-for="(group, gi) in conflicts" :key="gi" class="overlap-group">
+            <div v-for="item in group" :key="item.stagedId" class="overlap-item">
+              <p class="overlap-item__source">“{{ item.source }}”</p>
+              <p class="overlap-item__arrow">becomes</p>
+              <p class="overlap-item__text">{{ item.text }}</p>
+              <v-btn size="small" variant="tonal" color="primary" @click="keep(group, item)">Keep this one</v-btn>
+            </div>
+          </div>
+        </v-card-text>
+        <v-card-actions class="px-6 pb-5">
+          <v-spacer />
+          <v-btn variant="text" @click="overlapOpen = false">Not now</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -169,6 +207,24 @@ function handleNavigateDraft(dir) {
 .phase-pill__mode-label--reflect {
   color: rgb(var(--v-theme-primary));
 }
+
+.overlap-group {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+.overlap-group:last-child { border-bottom: none; margin-bottom: 0; }
+.overlap-item {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: rgba(var(--v-theme-on-surface), 0.04);
+}
+.overlap-item p { margin: 0 0 4px; }
+.overlap-item__source { font-style: italic; opacity: 0.75; }
+.overlap-item__arrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.55; }
+.overlap-item__text { margin-bottom: 8px !important; }
 
 /* Write more: quiet, so the easy path stays the reflect loop */
 .phase-pill__write-more {

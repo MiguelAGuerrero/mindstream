@@ -75,6 +75,29 @@ describe("padStore", () => {
     expect(store.isDraftFrozen).toBe(true);
   });
 
+  it("overlapping staged results block Next Draft until one is kept", () => {
+    const store = usePadStore();
+    store.createNewPad({ title: "Plan" });
+    store.setPadText({ text: "The plan is a mess of loose ends." });
+    store.stampDraft();
+    for (const [start, end, result] of [[14, 18, "tangle"], [12, 32, "pile of open questions"]]) {
+      store.drillIntoSpan({ parentThreadId: null, title: "t", selectionStart: start, selectionEnd: end, selectedText: "The plan is a mess of loose ends.".slice(start, end) });
+      const thread = store.currentPad.threads[store.currentPad.threads.length - 1];
+      store.navigateToThread(thread.id);
+      store.setPadText({ padLocator: thread.id, text: result });
+      store.resolveThreadIntoParent({ threadId: thread.id });
+    }
+    expect(store.stagedConflictsOnSurface).toHaveLength(1);
+    store.advanceToNextDraft();
+    expect(store.viewPad.text).toBe("The plan is a mess of loose ends."); // refused
+    const group = store.stagedConflictsOnSurface[0];
+    const keep = group.find((c) => c.text === "pile of open questions");
+    store.keepStagedOutput({ keepId: keep.stagedId, groupIds: group.map((c) => c.stagedId) });
+    expect(store.stagedConflictsOnSurface).toEqual([]);
+    store.advanceToNextDraft();
+    expect(store.viewPad.text).toBe("The plan is pile of open questions.");
+  });
+
   it("createNewPad adds a pad to the pool and sets it active", () => {
     const store = usePadStore();
     store.createNewPad({ title: "Fix auth bug" });

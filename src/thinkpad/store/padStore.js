@@ -33,6 +33,8 @@ import {
   setWriteMoreText as setWriteMoreTextOnPad,
   cancelWriteMore as cancelWriteMoreOnPad,
   addWriteMore as addWriteMoreOnPad,
+  stagedConflicts as stagedConflictsOnPad,
+  unstageOutput as unstageOutputOnPad,
   openItems as openItemsOnPad,
   disposeOpenItem as disposeOpenItemOnPad,
   clearDisposition as clearDispositionOnPad,
@@ -142,6 +144,11 @@ export const usePadStore = defineStore("pad", {
 
     stagedOutputs() {
       return this.viewPad?.staged ?? [];
+    },
+
+    /** Groups of staged results that overlap on the surface; Next Draft waits on them (D6). */
+    stagedConflictsOnSurface() {
+      return stagedConflictsOnPad(this.currentPad, this.surfaceHead);
     },
 
     /** Text being added by Write more on the surface; null when the area is closed. */
@@ -327,6 +334,13 @@ export const usePadStore = defineStore("pad", {
     addWriteMore({ padLocator = null } = {}) {
       this._applyOnPad((pad, now) => addWriteMoreOnPad(pad, { padLocator }, { now, makeId }));
       this.viewingDraftN = null;
+    },
+
+    /** Settle one overlap by keeping one staged result and unstaging the rest of its group. */
+    keepStagedOutput({ padLocator = null, keepId, groupIds = [] } = {}) {
+      this._applyOnPad((pad, now) => groupIds
+        .filter((id) => id !== keepId)
+        .reduce((p, stagedId) => unstageOutputOnPad(p, { padLocator, stagedId }, { now }), pad));
     },
 
     _applyOnPad(reduce) {

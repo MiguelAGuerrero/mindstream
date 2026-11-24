@@ -1205,6 +1205,67 @@ export function stageStepOutput(pad, {
 }
 
 /**
+ * Staged results whose anchors overlap on the frozen draft (D6; lifecycle §10.8).
+ * Splicing them in one pass would write over each other, so the reveal waits
+ * until each group is settled. Returns groups (each of 2+ items, in document
+ * order): { stagedId, stepId, annotationId, source, text, start, end }.
+ * Spans that only touch end-to-start do not overlap. [] when none.
+ */
+export function stagedConflicts(pad, padLocator = null) {
+  if (!pad) return [];
+  const doc = padForThread(pad, padLocator);
+  if (!doc) return [];
+  const annotations = doc.annotations ?? [];
+  const items = (doc.staged ?? [])
+    .map((st) => {
+      const ann = annotations.find((a) => a.id === st.annotationId || a.stepId === st.stepId);
+      if (!ann || typeof ann.selectionStart !== "number" || typeof ann.selectionEnd !== "number") return null;
+      return {
+        stagedId: st.id,
+        stepId: st.stepId,
+        annotationId: ann.id,
+        source: ann.selectedText ?? "",
+        text: st.text ?? "",
+        start: ann.selectionStart,
+        end: ann.selectionEnd,
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+  // Sweep in start order: an item joins the current group while it starts
+  // before the group's furthest end.
+  const groups = [];
+  let current = [];
+  let reach = -Infinity;
+  for (const item of items) {
+    if (current.length && item.start < reach) {
+      current.push(item);
+      reach = Math.max(reach, item.end);
+    } else {
+      if (current.length > 1) groups.push(current);
+      current = [item];
+      reach = item.end;
+    }
+  }
+  if (current.length > 1) groups.push(current);
+  return groups;
+}
+
+/**
+ * Take one result out of staging. Its thread and step output stay, so the
+ * thread can be reopened and resolved again later. Same ref for an unknown id.
+ */
+export function unstageOutput(pad, { padLocator = null, stagedId } = {}, { now } = {}) {
+  if (!pad || !stagedId) return pad;
+  const doc = padForThread(pad, padLocator);
+  if (!doc) return pad;
+  const staged = doc.staged ?? [];
+  const next = staged.filter((st) => st.id !== stagedId);
+  if (next.length === staged.length) return pad;
+  return withPad(pad, padLocator, { ...doc, staged: next }, { now });
+}
+
+/**
  * Reveal pass: apply all staged outputs atomically, then clear staging.
  * Splices are applied in REVERSE document order (end → start) so offset shifts
  * from rightward splices do not corrupt leftward anchor positions that haven't
@@ -1302,6 +1363,7 @@ export function advanceToNextDraft(pad, { padLocator = null } = {}, { now, makeI
   if (!doc || doc.phase !== "cultivate") return pad;
   const staged = doc.staged ?? [];
   if (!staged.length) return pad;
+  if (stagedConflicts(pad, padLocator).length > 0) return pad; // settle overlaps first (D6)
 
   // Collect contributions before reveal clears doc.staged.
   const annotations = doc.annotations ?? [];
