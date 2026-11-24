@@ -113,7 +113,9 @@ function handleNavigateDraft(dir) {
       </template>
 
       <!-- Next Draft: only in live cultivate mode with staged moves -->
-      <Transition name="phase-reveal">
+      <!-- type="transition": the button pulses forever, so without it Vue waits on an
+           animationend that never comes and the button never leaves (D12). -->
+      <Transition name="phase-reveal" type="transition">
         <button
           v-if="!isDraftHistoryView && isDraftFrozen && stagedCount > 0"
           type="button"
