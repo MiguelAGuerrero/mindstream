@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 9)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 10)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 10 (2026-11-24): Phase 1 started.** Miguel said "merge and proceed" without answering the phase-order question, so Phase 1 is being taken in its written order. G6 is fixed: a sub-pad at any depth lists its own threads and shows Continue / Reopen, through a pure `drillThreadsAt`. D7 was checked in the browser and not reproduced. The "Write more" escape hatch (G4) is waiting on a decision, because this doc and `stream-reflect-lifecycle.md` §6 describe it differently (§6 question 8).
 
 **How this was assessed:** read every design doc and all non-test source, ran `vitest` and `vite build`, and drove both tools in a real browser (stream, reflect, drill two levels, complete, next draft, Focus decompose, reload).
 
@@ -110,7 +112,7 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 
 **G5. Designed vocabulary, undelivered.** `moves.js` defines nine moves in four families with prompts, write-back modes and intent mappings. The UI exposes three tags (Question, Expand, Flag), and the tag does not change what happens next: every tag opens the same blank sub-pad. The move's driving question, the thing that would make a drill *guided*, never reaches the screen. *The capture-templates proposal answers this with workflows of prompted steps, offered as shortcuts from the tags.* Likewise unwired: pins (`captureIdea`, `performMoveOnIdea`), the intent detector (does not exist), `promoteWithinPad` (no component emits `extract-step`), `resumeHint`, and the timebox config.
 
-**G6. Recursion is asymmetric below the root.** `drillThreads` is only computed at the root (`useThinkPadSurface.js:40`), so the thread list and "Continue / Reopen" affordances do not appear inside a sub-pad. The root is also special in the model (`pad.doc` vs `thread.doc`), which is why a reframe cannot rewrite the root's goal. The contract already names root-as-frame as the fix.
+**G6. Recursion is asymmetric below the root.** *Fixed in Revision 10 for the thread list and Continue / Reopen; the root is still special in the model (see below).* `drillThreads` is only computed at the root (`useThinkPadSurface.js:40`), so the thread list and "Continue / Reopen" affordances do not appear inside a sub-pad. The root is also special in the model (`pad.doc` vs `thread.doc`), which is why a reframe cannot rewrite the root's goal. The contract already names root-as-frame as the fix.
 
 **G7. Fold-up is harder to see than it should be.** Completing a child returns you to the parent with a badge and a "Next Draft" button. The moment the product exists for, the mess being replaced by the result, happens one click later and without a before/after. The "study beat" from the lifecycle doc is not built.
 
@@ -124,7 +126,7 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 | D4 | `<router-view>` directly inside a transition; Vue Router warns and the fade does not apply. | `App.vue` | Fixed (Phase 0): the transition wraps the routed component. |
 | D5 | Placeholder says "Right-click highlighted text to make a move"; there is no right-click handler. | `ThinkPadPanel.vue:178` | Fixed (Phase 0): the placeholder now points to Begin Reflect, where moves are available. |
 | D6 | Overlapping staged moves are not detected at reveal (the lifecycle doc requires blocking). | `revealReflectPass` | Open (Phase 1). |
-| D7 | In the automated run, a single click on a block in Reflect descended immediately instead of only showing the chips. Not reproduced by hand; worth a manual check. | block click routing in `ThinkPadPanel.vue` | Open (Phase 1). |
+| D7 | In the automated run, a single click on a block in Reflect descended immediately instead of only showing the chips. Not reproduced by hand; worth a manual check. | block click routing in `ThinkPadPanel.vue` | Not reproduced (Revision 10): a single click on a word or a block in Reflect stays on the level. Closed unless it recurs. |
 | D8 | Focus timer resets on every action and is display-only; time spent is never recorded. | `FocusRunnerPage.vue` | Fixed by the workflows build (Revision 8): time spent is recorded per focus. |
 | D9 | `snapshot.json` is a browser devtools dump of an old Rep-it graph, not valid JSON, and imported by nothing. | `src/thinkpad/domain/snapshot.json` | Open. Likely safe to delete; confirm it is not wanted as a reference. |
 | D10 | Vuetify warns that `dense` is deprecated on every visit to `/workflows`. | `WorkflowLibrary.vue` | Fixed (Revision 9): `density="comfortable"`. |
@@ -268,12 +270,12 @@ Nothing here changes behaviour; it stops the repo from misdescribing itself.
 
 Make the existing recursion complete and trustworthy before extending it.
 
-- **Escape hatch (G4).** Wire `restreamDraft` as a named "Write more" action in the phase bar. Stop `resolveThreadIntoParent` from force-stamping a parent that is still in Stream; either stage without freezing, or ask.
-- **Symmetric recursion (G6).** Compute `drillThreads` for the current surface at any depth so every sub-pad shows its own threads and Continue / Reopen. Take the root-as-thread unification from the contract (§13.3) only if it falls out cheaply.
+- **Escape hatch (G4).** *Waiting on §6 question 8.* Wire `restreamDraft` as a named "Write more" action in the phase bar. Stop `resolveThreadIntoParent` from force-stamping a parent that is still in Stream; either stage without freezing, or ask.
+- **Symmetric recursion (G6).** *Done (Revision 10), except the root-as-thread unification, which did not fall out cheaply.* Compute `drillThreads` for the current surface at any depth so every sub-pad shows its own threads and Continue / Reopen. Take the root-as-thread unification from the contract (§13.3) only if it falls out cheaply.
 - **Make the fold-up the moment (G7).** After "Next Draft", show a short before/after of each replaced span, then the whole new draft. This is the study beat. Keep it skippable.
 - **Open-thread hygiene.** On the parent, mark threads as open, converged-not-completed, or completed. On Back from a thread with content, say it is being left open. Contract rule 6 calls unclosed drills "worse than no feature".
 - **Reveal conflicts (D6).** Block the reveal when two staged results overlap and let you pick.
-- Check D7 by hand and fix if real.
+- Check D7 by hand and fix if real. *Done (Revision 10): not reproduced.*
 
 **Exit test:** take a real problem from dump to a one-paragraph resolved root in one sitting, going at least two levels deep, without ever being stuck in a phase and without losing track of an open thread.
 
@@ -385,6 +387,7 @@ Open:
 5. **Typed synthesis vs "one block".** Rule 2 says nothing ascends unless it is one block. The ThinkPad work that was uncommitted on `master` added a dialog that lets a thread with several blocks resolve with a typed synthesis. The merge keeps it, after the open-item gate: every open item must be decided first. Keep it, or require convergence?
 6. **Does a call branch?** Today a call (decision step) only gates progress: you choose, and the plan moves to its next undone step. Should an option be able to lead to different next steps?
 7. **Library access rule (capture-templates §10.8).** Built as proposed: the runner never reads the library. It asks with `choose-steps`, the library page answers, and only the library page writes (`keep`). Confirm before it hardens.
+8. **What "Write more" does (G4).** This doc says wire `restreamDraft`, which unfreezes the draft for editing in place and, as written, discards staged results. `stream-reflect-lifecycle.md` §6 says going back to writing should add a visibly new dump: you never pour raw text into a frozen draft. Recommended: append-only. "Write more" opens an empty Stream area below the frozen draft; stamping it again adds that text as a new draft version, recorded in draft history as a stream pass. Nothing staged is lost, anchors on the frozen text stay valid, and a child resolving into the parent never needs to force-freeze it. Rewriting earlier text stays possible through the existing branch-from-history (`restreamFromDraftHistory`).
 
 Settled:
 

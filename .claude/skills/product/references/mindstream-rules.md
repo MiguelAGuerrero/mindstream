@@ -6,7 +6,7 @@ A compact summary of what is settled, for checking proposals quickly. The source
 - `docs/capture-templates-proposal.md`: workflows, the open-item gate, resolution. Read its decisions table first.
 - `reports/`: research on comparable apps.
 
-If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 9 and proposal decisions 1 to 22.
+If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 10 and proposal decisions 1 to 22.
 
 ## Contents
 
@@ -146,7 +146,8 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 Check the documents for the current list. At last sync:
 
 - Revision 8 questions: the runner's opt-in Reflect button vs decision 17; ThinkPad's typed synthesis vs "one block"; whether a call can branch; the library access rule as built.
-- Phase order: the open-item gate (Phase 2) and most of Phase 3 were built before Phase 1. Deliberate reordering, or return to Phase 1 next? Asked in roadmap §6.
+- Phase order: the open-item gate (Phase 2) and most of Phase 3 were built before Phase 1.
+- What "Write more" does (G4): unfreeze in place (roadmap) or add a new dump (lifecycle doc §6). Recommended append-only; roadmap §6 question 8. Deliberate reordering, or return to Phase 1 next? Asked in roadmap §6.
 - Where tag shortcuts to workflows come from: pinned per tag, recent use, or the library only.
 - Who may read the workflow library. Built as: the runner never reads it, asks with `choose-steps`; only the library page writes. Not yet confirmed by Miguel.
 - How much of the shell already exists in the undeployed multi-tool layout work.
