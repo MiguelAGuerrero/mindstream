@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 24)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 25)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 25 (2026-11-24): links built.** Miguel asked for the remaining phases to be executed autonomously until a product decision is needed. First slice: links (Revisions 15 and 22). In Reflect, the move picker offers Link (a URL, or another paragraph as a snapshot connection) and Needs source (an open item until a link covers it or it is decided). Linked passages are underlined; tapping one opens the URL or shows the paragraph as it was linked, with "refined later" when it has changed. Bare URLs in the text read as links. Defaults chosen: the Link action lives in Reflect, not while writing, so writing stays uninterrupted, and pasted URLs are covered by showing bare URLs as links; links to passages point at a paragraph of the same level; text leaving the pad writes URL links as Markdown (`textWithLinks`, used by export). Also fixed: a passage's tag was not saved and was lost on reload.
 
 **Revision 24 (2026-11-24): compact workflow library; phone issues closed; landed on master.** Miguel asked for the library to be "title, subtitle", with details behind "See more", and for the open phone issues to be addressed with reasonable defaults, then pushed to master. The library is now a compact list: a title and one line of what the workflow is for, with "See more" expanding the steps in place. The phone issues from Revision 23 are closed: a thread's tag can be changed by tap from inside the thread (the converge tag is labelled Flag everywhere, Resolve being the action); the ThinkPad page now fits the screen below the bars instead of forcing about 100px of scroll; every control on ThinkPad, the runner and the library is at least 32px tall on a phone, with the main ones at 40px. Verified at iPhone size and on desktop (490 tests, build, console clean, Reflect round trip). Landed on `master` at Miguel's request, together with Revisions 14 to 23. Next: links (to URLs and to passages, as snapshot connections), then Synthesize with quoting.
 
