@@ -32,6 +32,7 @@ import {
   ideaIdForRange,
   docHasMultipleIdeas,
   remapAnnotationsForIdeaReorder,
+  ideaRanges,
 } from "./ideas";
 
 const DEFAULT_CONFIG = Object.freeze({
@@ -1511,6 +1512,145 @@ export function leaveReflect(pad, { padLocator = null } = {}, { now, makeId } = 
 }
 
 // ---------------------------------------------------------------------------
+// Links and "needs a source" (roadmap Revisions 15 and 22).
+//
+// A link is an annotation on a passage. It points at a URL, or at another
+// paragraph as a snapshot connection: it keeps the text and draft version it
+// drew on and never changes; linksAt only reports whether that paragraph was
+// later refined (or is gone). Attaching a link opens no item. "Needs a source"
+// is an annotation that stays an open item until a link overlaps it or it is
+// decided at the gate. The document text never changes; textWithLinks writes
+// URL links out as Markdown when text leaves the pad.
+// ---------------------------------------------------------------------------
+
+const URL_PATTERN = /^https?:\/\/[^\s]+$/i;
+
+function overlaps(a, b) {
+  return a.selectionStart < b.selectionEnd && b.selectionStart < a.selectionEnd;
+}
+
+function coveredByLink(doc, ann) {
+  return (doc.annotations ?? []).some((l) => l.link && l.hidden !== true && overlaps(l, ann));
+}
+
+function rangeIn(doc, { selectionStart, selectionEnd, selectedText }) {
+  const text = doc.text ?? "";
+  if (!Number.isInteger(selectionStart) || !Number.isInteger(selectionEnd)) return null;
+  if (selectionStart < 0 || selectionEnd > text.length || selectionStart >= selectionEnd) return null;
+  const words = text.slice(selectionStart, selectionEnd);
+  if (typeof selectedText === "string" && selectedText && selectedText !== words) return null;
+  return { selectionStart, selectionEnd, selectedText: words };
+}
+
+function withAnnotation(pad, padLocator, doc, annotation, { now }) {
+  return withPad(pad, padLocator, { ...doc, annotations: [...(doc.annotations ?? []), annotation] }, { now });
+}
+
+/** Attach a URL to a passage (a document action; opens nothing). */
+export function addLink(pad, { padLocator = null, selectionStart, selectionEnd, selectedText, href } = {}, { now, makeId } = {}) {
+  if (!pad) return pad;
+  const doc = padForThread(pad, padLocator);
+  if (!doc) return pad;
+  const url = typeof href === "string" ? href.trim() : "";
+  if (!URL_PATTERN.test(url)) return pad;
+  const span = rangeIn(doc, { selectionStart, selectionEnd, selectedText });
+  if (!span) return pad;
+  return withAnnotation(pad, padLocator, doc, {
+    id: makeId("ann"), ...span, stepId: null, createdAt: now, link: { kind: "url", href: url },
+  }, { now });
+}
+
+/**
+ * Link a passage to another paragraph of the same level: a snapshot connection
+ * keeping the target's text and the current draft version.
+ */
+export function addPassageLink(pad, { padLocator = null, selectionStart, selectionEnd, selectedText, targetIdeaId } = {}, { now, makeId } = {}) {
+  if (!pad) return pad;
+  const raw = padForThread(pad, padLocator);
+  if (!raw) return pad;
+  const doc = ensureDocIdeas(raw, { makeId });
+  const span = rangeIn(doc, { selectionStart, selectionEnd, selectedText });
+  if (!span) return pad;
+  const target = ideaRanges(doc.ideas ?? []).find((r) => r.id === targetIdeaId);
+  if (!target) return pad;
+  if (span.selectionStart >= target.start && span.selectionEnd <= target.end) return pad; // its own paragraph
+  const history = doc.draftHistory ?? [];
+  return withAnnotation(pad, padLocator, doc, {
+    id: makeId("ann"), ...span, stepId: null, createdAt: now,
+    link: { kind: "passage", ideaId: target.id, snapshot: target.text, draftN: history.length ? history.length - 1 : null, at: now },
+  }, { now });
+}
+
+/** Take a link off. Same ref for an unknown id or a non-link annotation. */
+export function removeLink(pad, { padLocator = null, annotationId } = {}, { now } = {}) {
+  if (!pad) return pad;
+  const doc = padForThread(pad, padLocator);
+  if (!doc || !(doc.annotations ?? []).some((a) => a.id === annotationId && a.link)) return pad;
+  return withPad(pad, padLocator, { ...doc, annotations: doc.annotations.filter((a) => a.id !== annotationId) }, { now });
+}
+
+/** Mark a passage as needing a source: an open item until a link covers it or it is decided. */
+export function markNeedsSource(pad, { padLocator = null, selectionStart, selectionEnd, selectedText } = {}, { now, makeId } = {}) {
+  if (!pad) return pad;
+  const doc = padForThread(pad, padLocator);
+  if (!doc) return pad;
+  const span = rangeIn(doc, { selectionStart, selectionEnd, selectedText });
+  if (!span) return pad;
+  return withAnnotation(pad, padLocator, doc, {
+    id: makeId("ann"), ...span, stepId: null, createdAt: now, needsSource: true,
+  }, { now });
+}
+
+/**
+ * The links at one level, in document order: { annotationId, kind, selectionStart,
+ * selectionEnd, selectedText, href } for URLs, and for passages { ideaId, snapshot,
+ * draftN, current, refined, lost }.
+ */
+export function linksAt(pad, padLocator = null) {
+  const doc = padForThread(pad, padLocator);
+  if (!doc) return [];
+  const ideas = doc.ideas ?? [];
+  return (doc.annotations ?? [])
+    .filter((a) => a.link && a.hidden !== true)
+    .sort((a, b) => a.selectionStart - b.selectionStart)
+    .map((a) => {
+      const base = {
+        annotationId: a.id, kind: a.link.kind,
+        selectionStart: a.selectionStart, selectionEnd: a.selectionEnd, selectedText: a.selectedText ?? "",
+        lostAnchor: a.lost === true,
+      };
+      if (a.link.kind === "url") return { ...base, href: a.link.href };
+      const target = ideas.find((i) => i.id === a.link.ideaId);
+      return {
+        ...base,
+        ideaId: a.link.ideaId,
+        snapshot: a.link.snapshot,
+        draftN: a.link.draftN ?? null,
+        current: target ? target.text : null,
+        refined: !!target && target.text !== a.link.snapshot,
+        lost: !target,
+      };
+    });
+}
+
+/** The level's text with URL links written as Markdown, for text leaving the pad. */
+export function textWithLinks(pad, padLocator = null) {
+  const doc = padForThread(pad, padLocator);
+  if (!doc) return "";
+  let text = doc.text ?? "";
+  const urls = (doc.annotations ?? [])
+    .filter((a) => a.link?.kind === "url" && !a.lost && text.slice(a.selectionStart, a.selectionEnd) === a.selectedText)
+    .sort((a, b) => b.selectionStart - a.selectionStart);
+  let lastStart = Infinity;
+  for (const a of urls) {
+    if (a.selectionEnd > lastStart) continue; // overlapping links: keep the later one
+    text = `${text.slice(0, a.selectionStart)}[${a.selectedText}](${a.link.href})${text.slice(a.selectionEnd)}`;
+    lastStart = a.selectionStart;
+  }
+  return text;
+}
+
+// ---------------------------------------------------------------------------
 // Block reorder — move a paragraph block to a new position within a doc.
 // ---------------------------------------------------------------------------
 
@@ -1628,6 +1768,10 @@ export function openItems(pad, padLocator = null) {
       source: a.selectedText ?? "",
       threadId: threadIdForStep(pad, a.stepId),
     }));
+  // "Needs a source" (Revision 15): open until a link covers the passage or it is decided.
+  const sources = (doc.annotations ?? [])
+    .filter((a) => a.needsSource === true && !a.disposition && a.hidden !== true && !coveredByLink(doc, a))
+    .map((a) => ({ id: a.id, kind: "source", text: a.selectedText ?? "", source: a.selectedText ?? "" }));
   const lifted = (doc.lifted ?? [])
     .filter((l) => !l.disposition)
     .map((l) => ({
@@ -1637,7 +1781,7 @@ export function openItems(pad, padLocator = null) {
       source: l.source,
       from: { padLocator: l.from?.padLocator ?? null, annotationId: l.from?.annotationId ?? null },
     }));
-  return [...moves, ...lifted];
+  return [...moves, ...sources, ...lifted];
 }
 
 /**
@@ -1664,7 +1808,7 @@ export function disposeOpenItem(pad, {
 
   const trimmed = typeof note === "string" ? note.trim() : "";
   const disposition = { kind, note: trimmed, target: kind === "lifted" ? liftTarget : null, at: now };
-  const nextDoc = item.kind === "move"
+  const nextDoc = item.kind === "move" || item.kind === "source"
     ? { ...doc, annotations: doc.annotations.map((a) => (a.id === id ? { ...a, disposition } : a)) }
     : { ...doc, lifted: doc.lifted.map((l) => (l.id === id ? { ...l, disposition } : l)) };
   let next = withPad(pad, padLocator, nextDoc, { now });
@@ -1792,8 +1936,11 @@ export function decidedItems(pad, padLocator = null) {
       source: a.selectedText ?? "",
       disposition: a.disposition,
     }));
+  const sources = (doc.annotations ?? [])
+    .filter((a) => a.disposition && a.needsSource === true)
+    .map((a) => ({ id: a.id, kind: "source", text: a.selectedText ?? "", source: a.selectedText ?? "", disposition: a.disposition }));
   const lifted = (doc.lifted ?? [])
     .filter((l) => l.disposition)
     .map((l) => ({ id: l.id, kind: "lifted", text: l.text, source: l.source, disposition: l.disposition }));
-  return [...moves, ...lifted];
+  return [...moves, ...sources, ...lifted];
 }

@@ -91,7 +91,30 @@ function normalizeThinkPadAnnotation(value, { now } = {}) {
     resolvedAt: asString(value.resolvedAt),
     // Open-item gate: the decision taken on an open move (accepted / lifted / parked).
     disposition: normalizeDisposition(value.disposition),
+    // The stance tag (question / expand / converge). It used to be dropped on load.
+    tag: typeof value.tag === "string" && value.tag ? value.tag : null,
+    // Links and "needs a source" (Revisions 15 and 22); passages re-found by words may be lost.
+    ...(normalizeLink(value.link) ? { link: normalizeLink(value.link) } : {}),
+    ...(value.needsSource === true ? { needsSource: true } : {}),
+    ...(value.lost === true ? { lost: true } : {}),
   };
+}
+
+function normalizeLink(value) {
+  if (!value || typeof value !== "object") return null;
+  if (value.kind === "url" && typeof value.href === "string" && /^https?:\/\//i.test(value.href)) {
+    return { kind: "url", href: value.href };
+  }
+  if (value.kind === "passage" && typeof value.ideaId === "string" && typeof value.snapshot === "string") {
+    return {
+      kind: "passage",
+      ideaId: value.ideaId,
+      snapshot: value.snapshot,
+      draftN: Number.isInteger(value.draftN) ? value.draftN : null,
+      at: typeof value.at === "string" ? value.at : null,
+    };
+  }
+  return null;
 }
 
 /** A decision on an open item (capture-templates-proposal §8.2), or null. */
