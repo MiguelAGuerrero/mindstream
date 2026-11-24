@@ -10,6 +10,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useDisplay } from "vuetify";
 import { emitAudioEvent } from "./sfx";
 import { provideFocusUi } from "./focus/composables/useFocusUi";
+import PwaShell from "./pwa/PwaShell.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -72,6 +73,7 @@ function goHome() {
           <component :is="Component" />
         </v-fade-transition>
       </router-view>
+      <PwaShell />
     </v-app>
   </v-responsive>
 </template>

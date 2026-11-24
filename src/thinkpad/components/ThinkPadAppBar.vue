@@ -4,6 +4,7 @@ import { VAppBar } from "vuetify/components";
 import { useDisplay } from "vuetify";
 import { usePadStore } from "../store/padStore";
 import { useSessionUi } from "../composables/useSessionUi";
+import { usePwa } from "../../pwa/usePwa";
 
 // compact: render the same actions as a low plain flex row instead of a
 // v-app-bar — v-app-bar is a Vuetify layout primitive that only makes sense
@@ -19,6 +20,7 @@ const props = defineProps({
 const router = useRouter();
 const padStore = usePadStore();
 const sessionUi = useSessionUi();
+const { canInstall, install } = usePwa();
 
 function goHome() {
   router.push({ name: "home" });
@@ -63,6 +65,7 @@ function exportPad() {
             title="Export as Markdown"
             @click="exportPad"
           />
+          <v-list-item v-if="canInstall" prepend-icon="mdi-cellphone-arrow-down" title="Install app" @click="install" />
         </v-list>
       </v-menu>
     </div>

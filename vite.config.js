@@ -14,9 +14,9 @@ export default defineConfig({
     }),
     vuetify({ autoImport: true }),
     // Installable app (mobile-first): add to the home screen, open full screen,
-    // work offline. Updates install themselves on the next launch after a deploy.
+    // work offline. A new deploy shows "New version · Reload" (pwa/PwaShell).
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['apple-touch-icon.png', 'mindstream-icon.svg'],
       manifest: {
         name: 'Mindstream',
@@ -40,6 +40,9 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         // Deep links (a pad, a thread, a context) open the app offline too.
         navigateFallback: 'index.html',
+        // The icon font is requested as ...woff2?v=7.4.47; without ignoring `v`
+        // the precached copy never matches and every icon is blank offline.
+        ignoreURLParametersMatching: [/^utm_/, /^fbclid$/, /^v$/],
       },
     }),
   ],

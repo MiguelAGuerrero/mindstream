@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 35)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 36)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 36 (2026-11-24): the installed app updates in place, and works fully offline.** Miguel: "PWA support is wanted". The app was already installable and cached for offline use, but updates landed only after closing and reopening the app. **Built:** a new deploy now shows "A new version of Mindstream is ready · Later / Reload" inside the app. The app checks for a new deploy when you come back to it and every 30 minutes. Mindstream asks the browser to keep pads permanently, so it can't clear them when space runs low. The phone ⋮ menu has an **Install app** item: Chrome uses its own install prompt, and iPhone Safari shows the Share → Add to Home Screen steps. A small **Offline** pill sits bottom-left while there's no connection. **Fixed:** offline, every icon used to be blank, because the icon font is requested with `?v=…` and that query stopped it matching the cached copy.
 
 **Revision 35 (2026-11-24): Reflect's Pages view is a real page viewer.** Miguel, on the phone: Pages was "just a fancy scroller"; he expected "a page viewer where you only ever see the page itself", with the rest on the next page. **Built:** each page shows only the lines that fit whole, and the first line that doesn't fit starts the next page, so nothing is cut at the edges and nothing repeats. The text area never scrolls in Pages: the text is moved up to the page's first line and clipped below its last. Page 1 is shorter because the title sits above it. Switching to Reflect opens on page 1; coming back from a thread returns to the page you were reading. Also landed from the journey audit (reports/ThinkPad journey audit.md), the five high findings: notices no longer cover the thread strip, deleting a pad asks first, thumb-size selection controls that never cover the selection, painted thread passages, and Escape in a dialog no longer enters Reflect.
 
