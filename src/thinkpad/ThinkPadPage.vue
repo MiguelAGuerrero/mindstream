@@ -1111,6 +1111,9 @@ watch(
 
 .thinkpad-doc-card__date {
   font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 
@@ -1119,6 +1122,22 @@ watch(
 @media (max-width: 600px) {
   .thinkpad-canvas {
     padding: 0;
+  }
+  /* "Pick up where you left off" is one row of cards you swipe through, so it
+     never pushes the question off the screen. */
+  .thinkpad-welcome {
+    flex-shrink: 0;
+    padding: 12px 16px 0;
+  }
+  .thinkpad-welcome__grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 4px;
+  }
+  .thinkpad-welcome__grid .thinkpad-doc-card {
+    flex: 0 0 min(70%, 240px);
+    scroll-snap-align: start;
   }
   .thinkpad-page-col {
     gap: 0;
