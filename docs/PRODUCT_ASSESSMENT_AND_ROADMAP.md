@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 15)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 16)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 16 (2026-11-24): Reflect is a state, built.** The pill switches between Writing and Reflect. Entering Reflect freezes the draft and records a version when the text changed; going back to Write applies waiting results first, opens the study beat, and asks to settle overlapping results before it can. Write more is gone. Because the document is living again, drilled and hidden passages are re-found by their words on every edit; a passage whose words are gone is marked lost and is no longer painted. A thread resolving into a parent that is being written splices straight in. Verified in the browser (versions, applied results, edits in front of a drilled passage, overlap blocking Write, a hidden passage staying on its words after an edit). Still to do from the mobile list: the phone layout pass, then citations, then converging (question 13, awaiting Miguel).
 
 **Revision 15 (2026-11-24): the Reflect mechanics and citing, approved; a new gap.** Miguel approved the recommendations for §6 questions 9 to 12 ("go ahead with those recommendations"):
 - Leaving Reflect applies waiting results first (then the study beat), so writing always resumes on the newest draft.
@@ -108,7 +110,7 @@ Everything in the roadmap is judged by two questions: does it help a big thing b
 | **ThinkPad: stream / reflect phases** | Working. Stamp freezes the draft, block chips appear, drafts are versioned and navigable. | `stampDraft`, `advanceToNextDraft`, `DraftPhaseBar.vue` |
 | **ThinkPad: recursive drill** | Working to arbitrary depth, with breadcrumb, goal line and parent peek. | `drillIntoSpan`, `surfaceThreadId`, drill bar in `ThinkPadPage.vue` |
 | **ThinkPad: fold-up** | Working. Completing a one-block sub-pad stages its text against the parent; "Next Draft" splices it in. | `resolveThreadIntoParent`, `revealReflectPass` |
-| **ThinkPad: closing the loop** | *(Revision 13)* Write more (append-only) from Reflect; every sub-pad lists its own threads with their state (open, ready to resolve, resolved); a notice when Back leaves a thread open; overlapping results settled before Next Draft; a study beat after it. | `addWriteMore`, `drillThreadsAt`, `stagedConflicts`, `WriteMoreCard.vue`, `StudyBeatCard.vue` |
+| **ThinkPad: closing the loop** | *(Revision 13; Revision 16 replaced Write more with a Write ⇄ Reflect switch)* Write more (append-only) from Reflect; every sub-pad lists its own threads with their state (open, ready to resolve, resolved); a notice when Back leaves a thread open; overlapping results settled before Next Draft; a study beat after it. | `addWriteMore`, `drillThreadsAt`, `stagedConflicts`, `WriteMoreCard.vue`, `StudyBeatCard.vue` |
 | **ThinkPad: persistence** | Working. IndexedDB, survives reload, document picker and "pick up where you left off" grid. | `padsDb.js`, `padPersistenceMapper.js` |
 | **Focus runner** | *(Revision 8)* Persists to its own IndexedDB (contexts, stacks, parked state, `waitingOn`, time spent). A focus can hold an ordered **plan** of steps: done per step, out of order allowed, switch steps from the side panel, the card shows the current step only. Decision steps finish by choosing an output. Resolve never prompts; Reflect is an opt-in button per step. | `sessionRunStore.js`, `focusDb.js`, `ContextTrail.vue` |
 | **ThinkPad: open-item gate** | *(Revision 8)* Built (Phase 2's first item): open items, the three decisions, open counts in the breadcrumb, Resolve refused while any item is undecided. | `openItems`, `disposeOpenItem`, `OpenItemsDialog.vue` |
