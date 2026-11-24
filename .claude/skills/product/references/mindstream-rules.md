@@ -6,7 +6,7 @@ A compact summary of what is settled, for checking proposals quickly. The source
 - `docs/capture-templates-proposal.md`: workflows, the open-item gate, resolution. Read its decisions table first.
 - `reports/`: research on comparable apps.
 
-If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 26 and proposal decisions 1 to 22.
+If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 27 and proposal decisions 1 to 22.
 
 ## Contents
 
@@ -30,7 +30,7 @@ A thinking workspace: a suite of independent tools that help one person process 
 - **Workflows** is the library of reusable methods, a tool with its own page (`/workflows`). Using a workflow copies its steps into the tool that asked.
 - More tools may join.
 
-Phase 0 and Phase 1 are done (Revisions 9 and 13); next in order is Phase 2's remainder. What is built (roadmap Revision 8): the runner persists and holds plans of steps with decision steps; the message in §4 is real in `src/handoff/` (a store plus a registry of `want` verbs, not yet the shell's layout, "Send to…" or shelf); bridges exist between ThinkPad, the runner and the library.
+Phases 0 and 1 are done (Revisions 9 and 13); Phase 2's exit test passed (Revision 27), with tag shortcuts and pins waiting on decisions. What is built (roadmap Revision 8): the runner persists and holds plans of steps with decision steps; the message in §4 is real in `src/handoff/` (a store plus a registry of `want` verbs, not yet the shell's layout, "Send to…" or shelf); bridges exist between ThinkPad, the runner and the library.
 
 Scope for now: one user (Miguel), local-first in the browser, no accounts, no sync, no AI generation. The person does the thinking; the app guides.
 

@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 26)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 27)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 27 (2026-11-24): Phase 2 exit test passed; landed on master.** Built: a workflow can be written out as a ThinkPad document (ThinkPad registers text-only steps; the library's editor offers "Write it out"; each step is a # heading); a workflow can be slotted into a thread ("Workflow" in a thread asks for saved steps and writes them in as headings); steps can be marked as actions in the editor (decision 15), which keeps them out of ThinkPad; items accepted at a gate travel up as caveats, shown in the thread list and the study beat. The exit test (a doubted claim, a workflow slotted into its thread, a second level resolved, Resolve refused once by an undecided item, the item accepted as a caveat, the claim carrying the call with the caveat) passed in the browser at phone size. Two Phase 2 items remain, both waiting on decisions in §6: where tag shortcuts come from (question 3) and pins (question 16). Landed on `master` under the standing instruction.
 
 **Revision 26 (2026-11-24): Synthesize built.** The synthesis model (Revisions 19 to 22) is in the app. A Synthesize chip in Reflect opens a thread over the whole draft; Quote copies the draft's paragraphs into it as snapshot quotes; lines starting with # are theme headings. Resolving it asks you to acknowledge threads still open in the draft, then asks for the thesis, which replaces the draft; the open threads move under the thesis, keep the passage they were opened on, and their results land beside it. Defaults chosen: one open synthesis per level (starting again returns to it); quoting happens while writing in the synthesis; quotes of a draft that a synthesis replaced read as "quoted from draft N", not as lost. Not built: the "1 source still open" caveat shown on a resolved thesis (open threads stay visible in the thread list instead), and quoting from levels other than the one being synthesized.
 
@@ -350,7 +352,7 @@ Make the existing recursion complete and trustworthy before extending it.
 
 **Exit test:** take a real problem from dump to a one-paragraph resolved root in one sitting, going at least two levels deep, without ever being stuck in a phase and without losing track of an open thread.
 
-### Phase 2 — Spans become workable: the gate, then workflows (about 2 to 3 weeks)
+### Phase 2 — Spans become workable: the gate, then workflows (about 2 to 3 weeks) — exit test passed (Revision 27); tag shortcuts and pins wait on decisions
 
 This is the in-flight work, sequenced in the proposal's own build order (§12, steps 1 to 3). It is where "the app guides" becomes true for thinking (G5).
 
@@ -481,6 +483,8 @@ Open:
     - **Settled in Revision 22:** before a synthesis replaces the text, open threads inside it are acknowledged (not necessarily resolved), then kept and re-anchored to the thesis; their results are added beside it. A thesis may resolve with open threads under it. Links may target passages, as snapshot connections. The synthesis model is now complete enough to build.
     - **Amendments from the manual run (Revision 20):** replace is gated on open threads anchored inside the passage; quotes point at the draft version they came from and never "follow" (only live anchors and links do); each move keeps its landing as a default you can override; the link action can target a passage in the document; quotes show "still open" and "changed since quoted"; a "Synthesize" action opens a thread on the whole draft; a pad's resolved thesis is marked as its answer and shown first.
     - **Deferred** until a real document shows the need: Arrange (question 14), a Themes view, inline reference marks, multi-select in the stream.
+
+16. **Pins under mobile-first.** The roadmap's pins are "one keystroke in Stream marks the current block", and the lifecycle doc says a pin "lives in the keystream, never the mouse". A phone has no keystrokes, and since Revision 16 Reflect is a state you can enter at any time, where every paragraph already offers its moves. Options: drop pins; make a pin an inline token typed at the end of a paragraph (for example "??"), lifted out and shown as a mark in Reflect; or a pin button in the writing pill. Recommended: drop pins for now. Their job (marking a passage to come back to while writing) is mostly done by switching to Reflect, and a token or button adds a second way to do the same thing.
 
 Settled:
 
