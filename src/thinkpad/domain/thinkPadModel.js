@@ -32,7 +32,7 @@ const DEFAULT_CONFIG = Object.freeze({
 
 /** A fresh, empty document surface (root pad.doc or any thread's sub-pad). */
 function emptyDoc() {
-  return { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], draftHistory: [] };
+  return { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], draftHistory: [], lifted: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -1400,4 +1400,204 @@ function _reorderDocText(text, fromIdx, toIdx) {
   }
 
   return { newText, remapOffset };
+}
+
+// ---------------------------------------------------------------------------
+// Open-item gate (docs/capture-templates-proposal.md §8).
+//
+// An OPEN ITEM is a move you started at a level that hasn't resolved: an anchor
+// annotation carrying a stepId that is not resolved, not staged for the next
+// reveal, not hidden, and has no disposition. An item LIFTED up from a lower
+// level is an open item at its new level too (doc.lifted). Writing never creates
+// an open item; starting a move does. A thread cannot resolve up while it has any
+// undecided open item, so nothing is lost on the way up.
+//
+// Each open item is closed by working it (it resolves) or by one disposition:
+//   accepted — room for doubt: go ahead anyway; the note becomes a caveat later
+//   lifted   — out of scope here: it becomes an open item at an ancestor level
+//   parked   — its own work: it leaves this inquiry (to the shelf, once it exists)
+// ---------------------------------------------------------------------------
+
+export const DISPOSITION_KINDS = Object.freeze(["accepted", "lifted", "parked"]);
+
+function isOpenAnchor(annotation, stagedIds) {
+  return !!annotation
+    && typeof annotation.stepId === "string" && annotation.stepId !== ""
+    && annotation.resolved !== true
+    && annotation.hidden !== true
+    && !annotation.disposition
+    && !stagedIds.has(annotation.id);
+}
+
+/** The thread whose goal step is `stepId` (drills and promoted moves alike), or null. */
+function threadIdForStep(pad, stepId) {
+  let found = null;
+  function visit(thread) {
+    if (found) return;
+    if ((thread.steps ?? []).some((s) => s.id === stepId)) { found = thread.id; return; }
+    for (const drill of thread.subThreads ?? []) visit(drill);
+  }
+  for (const thread of pad?.threads ?? []) visit(thread);
+  return found;
+}
+
+/**
+ * Levels strictly above `padLocator`, nearest last: [null (root), ...thread ids].
+ * [] for the root (nothing is above it); null for an unknown thread.
+ */
+function ancestorLocators(pad, padLocator) {
+  if (padLocator == null) return [];
+  const path = findTreePathToThread(pad, padLocator);
+  if (!path.length) return null;
+  return [null, ...path.slice(0, -1).map((t) => t.id)];
+}
+
+/**
+ * The undecided open items of one level (null = root document, a thread id = its
+ * sub-pad), in document order then lift order:
+ *   { id, kind: "move",   text, source, threadId }   a started, unresolved move
+ *   { id, kind: "lifted", text, source, from }        an item lifted from below
+ * [] for an unknown level.
+ */
+export function openItems(pad, padLocator = null) {
+  const doc = padForThread(pad, padLocator);
+  if (!doc) return [];
+  const stagedIds = new Set((doc.staged ?? []).map((s) => s.annotationId).filter(Boolean));
+  const moves = (doc.annotations ?? [])
+    .filter((a) => isOpenAnchor(a, stagedIds))
+    .map((a) => ({
+      id: a.id,
+      kind: "move",
+      text: a.stepTitle || a.selectedText || "",
+      source: a.selectedText ?? "",
+      threadId: threadIdForStep(pad, a.stepId),
+    }));
+  const lifted = (doc.lifted ?? [])
+    .filter((l) => !l.disposition)
+    .map((l) => ({
+      id: l.id,
+      kind: "lifted",
+      text: l.text,
+      source: l.source,
+      from: { padLocator: l.from?.padLocator ?? null, annotationId: l.from?.annotationId ?? null },
+    }));
+  return [...moves, ...lifted];
+}
+
+/**
+ * Decide an open item at a level: accept it as room for doubt, park it as its own
+ * work, or lift it to a strict ancestor (`target`: null = root, else a thread id),
+ * where it becomes an open item with `note` (or the item's own text) as its text.
+ * Same ref when the level or item is unknown, the item is not open, the kind is
+ * invalid, or a lift target is not a strict ancestor.
+ */
+export function disposeOpenItem(pad, {
+  padLocator = null, id, kind, note = "", target = null,
+} = {}, { now, makeId } = {}) {
+  if (!pad || typeof id !== "string" || !id) return pad;
+  if (!DISPOSITION_KINDS.includes(kind)) return pad;
+  const doc = padForThread(pad, padLocator);
+  if (!doc) return pad;
+  const liftTarget = target ?? null;
+  if (kind === "lifted") {
+    const ancestors = ancestorLocators(pad, padLocator);
+    if (!ancestors || !ancestors.includes(liftTarget)) return pad;
+  }
+  const item = openItems(pad, padLocator).find((i) => i.id === id);
+  if (!item) return pad;
+
+  const trimmed = typeof note === "string" ? note.trim() : "";
+  const disposition = { kind, note: trimmed, target: kind === "lifted" ? liftTarget : null, at: now };
+  const nextDoc = item.kind === "move"
+    ? { ...doc, annotations: doc.annotations.map((a) => (a.id === id ? { ...a, disposition } : a)) }
+    : { ...doc, lifted: doc.lifted.map((l) => (l.id === id ? { ...l, disposition } : l)) };
+  let next = withPad(pad, padLocator, nextDoc, { now });
+
+  if (kind === "lifted") {
+    const targetDoc = padForThread(next, liftTarget);
+    next = withPad(next, liftTarget, {
+      ...targetDoc,
+      lifted: [...(targetDoc.lifted ?? []), {
+        id: makeId("lifted"),
+        text: trimmed || item.text,
+        source: item.source,
+        from: { padLocator: padLocator ?? null, annotationId: id },
+        at: now,
+        disposition: null,
+      }],
+    }, { now });
+  }
+  return next;
+}
+
+/**
+ * Undo a decision so the item is open again. Undoing a lift also removes the item
+ * it opened above — but only while that item is still undecided; once it was
+ * decided at its new level the lift stands (same ref). Same ref when the item has
+ * no decision.
+ */
+export function clearDisposition(pad, { padLocator = null, id } = {}, { now } = {}) {
+  if (!pad || typeof id !== "string" || !id) return pad;
+  const doc = padForThread(pad, padLocator);
+  if (!doc) return pad;
+  const annotation = (doc.annotations ?? []).find((a) => a.id === id && a.disposition);
+  const liftedEntry = annotation ? null : (doc.lifted ?? []).find((l) => l.id === id && l.disposition);
+  const disposition = annotation?.disposition ?? liftedEntry?.disposition;
+  if (!disposition) return pad;
+
+  let next = pad;
+  if (disposition.kind === "lifted") {
+    const targetLocator = disposition.target ?? null;
+    const targetDoc = padForThread(next, targetLocator);
+    const entry = (targetDoc?.lifted ?? []).find((l) =>
+      l.from?.annotationId === id && (l.from?.padLocator ?? null) === (padLocator ?? null));
+    if (entry?.disposition) return pad; // decided above — the lift stands
+    if (entry) {
+      next = withPad(next, targetLocator, {
+        ...targetDoc, lifted: targetDoc.lifted.filter((l) => l !== entry),
+      }, { now });
+    }
+  }
+  const currentDoc = padForThread(next, padLocator);
+  const nextDoc = annotation
+    ? { ...currentDoc, annotations: currentDoc.annotations.map((a) => (a.id === id ? { ...a, disposition: null } : a)) }
+    : { ...currentDoc, lifted: currentDoc.lifted.map((l) => (l.id === id ? { ...l, disposition: null } : l)) };
+  return withPad(next, padLocator, nextDoc, { now });
+}
+
+/**
+ * Whether a thread may resolve up into its parent: it has converged to one
+ * non-empty block and has no undecided open items. False for the root document
+ * (nothing is above it) and for an unknown thread.
+ */
+export function canResolve(pad, threadId) {
+  if (!pad || typeof threadId !== "string" || !threadId) return false;
+  const thread = findThreadById(pad, threadId);
+  if (!thread) return false;
+  if ((thread.doc?.text ?? "").trim() === "") return false;
+  if (threadIsOpen(thread)) return false;
+  return openItems(pad, threadId).length === 0;
+}
+
+/**
+ * The items of one level that already carry a decision, in document order then
+ * lift order: { id, kind: "move" | "lifted", text, source, disposition }. Lets
+ * the gate show what was decided (and offer undo). [] for an unknown level.
+ */
+export function decidedItems(pad, padLocator = null) {
+  const doc = padForThread(pad, padLocator);
+  if (!doc) return [];
+  const moves = (doc.annotations ?? [])
+    .filter((a) => a.disposition && typeof a.stepId === "string" && a.stepId)
+    .map((a) => ({
+      id: a.id,
+      kind: "move",
+      text: a.stepTitle || a.selectedText || "",
+      source: a.selectedText ?? "",
+      disposition: a.disposition,
+    }));
+  const lifted = (doc.lifted ?? [])
+    .filter((l) => l.disposition)
+    .map((l) => ({ id: l.id, kind: "lifted", text: l.text, source: l.source, disposition: l.disposition }));
+  return [...moves, ...lifted];
 }
