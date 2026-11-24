@@ -160,19 +160,20 @@ Message = {
 
 **Future tools** are not planned here; the contract is the test for them. Anything that stands alone and speaks text through the broker can join without the existing tools changing.
 
-**Vocabulary to standardise** (one word per concept, in UI and code):
+**Vocabulary.** Each tool keeps the words that suit its job; only the words that cross between tools need to be shared.
 
-| Concept | Word | Retire |
-|---|---|---|
-| Top-level unit of work | **pad** | context (ThinkPad sense), document |
-| A node in the recursion | **thread** | frame, drill (as a noun), sub-pad |
-| Going down | **descend** | drill, focus (ThinkPad sense), decompose |
-| Finishing a node | **complete** | resolve up, roll-up |
-| What comes back up | **result** | chunk, takeaway, output |
-| A thread whose result is an action | **task** | focus, context (Focus sense) |
-| A method made of prompted steps | **workflow** | template, form (as nouns for the thing itself) |
-| One execution of a workflow on a span | **run** | session |
-| A move started at a level and not yet settled | **open item** | |
+| Scope | Concept | Word | Retire |
+|---|---|---|---|
+| Shared | What tools exchange | **text** (a message) | payload, import blob |
+| Shared | Asking another tool to work on text | **request** / **reply** | |
+| Shared | Something started and not yet settled | **open item** | |
+| Shared | A method made of prompted steps | **workflow**; one execution is a **run** | template, session |
+| ThinkPad | Top-level unit | **pad** | context, document |
+| ThinkPad | A nested piece of a pad | **thread** | frame, drill (as a noun), sub-pad |
+| ThinkPad | Going down | **drill** | focus (ThinkPad sense) |
+| Runner | Top-level unit | **context** | |
+| Runner | One unit of attention | **focus** | frame (in UI) |
+| Runner | Going down | **decompose** | drill |
 
 One naming conflict to settle: `master` just renamed "Resolve up" to "Complete", while the proposal uses "Resolve" and "resolution" throughout. Pick one before the workflow UI is built. "Resolve" fits better once a level can end in *a call or a sharper question*, since a sharper question is resolved but not complete.
 
