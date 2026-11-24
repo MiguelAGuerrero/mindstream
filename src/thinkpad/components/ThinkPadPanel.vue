@@ -164,7 +164,18 @@ const threadAnnotations = computed(() =>
     (a) => a.stepId && !a.lost && a.hidden !== true && !a.link && a.needsSource !== true && a.synthesis !== true && !a.disposition,
   ),
 );
-const paintedAnnotations = computed(() => [...hiddenAnnotations.value, ...markedAnnotations.value, ...threadAnnotations.value, ...cuedAnnotations.value]);
+// Results waiting for Next Draft show in the text as "→ result" after their passage.
+const stagedPreviews = computed(() => {
+  if (!props.reflectMode) return [];
+  const anns = props.thinkPad?.annotations ?? [];
+  return (props.thinkPad?.staged ?? []).flatMap((s) => {
+    const a = anns.find((x) => x.id === s.annotationId || (s.stepId && x.stepId === s.stepId));
+    const t = String(s.text ?? "").replace(/\s+/g, " ").trim();
+    if (!a || a.lost || a.synthesis || !t) return [];
+    return [{ id: `pv-${a.id}`, stagedPreview: true, end: a.selectionEnd, text: t.length > 140 ? `${t.slice(0, 139)}…` : t }];
+  });
+});
+const paintedAnnotations = computed(() => [...hiddenAnnotations.value, ...markedAnnotations.value, ...threadAnnotations.value, ...cuedAnnotations.value, ...stagedPreviews.value]);
 const hiddenCount = computed(() => hiddenAnnotations.value.length);
 
 const blockStates = computed(() => {
@@ -185,7 +196,11 @@ function handleIdeaPeek(stepId) {
   emit("idea-peek", stepId);
 }
 
+// Hover focus (dim the other paragraphs) only where there is a real hover; on a
+// phone the last tap leaves a "hover" behind that would keep the page dimmed.
+const canHover = typeof window !== "undefined" && window.matchMedia?.("(hover: hover)").matches;
 function setHoveredBlockIdx(idx) {
+  if (!canHover && idx !== null) return;
   const next = typeof idx === "number" && idx >= 0 ? idx : null;
   if (next === hoveredBlockIdx.value) return;
   hoveredBlockIdx.value = next;
@@ -267,6 +282,7 @@ function measureLines(el) {
     // non-editable while reflecting, so only widgets below it count.
     acceptNode: (n) => {
       if (!n.textContent.trim()) return NodeFilter.FILTER_REJECT;
+      if (n.parentElement?.closest(".thinkpad-staged-preview")) return NodeFilter.FILTER_ACCEPT;
       const widget = n.parentElement?.closest('[contenteditable="false"], button');
       return widget && widget !== root && root.contains(widget) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
     },
@@ -725,6 +741,9 @@ function positionAboveSelection(view, from, to = from) {
   popoverPos.value = { top: below ? end.bottom : coords.top, left: colCenter, below };
 }
 
+// When the picker closes (any action, or tapping away), the page stops dimming.
+watch(selectionState, (v) => { if (!v) focusedBlockIdx.value = null; });
+
 function dismissSelection() {
   selectionState.value = null;
   focusedBlockIdx.value = null;
@@ -1026,7 +1045,7 @@ defineExpose({ flushText, dismissSelection });
         @click="toggleReflectView"
       >
         <v-icon :icon="paged ? 'mdi-book-open-page-variant-outline' : 'mdi-text-long'" size="13" />
-        <span>{{ paged ? "Pages" : "Document" }}</span>
+        <span class="thinkpad-chip-full">{{ paged ? "Pages" : "Document" }}</span>
       </button>
       <button
         v-if="hiddenCount"
@@ -1047,7 +1066,8 @@ defineExpose({ flushText, dismissSelection });
             :title="`${drillThreads.length} thread${drillThreads.length !== 1 ? 's' : ''}, ${unresolvedThreadCount} not resolved`"
           >
             <v-icon icon="mdi-call-split" size="13" />
-            <span>{{ drillThreads.length }} thread{{ drillThreads.length !== 1 ? 's' : '' }}<template v-if="unresolvedThreadCount"> · {{ unresolvedThreadCount }} open</template></span>
+            <span class="thinkpad-chip-full">{{ drillThreads.length }} thread{{ drillThreads.length !== 1 ? 's' : '' }}<template v-if="unresolvedThreadCount"> · {{ unresolvedThreadCount }} open</template></span>
+            <span class="thinkpad-chip-short">{{ drillThreads.length }}<template v-if="unresolvedThreadCount"> · {{ unresolvedThreadCount }} open</template></span>
           </button>
         </template>
         <v-list density="compact" min-width="220" max-width="280" max-height="320">
@@ -1596,8 +1616,11 @@ defineExpose({ flushText, dismissSelection });
   min-height: 7rem;
 }
 
+/* Paragraphs get the same space between them in both modes (Revision 35); the
+   gaps used to come from an invisible row of chips that only sometimes wrapped. */
 .thinkpad-editor :deep(.ProseMirror p) {
-  margin: 0;
+  margin: 0 0 0.8em;
+  position: relative;
 }
 
 /* Placeholder: the empty paragraph renders the prompt via a ::before overlay. */
@@ -1929,11 +1952,14 @@ defineExpose({ flushText, dismissSelection });
    CSS handles show/hide — no JS hover tracking required.               */
 
 .thinkpad-editor :deep(.thinkpad-block-actions) {
+  /* Shown in the space under the paragraph; never takes up a line itself. */
+  position: absolute;
+  left: 0;
+  top: calc(100% - 2px);
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  margin-left: 8px;
-  vertical-align: middle;
   opacity: 0;
   pointer-events: none;
   user-select: none;
@@ -2158,5 +2184,31 @@ defineExpose({ flushText, dismissSelection });
   .thinkpad-mini-picker__sep--v {
     display: none;
   }
+}
+
+/* Devices without hover (phones): the paragraph chips are replaced by the
+   selection picker (tap or select words), so they are not shown at all. */
+@media (hover: none) {
+  .thinkpad-editor :deep(.thinkpad-block-actions) {
+    display: none;
+  }
+}
+
+/* Bar chips: full labels on wide screens; on phones the Pages switch is an icon
+   and the threads chip a count, so the one thin bar never overflows. */
+.thinkpad-reveal-chip { white-space: nowrap; }
+.thinkpad-chip-short { display: none; }
+@media (max-width: 600px) {
+  .thinkpad-chip-full { display: none; }
+  .thinkpad-chip-short { display: inline; }
+  .thinkpad-reveal-chip { min-height: 36px; min-width: 36px; justify-content: center; }
+}
+
+/* A result waiting for Next Draft, shown after the passage it will replace. */
+.thinkpad-editor :deep(.thinkpad-staged-preview) {
+  color: rgb(var(--v-theme-primary));
+  font-style: italic;
+  font-size: 0.92em;
+  user-select: none;
 }
 </style>

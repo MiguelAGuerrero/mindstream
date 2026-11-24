@@ -356,4 +356,42 @@ function truncatePreview(text, max = 280) {
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* Phones: a plain document list (title, when), like the welcome screen. No
+   previews; the delete button is always there since there is no hover. */
+@media (max-width: 600px) {
+  .doc-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .doc-card {
+    flex-direction: row;
+    align-items: center;
+    min-height: 56px;
+    padding: 0 48px 0 12px;
+  }
+  .doc-card__page {
+    display: none;
+  }
+  .doc-card__caption {
+    padding: 8px 0;
+    min-width: 0;
+  }
+  .doc-card--new {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    min-height: 52px;
+    padding: 0 12px;
+  }
+  .doc-card__delete {
+    opacity: 1 !important;
+    top: 50% !important;
+    transform: translateY(-50%);
+    right: 6px !important;
+    width: 40px !important;
+    height: 40px !important;
+  }
+}
 </style>

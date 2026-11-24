@@ -31,9 +31,13 @@ function buildDecorations(doc, annotations, candidateSpans, focusedBlockIndex) {
   try {
     const text = docJSONToText(doc.toJSON());
     const decos = [];
+    // Results waiting for Next Draft ride along as preview entries: each draws an
+    // inline "→ result" right after the passage it will replace (Revision 35).
+    const previews = (annotations ?? []).filter((a) => a?.stagedPreview);
+    const marks = (annotations ?? []).filter((a) => !a?.stagedPreview);
 
     // Annotation highlights — anchored / resolved / hidden.
-    const segments = computeHighlightSegments(text, annotations ?? []);
+    const segments = computeHighlightSegments(text, marks);
     for (const seg of segments) {
       if (seg.kind === "plain") continue;
       const tagCls = seg.tag ? ` thinkpad-hl--tag-${seg.tag}` : "";
@@ -60,6 +64,18 @@ function buildDecorations(doc, annotations, candidateSpans, focusedBlockIndex) {
         attrs["data-annotation-kind"] = seg.kind === "quote" ? "link" : seg.kind;
       }
       decos.push(Decoration.inline(charToPos(seg.start), charToPos(seg.end), attrs));
+    }
+
+    for (const pv of previews) {
+      if (!Number.isFinite(pv.end) || pv.end < 0 || pv.end > text.length) continue;
+      decos.push(Decoration.widget(charToPos(pv.end), () => {
+        const el = document.createElement("span");
+        el.className = "thinkpad-staged-preview";
+        el.contentEditable = "false";
+        el.textContent = ` → ${pv.text}`;
+        el.title = "Waiting for Next Draft";
+        return el;
+      }, { side: 1, key: `staged:${pv.id}:${pv.text}` }));
     }
 
     // Theme headings ("# …") in a synthesis read as headings; the text is unchanged.

@@ -2,7 +2,7 @@
 // The open-item gate (docs/capture-templates-proposal.md §8). Lists the moves
 // started at this level that haven't resolved, plus items lifted up from below,
 // and asks for one decision on each before the level may resolve up:
-//   address it here (go to it) · accept as room for doubt · lift it · park it.
+//   work on it now (go to it) · keep as a caveat · move it up · make it its own pad.
 // Already-decided items are listed with an undo.
 import { computed, reactive } from "vue";
 
@@ -25,16 +25,16 @@ const open = computed({
 });
 
 const DECISION_LABELS = {
-  accepted: "Accepted as room for doubt",
-  lifted: "Lifted",
-  parked: "Parked as its own work",
+  accepted: "Kept as a caveat",
+  lifted: "Moved up",
+  parked: "Made its own pad",
 };
 
 function decisionLabel(item) {
   const d = item.disposition ?? {};
   if (d.kind !== "lifted") return DECISION_LABELS[d.kind] ?? d.kind;
   const target = props.liftTargets.find((t) => t.locator === (d.target ?? null));
-  return `Lifted to ${target?.label ?? "a level above"}`;
+  return `Moved up to ${target?.label ?? "a level above"}`;
 }
 
 function dispose(item, kind, target = null) {
@@ -83,14 +83,14 @@ function dispose(item, kind, target = null) {
                 prepend-icon="mdi-arrow-down-right"
                 @click="emit('go-to', item.threadId)"
               >
-                Address it here
+                Work on it now
               </v-btn>
               <v-btn size="small" variant="tonal" color="warning" @click="dispose(item, 'accepted')">
-                Accept as doubt
+                Keep as a caveat
               </v-btn>
               <v-menu v-if="liftTargets.length">
                 <template #activator="{ props: menuProps }">
-                  <v-btn v-bind="menuProps" size="small" variant="tonal" append-icon="mdi-menu-down">Lift to…</v-btn>
+                  <v-btn v-bind="menuProps" size="small" variant="tonal" append-icon="mdi-menu-down">Move up to…</v-btn>
                 </template>
                 <v-list density="compact">
                   <v-list-item
@@ -101,7 +101,7 @@ function dispose(item, kind, target = null) {
                   />
                 </v-list>
               </v-menu>
-              <v-btn size="small" variant="tonal" @click="dispose(item, 'parked')">Park as its own work</v-btn>
+              <v-btn size="small" variant="tonal" @click="dispose(item, 'parked')">Make it its own pad</v-btn>
             </div>
           </div>
         </section>

@@ -268,7 +268,7 @@ watch(
                   type="button"
                   class="drill-bar__intent"
                   :aria-expanded="drillContextExpanded"
-                  :aria-label="`Show thread path — ${surface.currentStance.label}`"
+                  :aria-label="`Show thread path — ${surface.currentGoal} (${surface.currentStance.label})`"
                   @click="drillContextExpanded = !drillContextExpanded"
                 >
                   <v-icon
@@ -285,8 +285,11 @@ watch(
                     :icon="surface.currentStance.icon"
                     size="16"
                     class="drill-bar__stance-icon"
+                    :title="surface.currentStance.label"
                   />
-                  <span class="drill-bar__intent-text">{{ surface.currentStance.label }}</span>
+                  <!-- The thread is named by what it's about (its question or passage);
+                       the stance is the icon beside it. -->
+                  <span class="drill-bar__intent-text">{{ surface.currentStance.label === "Synthesis" ? "Synthesis" : surface.currentGoal }}</span>
                 </button>
 
                 <v-expand-transition>
@@ -542,7 +545,7 @@ watch(
 
       <v-dialog v-model="surface.acknowledgeOpen" max-width="520" scrim="rgba(0,0,0,0.35)">
         <v-card rounded="lg">
-          <v-card-title class="px-6 pt-6 pb-1">Converge over open threads?</v-card-title>
+          <v-card-title class="px-6 pt-6 pb-1">Replace the draft with your thesis?</v-card-title>
           <v-card-text class="px-6 py-3">
             <p class="text-body-2 text-medium-emphasis mb-3">
               The thesis will replace the draft. These are still open in it. You don't have to settle them:
@@ -558,7 +561,7 @@ watch(
           <v-card-actions class="px-6 pb-5">
             <v-btn variant="text" @click="surface.acknowledgeOpen = false">Not yet</v-btn>
             <v-spacer />
-            <v-btn color="primary" variant="flat" @click="surface.confirmAcknowledge()">Converge anyway</v-btn>
+            <v-btn color="primary" variant="flat" @click="surface.confirmAcknowledge()">Replace the draft</v-btn>
           </v-card-actions>
         </v-card>
       </v-dialog>
@@ -1325,5 +1328,21 @@ watch(
   :global(.ms-raised-notice) {
     margin-bottom: calc(112px + env(safe-area-inset-bottom, 0px)) !important; /* above the bar and the page turner */
   }
+}
+
+/* Phones: bar actions stay on one line and keep to their own width. */
+@media (max-width: 600px) {
+  .thinkpad-bar-action {
+    white-space: nowrap;
+    padding: 0 10px;
+    min-height: 36px;
+    flex-shrink: 0;
+  }
+}
+
+/* Dialog titles wrap instead of being cut off on a phone. */
+:global(.v-dialog .v-card-title) {
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 </style>
