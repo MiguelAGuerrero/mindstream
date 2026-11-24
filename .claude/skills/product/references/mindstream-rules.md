@@ -6,7 +6,7 @@ A compact summary of what is settled, for checking proposals quickly. The source
 - `docs/capture-templates-proposal.md`: workflows, the open-item gate, resolution. Read its decisions table first.
 - `reports/`: research on comparable apps.
 
-If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 14 and proposal decisions 1 to 22.
+If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 15 and proposal decisions 1 to 22.
 
 ## Contents
 
@@ -114,8 +114,8 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 - **Steps declare what they produce:** text or an action. ThinkPad accepts a set of steps only if all produce text; the runner accepts any. A step may also carry `expects: "call"` with `options`: a decision step, finished by choosing an output (Revision 8).
 - **A workflow is only its steps.** No workflow-level notes; notes belong to the run. The runner's card shows the current step only; a side panel is the fallback for the whole plan (Revision 8, settled by Miguel).
 - **Mobile-first is a design constraint** (Revision 14). Every feature must work by touch on a phone; nothing hover-only or drag-only. "If it works on mobile, it works on desktop." The phone's small surface is what limits the feature set. Desktop stays supported.
-- **Freezing is a state of Reflect, not a move** (Revision 14). The document is living; Reflect freezes it while you reflect, and leaving Reflect returns to writing. Supersedes the one-way stamp (lifecycle doc §6) and Revision 11's append-only Write more. Mechanics are open (roadmap §6 questions 9 to 11).
-- **Citations and links are supported** (Revision 14). Whether citing is a move or a document action is open (roadmap §6 question 12).
+- **Freezing is a state of Reflect, not a move** (Revisions 14 and 15). The document is living; Reflect freezes it while you reflect. Entering Reflect records a draft version; leaving it applies waiting results first (then the study beat) and returns to writing. Write more is removed. Supersedes the one-way stamp (lifecycle doc §6).
+- **Citations and links are supported** (Revisions 14 and 15). Attaching a link to a passage is a document action (not an open item); "this needs a source" is a move (an open item). Pasted URLs become links, stored as Markdown-style text.
 - **Phases follow the roadmap order.** The gate and bridges landing before Phase 1 was circumstance, not a reorder (Revision 11).
 - **Every finished phase lands on `master`** once its exit test passes, without asking again (Miguel, Revision 11). Work inside an unfinished phase stays on the branch.
 - **Reflection is not an app feature.** Nothing prompts it. It is a step or a workflow the person chooses.
@@ -151,6 +151,7 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 Check the documents for the current list. At last sync:
 
 - Revision 8 questions: the runner's opt-in Reflect button vs decision 17; ThinkPad's typed synthesis vs "one block"; whether a call can branch; the library access rule as built.
+- Converging, comparing and connecting passages: a real gap (Revision 15). Proposed: Converge as a multi-passage move, Connect as a document action (roadmap §6 question 13).
 - Where tag shortcuts to workflows come from: pinned per tag, recent use, or the library only.
 - Who may read the workflow library. Built as: the runner never reads it, asks with `choose-steps`; only the library page writes. Not yet confirmed by Miguel.
 - How much of the shell already exists in the undeployed multi-tool layout work.

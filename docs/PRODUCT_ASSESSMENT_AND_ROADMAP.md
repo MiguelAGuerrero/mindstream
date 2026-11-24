@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 14)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 15)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,14 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 15 (2026-11-24): the Reflect mechanics and citing, approved; a new gap.** Miguel approved the recommendations for §6 questions 9 to 12 ("go ahead with those recommendations"):
+- Leaving Reflect applies waiting results first (then the study beat), so writing always resumes on the newest draft.
+- A draft version is recorded each time you enter Reflect.
+- Write more is removed; going back to writing replaces it.
+- Citing is both: attaching a link to a passage is a plain document action; "this needs a source" is a move, an open item until a link is attached or the item is decided. Pasted URLs become links; links are stored as Markdown-style text.
+
+He also named a gap: **converging, comparing and connecting passages** ("absolutely critical in order to resolve thoughts and ideas on the document upwards"). Today every move, thread and result is tied to one continuous passage, so two passages cannot be worked into one understanding, and one passage cannot be marked as bearing on another. The proposal is §6 question 13.
 
 **Revision 14 (2026-11-24): mobile-first as a design constraint, Reflect as a state, citations.** Settled by Miguel, prompted by walking through a research scenario ("how do I build an effective workout program?", gathered from YouTube over several days):
 - **Mobile-first is a scope discipline, not a platform switch.** His words: "if it works on mobile, then it most certainly will work on desktop, because it's proven itself on a very limited surface." Every feature must work by touch on a phone screen, and that limit is what keeps the feature set small. Desktop stays supported. The earlier "no mobile layout" exclusion in §5 is withdrawn.
@@ -417,14 +425,20 @@ Open:
 7. **Library access rule (capture-templates §10.8).** Built as proposed: the runner never reads the library. It asks with `choose-steps`, the library page answers, and only the library page writes (`keep`). Confirm before it hardens.
 8. *(Settled in Revision 11: append-only, for now.)*
 
-9. **Leaving Reflect with results waiting.** Proposed: leaving Reflect applies waiting results first (the Next Draft step, then the study beat), so you go back to writing on the newest draft and no result is ever placed against text you have since edited. The alternative, keeping them waiting while you edit, relies on re-finding the original words, and falls back to appending at the end of the document when they are gone (`spliceStepIntoPad`).
-10. **When a draft version is recorded.** Proposed: each time you enter Reflect, so the draft history becomes the record of how your understanding moved over time, without any stamping ceremony.
-11. **Write more.** Proposed: remove it. Switching back to writing replaces it, and two ways to add text would be confusing.
-12. **Citing: a move or a document action?** Proposed: both, for different jobs. *Attaching* a link to a span is a plain document action, available whether writing or reflecting, and needs no resolution. *"This needs a source"* is a move: an open item on the span that the gate counts until a link is attached or the item is decided. Pasted URLs become links automatically. Links are stored as text (Markdown style), so they cross to other tools intact.
+9. *(Settled in Revision 15: leaving Reflect applies waiting results first.)*
+10. *(Settled in Revision 15: a version is recorded on entering Reflect.)*
+11. *(Settled in Revision 15: Write more is removed.)*
+12. *(Settled in Revision 15: citing is both a document action and a "needs a source" move.)*
+13. **Converging, comparing and connecting passages.** Proposed, in two parts, mirroring citing:
+    - **Converge (a move):** collect two or more passages, then open one thread on all of them. The sub-pad shows the passages quoted at the top, side by side, which is the comparison. Resolving it produces one result that replaces the first passage; the other passages are folded into it and leave the next draft. The study beat shows "A + B → result". Comparing is not a separate move: it is what you do inside a converge thread.
+    - **Connect (a document action):** mark that one passage bears on another, optionally with a word ("supports", "contradicts", "depends on"). A connection is a record, not an open item, like a citation. A "contradicts" connection offers "Converge these" as a shortcut.
+    - **On a phone**, collecting passages works by tapping each passage's chip to add it to a small tray ("2 selected → Converge / Connect"), not by multi-dragging.
+    - Open points: what happens to the other passages (folded away, or kept with a note); whether a connection is visible in the text or only from a passage's menu.
 
 Settled:
 
 - **Mobile-first?** Revision 14: yes, as a design constraint.
+- **The Reflect mechanics and citing?** Revision 15: as recommended.
 - **Is the draft frozen by a stamp?** Revision 14: no; frozen only while in Reflect.
 - **View or import?** Revisions 4 and 5: tools own their state and exchange text through the workspace shell.
 - **The shelf.** Revision 6: yes.
