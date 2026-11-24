@@ -7,7 +7,7 @@
 // clicking; you PARK one (with an optional "waiting on…" reason) when it's
 // blocked / awaiting something external, then work another.
 //
-// All the focus moves (drill/complete/abandon) operate on the ACTIVE context's
+// All the focus moves (drill/resolve/abandon) operate on the ACTIVE context's
 // stack. Separate from padStore / the thinkPad domain. Workflows are deferred
 // (no template is consulted). No persistence: in-memory, lost on reload.
 // ---------------------------------------------------------------------------
@@ -117,7 +117,7 @@ export const useSessionRunStore = defineStore("sessionRun", {
 
     /** Fold an optional takeaway into the active focus. At root, marks the
      *  context resolved and steps off it; when drilled, pops and records on parent. */
-    completeFocus({ result = "" } = {}) {
+    resolveFocus({ result = "" } = {}) {
       const ctx = this.activeContext;
       if (!ctx || ctx.stack.length < 1) return;
       const r = typeof result === "string" ? result.trim() : "";

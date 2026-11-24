@@ -31,7 +31,7 @@ export function useThinkPadSurface() {
   // surface that haven't resolved, and items lifted up from below.
   const openItems = computed(() => padStore.openItemsAt(surfaceHead.value));
   const decidedItems = computed(() => padStore.decidedItemsAt(surfaceHead.value));
-  const canComplete = computed(() => padStore.canResolveSurface);
+  const canResolve = computed(() => padStore.canResolveSurface);
   const gateOpen = ref(false);
 
   // Levels an item on this surface can be lifted to: the root document, then each
@@ -186,7 +186,7 @@ export function useThinkPadSurface() {
     padStore.ascendThread();
   }
 
-  function handleComplete() {
+  function handleResolve() {
     const head = padStore.surfaceHead;
     if (typeof head !== "string" || !head) return;
     if (!padStore.canResolveSurface) {
@@ -243,7 +243,7 @@ export function useThinkPadSurface() {
     isAtRoot,
     threadPath,
     viewPad,
-    canComplete,
+    canResolve,
     converged,
     openItems,
     decidedItems,
@@ -269,7 +269,7 @@ export function useThinkPadSurface() {
     jumpToSurface,
     navigateToThread,
     handleAscend,
-    handleComplete,
+    handleResolve,
     handleDisposeOpenItem,
     handleClearDisposition,
     handleGoToOpenItem,

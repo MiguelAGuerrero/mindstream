@@ -1,7 +1,7 @@
 <script setup>
 // The Focus Runner page (route name: "focus"). Authoring is the source.
 // Holds many isolated contexts: a left rail to switch between them (click), the
-// active one shown center as a sticky note. Decompose / Complete / Park open a
+// active one shown center as a sticky note. Decompose / Resolve / Park open a
 // small text composer — no workflow is consulted (deferred). Only this route
 // touches the store.
 import { computed, reactive, ref, watch, nextTick } from "vue";
@@ -24,7 +24,7 @@ function restartTimer() {
 
 // One composer dialog, four modes:
 //   'drill'    → author a sub-focus to decompose into (required)
-//   'complete' → author an optional takeaway to fold up
+//   'resolve'  → author an optional takeaway to fold up
 //   'park'     → author an optional "waiting on…" reason, then set aside
 //   'new'      → author a new top-level context without leaving the rail
 const composer = reactive({ open: false, mode: "drill", value: "" });
@@ -32,7 +32,7 @@ const composerField = ref(null);
 
 const COPY = {
   drill: { title: "Decompose this focus", label: "What sub-problem do you want to work on?", confirm: "Decompose", requireText: true },
-  complete: { title: "Complete", label: "What did you conclude? (optional)", confirm: "Complete", requireText: false },
+  resolve: { title: "Resolve", label: "What did you conclude? (optional)", confirm: "Resolve", requireText: false },
   park: { title: "Park this context", label: "What are you waiting on? (optional)", confirm: "Park", requireText: false },
   new: { title: "New context", label: "What problem do you want to focus on?", confirm: "Create context", requireText: true },
 };
@@ -48,7 +48,7 @@ function openComposer(mode) {
 function confirmComposer() {
   if (!canConfirm.value) return;
   if (composer.mode === "drill") runStore.drillIntoFocus({ title: composer.value });
-  else if (composer.mode === "complete") runStore.completeFocus({ result: composer.value });
+  else if (composer.mode === "resolve") runStore.resolveFocus({ result: composer.value });
   else if (composer.mode === "park") runStore.parkActiveContext({ reason: composer.value });
   else if (composer.mode === "new") runStore.newContext({ title: composer.value });
   composer.open = false;
@@ -113,7 +113,7 @@ watch(
         :breadcrumb="runStore.breadcrumb"
         :resolved="runStore.currentResolved"
         @drill="openComposer('drill')"
-        @complete="openComposer('complete')"
+        @resolve="openComposer('resolve')"
         @abandon="handleAbandon"
         @park="openComposer('park')"
         @stop="handleStop"

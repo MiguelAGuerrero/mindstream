@@ -23,7 +23,7 @@ describe("createFocusFrame", () => {
 });
 
 describe("createContext", () => {
-  it("wraps a root frame in a fresh, un-parked stack", () => {
+  it("wraps a root frame in a fresh, un-parked, unresolved stack", () => {
     const root = createFocusFrame({ id: 1, title: "Ship it" });
     const ctx = createContext({ id: 10, rootFrame: root, createdAt: "2026-06-15T00:00:00.000Z" });
     expect(ctx).toEqual({
@@ -31,6 +31,7 @@ describe("createContext", () => {
       stack: [root],
       parked: false,
       waitingOn: "",
+      resolved: false,
       createdAt: "2026-06-15T00:00:00.000Z",
     });
   });

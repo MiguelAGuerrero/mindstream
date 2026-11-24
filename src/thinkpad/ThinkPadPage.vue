@@ -137,8 +137,8 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
                     color="primary"
                     variant="flat"
                     prepend-icon="mdi-arrow-up-bold-box-outline"
-                    :disabled="!surface.canComplete"
-                    @click="surface.handleComplete()"
+                    :disabled="!surface.canResolve"
+                    @click="surface.handleResolve()"
                   >
                     Resolve
                   </v-btn>
@@ -214,11 +214,11 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
         :items="surface.openItems"
         :decided="surface.decidedItems"
         :lift-targets="surface.liftTargets"
-        :can-resolve="surface.canComplete"
+        :can-resolve="surface.canResolve"
         @dispose="surface.handleDisposeOpenItem"
         @clear="surface.handleClearDisposition"
         @go-to="surface.handleGoToOpenItem"
-        @resolve="surface.handleComplete()"
+        @resolve="surface.handleResolve()"
       />
 
       <v-dialog v-model="surface.peekOpen" max-width="760">

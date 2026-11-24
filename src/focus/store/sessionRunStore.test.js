@@ -40,16 +40,31 @@ describe("sessionRunStore (contexts of authored focuses)", () => {
     expect(store.contextList.find((c) => c.problem === "Problem B").isActive).toBe(true);
   });
 
-  it("complete at root records a takeaway on the problem itself", () => {
+  it("resolve at root records the takeaway, marks the context resolved and steps off it", () => {
     const store = useSessionRunStore();
     store.newContext({ title: "Ship the runner" });
-    store.completeFocus({ result: "  shipped it  " });
-    expect(store.depth).toBe(1);
-    expect(store.currentFocus).toBe("Ship the runner");
-    expect(store.currentResult).toBe("shipped it");
+    const id = store.activeContextId;
+    store.resolveFocus({ result: "  shipped it  " });
+    const ctx = store.contexts.find((c) => c.id === id);
+    expect(ctx.resolved).toBe(true);
+    expect(ctx.stack[0].result).toBe("shipped it");
+    expect(store.activeContextId).toBe(null);
+    expect(store.hasFocus).toBe(false);
   });
 
-  it("decompose/complete act only on the ACTIVE context's stack", () => {
+  it("resolve at root moves to the next live context, skipping parked and resolved ones", () => {
+    const store = useSessionRunStore();
+    store.newContext({ title: "A" });
+    store.resolveFocus(); // A resolved, nothing live left
+    store.newContext({ title: "B" });
+    store.parkActiveContext({ reason: "waiting" }); // B parked
+    store.newContext({ title: "C" });
+    store.newContext({ title: "D" });
+    store.resolveFocus(); // resolves D -> next live is C
+    expect(store.currentFocus).toBe("C");
+  });
+
+  it("decompose/resolve act only on the ACTIVE context's stack", () => {
     const store = useSessionRunStore();
     store.newContext({ title: "A" });
     const aId = store.activeContextId;
@@ -61,8 +76,8 @@ describe("sessionRunStore (contexts of authored focuses)", () => {
     // A is untouched
     const a = store.contextList.find((c) => c.id === aId);
     expect(a.depth).toBe(1);
-    // complete B.1 with a takeaway folds into B
-    store.completeFocus({ result: "  done B.1  " });
+    // resolve B.1 with a takeaway folds into B
+    store.resolveFocus({ result: "  done B.1  " });
     expect(store.depth).toBe(1);
     expect(store.currentResult).toBe("done B.1");
   });
@@ -129,10 +144,10 @@ describe("sessionRunStore (contexts of authored focuses)", () => {
     expect(store.hasFocus).toBe(false);
   });
 
-  it("guards: drill/complete/park no-op with no active context", () => {
+  it("guards: drill/resolve/park no-op with no active context", () => {
     const store = useSessionRunStore();
     store.drillIntoFocus({ title: "x" });
-    store.completeFocus({ result: "x" });
+    store.resolveFocus({ result: "x" });
     store.parkActiveContext({ reason: "x" });
     store.endActiveContext();
     expect(store.hasContexts).toBe(false);

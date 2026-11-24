@@ -1,7 +1,7 @@
 <script setup>
 // The authored focus — a centered sticky note. Its content is whatever you
 // typed, not a prescribed workflow step. The one move is DECOMPOSE (drill into
-// an authored sub-focus); COMPLETE records an optional takeaway on the active
+// an authored sub-focus); RESOLVE records an optional takeaway on the active
 // focus (root or drilled). When drilled you can also go BACK (abandon).
 import { computed } from "vue";
 
@@ -14,7 +14,7 @@ const props = defineProps({
   resolved: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["drill", "complete", "abandon", "park", "stop"]);
+const emit = defineEmits(["drill", "resolve", "abandon", "park", "stop"]);
 
 const isDrilled = computed(() => props.depth > 1);
 // The decompose trail excludes the current focus (shown big below it).
@@ -63,7 +63,7 @@ const trail = computed(() => props.breadcrumb.slice(0, -1).join("  ›  "));
 
       <!-- the authored focus -->
       <div class="srun-body">
-        <p class="srun-eyebrow">{{ resolved ? "COMPLETED" : "FOCUSING ON" }}</p>
+        <p class="srun-eyebrow">{{ resolved ? "RESOLVED" : "FOCUSING ON" }}</p>
         <h2 class="srun-focus">{{ focus }}</h2>
         <p v-if="result" class="srun-result">
           <v-icon size="16" icon="mdi-subdirectory-arrow-right" class="mr-1" />{{ result }}
@@ -87,14 +87,14 @@ const trail = computed(() => props.breadcrumb.slice(0, -1).join("  ›  "));
         </v-btn>
 
         <v-btn
-          class="srun-complete"
+          class="srun-resolve"
           color="primary"
           variant="flat"
           block
           prepend-icon="mdi-arrow-up-bold"
-          @click="emit('complete')"
+          @click="emit('resolve')"
         >
-          Complete
+          Resolve
         </v-btn>
       </template>
     </v-card>
@@ -185,7 +185,7 @@ const trail = computed(() => props.breadcrumb.slice(0, -1).join("  ›  "));
   margin-bottom: 0.6rem;
 }
 
-.srun-complete {
+.srun-resolve {
   flex-shrink: 0;
 }
 
