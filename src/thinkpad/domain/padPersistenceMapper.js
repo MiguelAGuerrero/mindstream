@@ -97,6 +97,8 @@ function normalizeThinkPadAnnotation(value, { now } = {}) {
     ...(normalizeLink(value.link) ? { link: normalizeLink(value.link) } : {}),
     ...(value.needsSource === true ? { needsSource: true } : {}),
     ...(value.lost === true ? { lost: true } : {}),
+    ...(value.synthesis === true ? { synthesis: true } : {}),
+    ...(typeof value.originalText === "string" ? { originalText: value.originalText } : {}),
   };
 }
 
@@ -108,6 +110,8 @@ function normalizeLink(value) {
   if (value.kind === "passage" && typeof value.ideaId === "string" && typeof value.snapshot === "string") {
     return {
       kind: "passage",
+      ...(value.quote === true ? { quote: true } : {}),
+      ...(value.padLocator === null || typeof value.padLocator === "string" ? { padLocator: value.padLocator } : {}),
       ideaId: value.ideaId,
       snapshot: value.snapshot,
       draftN: Number.isInteger(value.draftN) ? value.draftN : null,
@@ -281,6 +285,9 @@ function normalizeThread(value, { now } = {}) {
     doc: normalizeDoc(value.doc, { now }),
     parentAnchor: normalizeParentAnchor(value.parentAnchor),
     createdAt: asString(value.createdAt) ?? now,
+    // The move a thread was opened with, and whether it is a synthesis (Revision 22).
+    ...(typeof value.move === "string" && value.move ? { move: value.move } : {}),
+    ...(value.synthesis === true ? { synthesis: true } : {}),
   };
 }
 

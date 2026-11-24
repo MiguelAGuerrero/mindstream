@@ -33,6 +33,7 @@ import {
   docHasMultipleIdeas,
   remapAnnotationsForIdeaReorder,
   ideaRanges,
+  ideasFromText,
 } from "./ideas";
 
 const DEFAULT_CONFIG = Object.freeze({
@@ -882,7 +883,7 @@ export function drillIntoSpan(pad, {
  * is the reserved Sussman hook; parentFrameId/childStepId let the store ascend +
  * log without a second lookup. (§6.4)
  */
-export function resolveThreadIntoParent(pad, { threadId, result, reframe = null } = {}, { now } = {}) {
+export function resolveThreadIntoParent(pad, { threadId, result, reframe = null } = {}, { now, makeId } = {}) {
   const noop = { pad, resolved: false, delta: null, parentFrameId: null, childStepId: null };
   if (!pad || !threadId) return noop;
   const frame = findThreadById(pad, threadId);
@@ -910,6 +911,9 @@ export function resolveThreadIntoParent(pad, { threadId, result, reframe = null 
   let next = setStepOutput(pad, { stepId: childStep.id, output: text }, { now });
   const spliced = spliceStepIntoPad(next, { stepId: childStep.id, padLocator: parentFrameId, now });
   next = spliced.pad;
+  if (anchorRec?.synthesis === true) {
+    next = settleSynthesis(next, parentFrameId, anchorRec.id, { now, makeId });
+  }
 
   // Double-loop (optional): rewrite the parent's framing/goal.
   const goal = typeof reframe?.goal === "string" ? reframe.goal.trim() : "";
@@ -1426,7 +1430,9 @@ export function advanceToNextDraft(pad, { padLocator = null } = {}, { now, makeI
     frozenText: revealedText,
     staged: [],
   };
-  return withPad(next, padLocator, restampedDoc, { now });
+  next = withPad(next, padLocator, restampedDoc, { now });
+  const synthesisAnn = annotations.find((a) => a.synthesis === true && contributions.some((c) => c.annotationId === a.id));
+  return synthesisAnn ? settleSynthesis(next, padLocator, synthesisAnn.id, { now, makeId }) : next;
 }
 
 // ---------------------------------------------------------------------------
@@ -1609,7 +1615,8 @@ export function markNeedsSource(pad, { padLocator = null, selectionStart, select
 export function linksAt(pad, padLocator = null) {
   const doc = padForThread(pad, padLocator);
   if (!doc) return [];
-  const ideas = doc.ideas ?? [];
+  // A quote's source lives on the level the synthesis was opened from.
+  const ideasFor = (link) => (link.padLocator === undefined ? doc : padForThread(pad, link.padLocator))?.ideas ?? [];
   return (doc.annotations ?? [])
     .filter((a) => a.link && a.hidden !== true)
     .sort((a, b) => a.selectionStart - b.selectionStart)
@@ -1620,9 +1627,10 @@ export function linksAt(pad, padLocator = null) {
         lostAnchor: a.lost === true,
       };
       if (a.link.kind === "url") return { ...base, href: a.link.href };
-      const target = ideas.find((i) => i.id === a.link.ideaId);
+      const target = ideasFor(a.link).find((i) => i.id === a.link.ideaId);
       return {
         ...base,
+        ...(a.link.quote ? { quote: true } : {}),
         ideaId: a.link.ideaId,
         snapshot: a.link.snapshot,
         draftN: a.link.draftN ?? null,
@@ -1648,6 +1656,114 @@ export function textWithLinks(pad, padLocator = null) {
     lastStart = a.selectionStart;
   }
   return text;
+}
+
+// ---------------------------------------------------------------------------
+// Synthesize with quoting (roadmap Revisions 19 to 22).
+//
+// A synthesis is a thread opened on the whole draft of a level (thread and
+// anchor carry `synthesis: true`). Quoting copies a paragraph of that level
+// into it with a snapshot link back. Resolving replaces the whole draft with
+// the thesis; threads still open there are acknowledged first (the UI asks),
+// then re-anchored to the thesis: they remember the passage they were opened
+// on (`originalText`) and their results are added beside the thesis. The
+// thesis gets fresh paragraph ids: the old passages were synthesized, not
+// refined, so quotes of them read as coming from an earlier draft.
+// ---------------------------------------------------------------------------
+
+function openSynthesisAt(pad, padLocator) {
+  const doc = padForThread(pad, padLocator);
+  const threads = padLocator == null ? (pad.threads ?? []) : (findThreadById(pad, padLocator)?.subThreads ?? []);
+  return threads.find((t) => {
+    if (!t.synthesis) return false;
+    const ann = (doc?.annotations ?? []).find((a) => a.id === t.parentAnchor?.annotationId);
+    return ann && ann.resolved !== true;
+  }) ?? null;
+}
+
+/** Open (or return the open) synthesis thread on a level in Reflect: { pad, frame }. */
+export function startSynthesis(pad, { padLocator = null } = {}, { now, makeId } = {}) {
+  const noop = { pad, frame: null };
+  if (!pad) return noop;
+  const doc = padForThread(pad, padLocator);
+  if (!doc || doc.phase !== "cultivate") return noop;
+  const text = doc.frozenText ?? doc.text ?? "";
+  if (!text.trim()) return noop;
+  const existing = openSynthesisAt(pad, padLocator);
+  if (existing) return { pad, frame: existing };
+  const d = drillIntoSpan(pad, {
+    parentThreadId: padLocator, title: "Synthesis", selectionStart: 0, selectionEnd: text.length, selectedText: text,
+  }, { now, makeId });
+  if (!d.frame) return noop;
+  let next = withThreads(d.pad, patchThreadById(d.pad.threads, d.frame.id, (t) => ({ ...t, synthesis: true })), { now });
+  const parentDoc = padForThread(next, padLocator);
+  next = withPad(next, padLocator, {
+    ...parentDoc,
+    annotations: parentDoc.annotations.map((a) => (a.id === d.annotationId ? { ...a, synthesis: true } : a)),
+  }, { now });
+  return { pad: next, frame: findThreadById(next, d.frame.id) };
+}
+
+/** Quote a paragraph of the synthesized level into the synthesis (while writing it). */
+export function quoteInto(pad, { threadId, sourceIdeaId } = {}, { now, makeId } = {}) {
+  if (!pad) return pad;
+  const thread = findThreadById(pad, threadId);
+  if (!thread?.synthesis) return pad;
+  const level = thread.parentAnchor?.parentFrameId ?? null;
+  const sourceDoc = padForThread(pad, level);
+  const source = (ensureDocIdeas(sourceDoc ?? {}, { makeId }).ideas ?? []).find((i) => i.id === sourceIdeaId);
+  if (!source || !source.text.trim()) return pad;
+  const doc = padForThread(pad, threadId);
+  if (!doc || doc.phase === "cultivate") return pad;
+  const before = doc.text ?? "";
+  const nextText = before.trim() ? `${before}\n\n${source.text}` : source.text;
+  let next = setPadText(pad, { padLocator: threadId, text: nextText }, { now, makeId });
+  const written = padForThread(next, threadId);
+  const start = (written.text ?? "").length - source.text.length;
+  const history = sourceDoc.draftHistory ?? [];
+  return withAnnotation(next, threadId, written, {
+    id: makeId("ann"), selectionStart: start, selectionEnd: start + source.text.length, selectedText: source.text,
+    stepId: null, createdAt: now,
+    link: {
+      kind: "passage", quote: true, padLocator: level, ideaId: source.id, snapshot: source.text,
+      draftN: history.length ? history.length - 1 : null, at: now,
+    },
+  }, { now });
+}
+
+/** The open items a synthesis would replace: everything open on its level but itself. */
+export function synthesisToAcknowledge(pad, threadId) {
+  const thread = findThreadById(pad, threadId);
+  if (!thread?.synthesis) return [];
+  const level = thread.parentAnchor?.parentFrameId ?? null;
+  return openItems(pad, level).filter((i) => i.id !== thread.parentAnchor.annotationId);
+}
+
+/** After a synthesis replaced a level's text: re-anchor what is still open, fresh paragraph ids. */
+function settleSynthesis(pad, padLocator, synthesisAnnotationId, { now, makeId }) {
+  const doc = padForThread(pad, padLocator);
+  if (!doc) return pad;
+  const text = doc.text ?? "";
+  const stillOpen = (a) => a.id !== synthesisAnnotationId && !a.disposition && a.hidden !== true
+    && ((typeof a.stepId === "string" && a.stepId && a.resolved !== true) || a.needsSource === true);
+  const others = reanchorAnnotations(text, (doc.annotations ?? []).filter((a) => a.id !== synthesisAnnotationId && !stillOpen(a)));
+  const byId = new Map(others.map((a) => [a.id, a]));
+  const annotations = (doc.annotations ?? []).map((a) => {
+    if (a.id === synthesisAnnotationId) return a;
+    if (stillOpen(a)) {
+      const { lost: _lost, ...rest } = a;
+      return {
+        ...rest, selectionStart: 0, selectionEnd: text.length, selectedText: text,
+        originalText: a.originalText ?? a.selectedText ?? "", writeBack: "annotate",
+      };
+    }
+    return byId.get(a.id) ?? a;
+  });
+  const ideas = ideasFromText(text, { makeId });
+  const frozen = doc.phase === "cultivate"
+    ? { frozenText: text, frozenIdeas: ideas.map((i) => ({ ...i })) }
+    : {};
+  return withPad(pad, padLocator, { ...doc, annotations, ideas, ...frozen }, { now });
 }
 
 // ---------------------------------------------------------------------------
@@ -1896,7 +2012,7 @@ export function drillThreadsAt(pad, padLocator = null) {
         threadId: t.id,
         annotationId: t.parentAnchor.annotationId,
         title: t.steps?.[0]?.title ?? "Untitled",
-        anchorText: ann?.selectedText ?? "",
+        anchorText: ann?.originalText ?? ann?.selectedText ?? "",
         hasWork: (t.doc?.text ?? "").trim() !== "",
         completed: isResolved,
         tag: ann?.tag ?? null,

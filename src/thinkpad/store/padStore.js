@@ -506,7 +506,7 @@ export const usePadStore = defineStore("pad", {
       // A parent being written is a living document: splice the result straight
       // in. A parent in Reflect keeps it waiting for the next draft.
       if (parentDoc?.phase !== "cultivate") {
-        const direct = resolveThreadIntoParentOnPad(this.currentPad, { threadId, result: rollUpText }, { now });
+        const direct = resolveThreadIntoParentOnPad(this.currentPad, { threadId, result: rollUpText }, { now, makeId });
         if (!direct.resolved) return null;
         this._replaceCurrent(popSurfaceOnPad(direct.pad, { now }));
         return { resolved: true, delta: direct.delta ?? null };
