@@ -184,8 +184,16 @@ function setHoveredBlockIdx(idx) {
  *  walks ancestors with overflow:hidden on __body and misses __scroll. */
 const SCROLL_CARET_MARGIN = { top: 12, bottom: 28 };
 
+// The element that scrolls the text: the text area, or on a phone while
+// writing, the whole page column (title and text scroll together).
+function activeScroller() {
+  const inner = scrollRef.value;
+  if (inner && getComputedStyle(inner).overflowY === "visible") return marginsRef.value ?? inner;
+  return inner;
+}
+
 function scrollSelectionIntoView(view) {
-  const scrollEl = scrollRef.value;
+  const scrollEl = activeScroller();
   if (!scrollEl) return false;
   const { head } = view.state.selection;
   const coords = view.coordsAtPos(head);
@@ -197,6 +205,111 @@ function scrollSelectionIntoView(view) {
   }
   return true;
 }
+
+// ---------------------------------------------------------------------------
+// Reflect in pages (Revision 31). The text area stops free-scrolling and turns
+// a screen at a time, overlapping one line so nothing is lost at the edge.
+// The choice of Pages or Document view is remembered in this browser.
+// ---------------------------------------------------------------------------
+const VIEW_KEY = "mindstream.reflectView";
+const reflectView = ref((() => {
+  try { return localStorage.getItem(VIEW_KEY) === "document" ? "document" : "pages"; } catch { return "pages"; }
+})());
+const paged = computed(() => props.reflectMode && !props.embedded && reflectView.value === "pages");
+function toggleReflectView() {
+  reflectView.value = reflectView.value === "pages" ? "document" : "pages";
+  try { localStorage.setItem(VIEW_KEY, reflectView.value); } catch { /* per-viewer convenience only */ }
+  nextTick(measurePages);
+}
+
+const page = ref(1);
+const pageCount = ref(1);
+const PAGE_OVERLAP = 28; // about one line, repeated at the top of the next page
+const headerRef = ref(null);
+let titleHeight = 0; // the title shows on page 1 only; later pages are taller by this much
+function pageGeometry(el) {
+  const head = headerRef.value;
+  const titleShown = head && getComputedStyle(head).display !== "none";
+  if (titleShown) titleHeight = Math.max(0, el.getBoundingClientRect().top - head.getBoundingClientRect().top);
+  const later = titleShown ? el.clientHeight + titleHeight : el.clientHeight; // a page after the first
+  const first = later - titleHeight;
+  return { first: Math.max(80, first - PAGE_OVERLAP), step: Math.max(80, later - PAGE_OVERLAP), later };
+}
+function pageTop(el, k) {
+  const g = pageGeometry(el);
+  return k <= 1 ? 0 : g.first + (k - 2) * g.step;
+}
+function measurePages() {
+  const el = scrollRef.value;
+  if (!el || !paged.value) { page.value = 1; pageCount.value = 1; return; }
+  const g = pageGeometry(el);
+  const firstView = g.later - titleHeight;
+  pageCount.value = el.scrollHeight <= firstView + 2
+    ? 1
+    : 2 + Math.ceil(Math.max(0, el.scrollHeight - g.later - g.first) / g.step);
+  const top = el.scrollTop;
+  const k = top < g.first / 2 ? 1 : 2 + Math.round((top - g.first) / g.step);
+  const max = el.scrollHeight - el.clientHeight;
+  page.value = top >= max - 2 && page.value > 1 ? Math.max(page.value, Math.min(pageCount.value, k)) : Math.min(pageCount.value, k);
+}
+function turnPage(delta) {
+  const el = scrollRef.value;
+  if (!el) return;
+  const target = Math.min(pageCount.value, Math.max(1, page.value + delta));
+  if (target === page.value) return;
+  page.value = target;
+  // The title shows on page 1 only, so the page height can change: align after render.
+  nextTick(() => {
+    const max = el.scrollHeight - el.clientHeight;
+    el.scrollTop = Math.min(max, pageTop(el, target));
+  });
+}
+
+// Swipes turn pages; a long press (selecting words) never does.
+let touchStart = null;
+function onTouchStart(e) {
+  if (!paged.value || e.touches.length !== 1) { touchStart = null; return; }
+  const selected = !(window.getSelection()?.isCollapsed ?? true);
+  touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), selected };
+}
+function onTouchEnd(e) {
+  if (!touchStart || !paged.value) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStart.x;
+  const dy = t.clientY - touchStart.y;
+  const quick = Date.now() - touchStart.t < 600;
+  const selecting = touchStart.selected || !(window.getSelection()?.isCollapsed ?? true);
+  touchStart = null;
+  if (!quick || selecting) return;
+  if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) turnPage(dx < 0 ? 1 : -1);
+  else if (Math.abs(dy) > 50) turnPage(dy < 0 ? 1 : -1);
+}
+function onPageKey(e) {
+  if (!paged.value || e.defaultPrevented) return;
+  const tag = (e.target?.tagName ?? "").toLowerCase();
+  if (tag === "input" || tag === "textarea") return;
+  if (["ArrowRight", "PageDown"].includes(e.key)) { e.preventDefault(); turnPage(1); }
+  else if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); turnPage(-1); }
+}
+watch(paged, () => nextTick(measurePages));
+watch(() => props.thinkPad?.text, () => nextTick(measurePages));
+let pageResize = null;
+onMounted(() => {
+  const el = scrollRef.value;
+  if (el) {
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("scroll", () => { if (paged.value) measurePages(); }, { passive: true });
+    pageResize = new ResizeObserver(() => measurePages());
+    pageResize.observe(el);
+  }
+  window.addEventListener("keydown", onPageKey);
+  nextTick(measurePages);
+});
+onBeforeUnmount(() => {
+  pageResize?.disconnect();
+  window.removeEventListener("keydown", onPageKey);
+});
 
 const editor = useEditor({
   content: textToDocJSON(props.thinkPad?.text ?? "", storedIdeas.value),
@@ -821,9 +934,22 @@ defineExpose({ flushText, dismissSelection });
       'thinkpad-panel--embedded': embedded,
       'thinkpad-panel--card': !embedded,
       'thinkpad-panel--expanded': expanded && !embedded,
+      'thinkpad-panel--writing': !reflectMode && !readOnly && !embedded,
+      'thinkpad-panel--paged': paged,
     }"
   >
     <div v-if="!embedded" class="thinkpad-panel__bar d-flex align-center flex-shrink-0">
+      <!-- Reflect reads in pages by default; Document is one long scroll (Revision 31). -->
+      <button
+        v-if="reflectMode"
+        type="button"
+        class="thinkpad-reveal-chip thinkpad-view-toggle"
+        :title="paged ? 'Switch to Document view (one scroll)' : 'Switch to Pages view'"
+        @click="toggleReflectView"
+      >
+        <v-icon :icon="paged ? 'mdi-book-open-page-variant-outline' : 'mdi-text-long'" size="13" />
+        <span>{{ paged ? "Pages" : "Document" }}</span>
+      </button>
       <button
         v-if="hiddenCount"
         type="button"
@@ -874,7 +1000,7 @@ defineExpose({ flushText, dismissSelection });
       <!-- Margin frame: inset from the paper edge (card mode). Content scrolls inside
            __content only — the gutter is structural space, not padding on a scroller. -->
       <div ref="marginsRef" class="thinkpad-panel__margins">
-        <header class="thinkpad-panel__header">
+        <header ref="headerRef" class="thinkpad-panel__header" :class="{ 'thinkpad-panel__header--away': paged && page > 1 }">
           <!-- Title lives in the margin frame (not the scroller) so it stays aligned
                with the writing column and remains visible while the body scrolls. -->
           <slot name="title">
@@ -1088,6 +1214,16 @@ defineExpose({ flushText, dismissSelection });
           <v-icon icon="mdi-close" size="11" />
         </button>
       </div>
+    </div>
+    <!-- Page turner for Reflect's Pages view: swipe, tap, or arrow keys. -->
+    <div v-if="paged && pageCount > 1" class="thinkpad-page-nav" role="group" aria-label="Pages">
+      <button type="button" class="thinkpad-page-nav__btn" :disabled="page <= 1" aria-label="Previous page" @click="turnPage(-1)">
+        <v-icon icon="mdi-chevron-left" size="18" />
+      </button>
+      <span class="thinkpad-page-nav__label">{{ page }} / {{ pageCount }}</span>
+      <button type="button" class="thinkpad-page-nav__btn" :disabled="page >= pageCount" aria-label="Next page" @click="turnPage(1)">
+        <v-icon icon="mdi-chevron-right" size="18" />
+      </button>
     </div>
     <footer v-if="!embedded" class="thinkpad-panel__footer">
       <slot name="footer" />
@@ -1810,6 +1946,77 @@ defineExpose({ flushText, dismissSelection });
   .thinkpad-panel--card {
     --thinkpad-footer-height: 56px;
     --thinkpad-chrome-height: 48px; /* room for 40px bar actions (Synthesize, Quote) */
+  }
+}
+
+/* Reflect, Pages view: the text area turns a page at a time instead of scrolling.
+   The page turner gets its own strip under the text so it never covers a line. */
+.thinkpad-panel--paged .thinkpad-panel__scroll {
+  overflow-y: hidden;
+  margin-bottom: 44px;
+  touch-action: pan-x pinch-zoom;
+}
+
+.thinkpad-panel__header--away {
+  display: none !important;
+}
+
+/* Nothing in the bar (writing at the top level): no empty strip above the page. */
+.thinkpad-panel--card:not(:has(.thinkpad-panel__bar button)) {
+  --thinkpad-chrome-height: 0px !important;
+}
+.thinkpad-panel--card:not(:has(.thinkpad-panel__bar button)) .thinkpad-panel__bar {
+  display: none !important;
+}
+
+.thinkpad-page-nav {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--thinkpad-footer-height, 44px) + 2px);
+  transform: translateX(-50%);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 999px;
+  background: rgba(var(--v-theme-surface), 0.94);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.25);
+}
+
+.thinkpad-page-nav__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.thinkpad-page-nav__btn:disabled { opacity: 0.3; cursor: default; }
+
+.thinkpad-page-nav__label {
+  min-width: 48px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Phones, while writing: one continuous scroll. The title and the text scroll
+   together instead of the text sliding under a fixed title (Revision 31). */
+@media (max-width: 600px) {
+  .thinkpad-panel--card.thinkpad-panel--writing .thinkpad-panel__margins {
+    overflow-y: auto;
+  }
+  .thinkpad-panel--card.thinkpad-panel--writing .thinkpad-panel__scroll {
+    flex: none;
+    overflow: visible;
+    margin-top: 0;
   }
 }
 </style>
