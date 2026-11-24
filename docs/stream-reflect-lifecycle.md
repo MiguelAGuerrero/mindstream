@@ -104,6 +104,8 @@ This is the genuinely new machinery. Today the draft (`context.thinkPad = { text
 
 ## 6. Discipline with an escape hatch
 
+> **Superseded (roadmap Revision 14, 2026-11-24).** Miguel decided that freezing is not a first-class, one-way stamp: a document is living, Reflect freezes it only while you are reflecting, and leaving Reflect returns to writing. The rest of this section describes the earlier design and is kept for its reasoning about discipline. See `PRODUCT_ASSESSMENT_AND_ROADMAP.md` §6 questions 9 to 11 for the open mechanics.
+
 The escape back to flow must exist (you sometimes need to dump again mid-cultivation) but must not erode the loop. If bailing to flow is frictionless, people edit-in-place forever and never enter reflection — which is the entire value.
 
 > **Symmetric ceremony, asymmetric gravity.** Both crossings are deliberate, *named* acts — you **stamp** to reflect, you **re-stream** to flow; neither happens by drifting or by clicking into the text. But the resting state after the first dump is reflect, every loop gesture is one keystroke, and re-streaming costs a conscious act. You are never trapped, never drifting, and the easy path is always the loop.
