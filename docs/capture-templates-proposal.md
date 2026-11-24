@@ -33,11 +33,11 @@ A move like **Investigate** is a **workflow of steps**, and a "form" is one way 
 | 13 | A workflow is a **tool-agnostic template**; any tool that accepts workflows runs it its own way. A form is the ThinkPad's way, for workflows that produce text | §3 |
 | 14 | Harvesting workflows from practice is **deferred** | — |
 | 15 | Steps declare `produces: "text" \| "action"`. This is the basis of the Focus runner. Each tool's registration decides what it accepts; the shell only filters | §3.1 |
-| 16 | The workflow library belongs to the **shell**: workflows are not a ThinkPad or runner construct, and the library **can be its own page** in the workspace. Workflows travel **by reference** (`{ id, version }`) | §3.1 |
+| 16 | The workflow library belongs to the **shell**: workflows are not a ThinkPad or runner construct, and the library **can be its own page** in the workspace. Workflows travel **as content**, not by reference (decision 20) | §3.1 |
 | 17 | ~~A workflow may suggest a follow-up (`then`)~~ **Withdrawn.** Reflection is not built into the app. It is just a step you can choose to put in a workflow, defined by you, never prompted automatically | §6.3 |
 | 18 | **The shelf is confirmed.** Confirmed in roadmap Revision 6 | §8.2 |
 | 19 | **The ThinkPad has no step-by-step view.** A pad is a document that holds the context of your thinking. A run in the ThinkPad is shown only as a document (the form view). Stepping through a workflow means sending it to the runner. Confirmed in roadmap Revision 6 | §4.1 |
-| 20 | **The envelope additions are confirmed:** `workflow: { id, version }` on requests and `caveats: string[]` on replies. The roadmap owns the envelope | §3.1, §6.3 |
+| 20 | **The workflow travels as a routing slip** (the roadmap's option B, chosen by Miguel). A request carries the workflow's **prompts as an ordered list of text**. The workflow's id and version ride along only as an **opaque tag** the receiver hands back unread, for comparing runs later. A reply carries its result plus optional plain **notes** lines. Tools share only two shapes: text, and an ordered list of text. The broker stays dumb: it matches capabilities, routes, and returns the reply. The roadmap owns the envelope | §3.1, §6.3 |
 | 21 | **Name: Resolve, not Complete.** A resolution means you've reached a place of understanding, which still holds when you leave room for doubt. "Complete" implies the task is solved | throughout |
 | 22 | **Moves and tags don't start workflows by default, and no workflow is tied to a type of move.** Question, Expand and Flag offer **shortcuts** to workflows, but which workflow fits depends on context, so there is no fixed mapping | §3 |
 
@@ -75,12 +75,15 @@ How this fits the workspace shell (decisions 15, 16, 20):
   - Keep exactly these two values until a third one would make some tool behave differently (§7's test).
 - **Library.** Workflow definitions live in a **shell-level library**, a sibling of the shelf. They are not a ThinkPad or runner construct, and they are not copied per tool, because copies would drift and runs would stop being comparable.
   - The library **can be its own page** in the workspace, where you browse, write and edit workflows.
-  - Tools read the library through the shell.
-  - Tools write to it through one call only: save as variant.
+  - **Tools never read the library.** Running a workflow from the library page, or from a tag shortcut, sends its prompts to a tool. The tool works only with what it was sent.
   - Pivots made during a run stay in the running tool's own state.
-- **Travel.** A request names a workflow by reference, `workflow: { id, version }`. The roadmap owns this envelope field. The request's `text` still carries the subject (the claim being doubted, the step prompt), never the workflow itself.
-  - The receiving tool pins the version on its run.
-  - Every workflow must also render as plain text (numbered prompts). A tool that doesn't understand workflows can still use them as context lines.
+  - **Save as variant** sends the run's changed list of prompts back, with the opaque tag, as ordinary text. The library page files it as a variant of the tagged workflow.
+- **Travel: a routing slip** (decision 20). The roadmap owns the envelope; this is what it means for workflows:
+  - A request carries the subject as `text` (the claim being doubted, the step prompt) plus the workflow's **prompts as an ordered list of text**.
+  - The workflow's `{ id, version }` rides along only as an **opaque tag**. The receiver stores it and hands it back unread, so runs of the same workflow can be compared later. No tool looks it up.
+  - The runner's only capability is "I can step through a list of prompts". It never interprets a workflow id or a ThinkPad type.
+  - A reply carries the result plus optional plain **notes** lines. "Caveat" is how the ThinkPad chooses to *display* notes; it is not a term that travels between tools.
+  - **Open (§10):** whether a step's `produces` marker rides on each item of the slip. If it doesn't, the ThinkPad can't tell from the slip alone whether every step produces text.
 - **A definition knows no tool.** The `Workflow` type never mentions threads, docs, TipTap or runner frames. How a run is represented belongs to the tool running it (§9).
 
 **It fits the existing recursion exactly.** `recursive-resolve-contract.md` defines two ways to resolve a span: type the output (the *lens*) or open a sub-pad (the *drill*). A step works the same way:
@@ -152,10 +155,10 @@ The rest of the level is its **process**. It is kept as a record that you can re
   - Across tools, the tool contract forbids reading another tool's data, so a citation would go through the shell as text plus a reference back. This is deferred, along with records.
 
 ### 6.3 Across tools
-How resolution and roll-up work when the asking level and the working level are in different tools. The envelope fields named here belong to the roadmap, and both are confirmed (decision 20).
+How resolution and roll-up work when the asking level and the working level are in different tools. The envelope belongs to the roadmap; the routing-slip shape is decision 20.
 - **Outcomes already line up.** The roadmap's reply outcomes `resolved | question | abandoned` are this doc's *a call | a sharper question | Back*.
 - **A pending Ask is an open item.** If the ThinkPad sends a span to the runner, the span's open item stays until the reply arrives. The gate counts it like any unresolved move.
-- **Caveats travel on the reply** (`caveats: string[]`). An item lifted out of another tool's level arrives as a caveat at the origin, to begin with.
+- **Accepted doubts travel as plain notes on the reply.** The ThinkPad displays the notes it receives as caveats. An item lifted out of another tool's level arrives as a note at the origin, to begin with.
 - **Reflection is not built into the app** (decision 17). If you want to reflect on a practice, you put a reflection step in that workflow yourself, or run a reflection workflow when you choose to. Nothing prompts you.
   - A reflection step is an ordinary `produces: "text"` step.
   - In the runner, you can work a text step there, or Send or Ask it to the ThinkPad like any other text, and the reply lands on that step.
@@ -285,6 +288,7 @@ step.resolution        = { text, type: Type | null, caveats: string[] }   // cav
    - workflows you've pinned to that tag yourself;
    - the ones you've used most recently with it;
    - only the library, with no shortcuts until you pin some.
+8. **Does `produces` travel on the routing slip?** The runner needs only the prompts. The ThinkPad, though, should accept a slip only if every step produces text. Options: mark each item on the slip (the shared shape is then a list of text with one marker per item), or let the library page check before offering the ThinkPad, sending plain prompts. To settle with the roadmap session.
 7. **Renaming "Complete" back to "Resolve" in code.** `master` renamed "Resolve up" to "Complete" in the ThinkPad surface and the Focus runner (decision 21). This rename should land before the gate UI.
 
 ---
