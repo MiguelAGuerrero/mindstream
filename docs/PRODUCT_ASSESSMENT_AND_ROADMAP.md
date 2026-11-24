@@ -14,6 +14,8 @@
 
 **Revision 4 (2026-11-24):** Miguel settled the architecture question. **Tools are decoupled.** Each tool stands alone, owns its own state, and is usable without the others. They share one principle (break a daunting thing, written as text, into pieces small enough to act on) and one message type (text), exchanged through a broker so any tool can import from and export to any other. The "one shared tree, tools are views" design from Revisions 2 and 3 is withdrawn. §4, Phase 3, Phase 4 and §6 were rewritten for the broker model.
 
+**Revision 5 (2026-11-24):** "Decoupled" is refined to **loosely coupled through a shell**, the pattern used by plugin hosts such as VS Code and Obsidian and by the phone share sheet. Tools still own their state and never reference each other, but they cooperate through a workspace shell that owns the layout, a capability registry, and message routing. Miguel confirmed the workspace should feel like one place where several tools are open at once; a multi-tool layout feature exists but is not deployed and was not visible on the remote. Added §4.3 (the shell), a Send/Ask distinction on messages, and a shelf; Phase 3 and Phase 4 adjusted.
+
 **How this was assessed:** read every design doc and all non-test source, ran `vitest` and `vite build`, and drove both tools in a real browser (stream, reflect, drill two levels, complete, next draft, Focus decompose, reload).
 
 ---
@@ -107,7 +109,7 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 **Rules that follow from it.** Use these to accept or reject features and new tools.
 
 0. **Text is the interface.** Every tool consumes a piece of text that stands for a thought and returns text anchored to it. A span is a workable thing, not decoration on a document. A feature that needs its own non-text input format is suspect.
-1. **One principle, independent tools.** Every tool breaks something daunting into pieces small enough to act on, and folds results back up. Each tool implements that in the way that suits its job, with its own state and its own model. They are coupled by the principle and the message type, not by shared data.
+1. **One principle, independent tools, one workspace.** Every tool breaks something daunting into pieces small enough to act on, and folds results back up. Each tool implements that in the way that suits its job, with its own state and its own model. They are coupled by the principle, the message type and the workspace shell that hosts them, never by shared data or by naming each other.
 2. **Convergence is the gate.** Nothing ascends unresolved: one block, and no open items left undecided (the proposal's open-item gate). Abandoning is allowed but is a visible, named act.
 3. **Fold the result, archive the process.** The parent only ever receives the chunk. The path that produced it stays re-openable.
 4. **One level in view.** At any moment you see one node, its goal, and a cue to where you are. Never a two-pane parent and child.
@@ -123,7 +125,7 @@ A suite needs a rule for what counts as a tool, or it becomes a pile of features
 
 1. **Stands alone.** It is useful opened cold, with a blank prompt, and never requires another tool to be present.
 2. **Owns its state.** Its own store, its own model, its own persistence. No tool reads or writes another tool's data.
-3. **Speaks text through the broker.** It declares which messages it can receive and which actions send one. That is its entire surface to the rest of the suite.
+3. **Speaks text through the shell.** It registers what it accepts and marks which of its text items can be sent. That is its entire surface to the rest of the suite. It never names another tool.
 4. **Replies to what it was asked.** If it was opened by a request, finishing sends a reply to the sender. A request is never left silently unanswered: it ends resolved, as a sharper question, or abandoned.
 5. **Ends in something smaller.** An answer, a decision, a sharper question, or a next step.
 
@@ -157,6 +159,21 @@ Message = {
 |---|---|---|
 | Doubt a claim in ThinkPad | `text`: the claim. `intent`: "doubt". `replyTo`: ThinkPad, the span's annotation. The runner starts the Doubt workflow on it. | `text`: the call. ThinkPad places it at the span through the existing splice. |
 | A runner decompose step offers "Think in ThinkPad" | `text`: the step's prompt. `context`: the parent prompts. `replyTo`: runner, the frame. ThinkPad opens a pad titled with the prompt. | `text`: the pad's resolved text. The runner records it as the step's result. |
+
+### 4.3 The workspace shell
+
+The shell is the one shared thing. It is what makes separate tools feel like one workspace, and it is the only place that knows which tools exist.
+
+- **Layout.** You open the tools you need and arrange them. Several can be up at once. This builds on the existing, not yet deployed, multi-tool layout work.
+- **Registry.** Each tool registers what it accepts, for example "text; I am for thinking it through" or "text; I run it as steps". Nothing else is needed for a new tool to become a destination everywhere.
+- **"Send to…" on every text item.** One uniform action, built by the shell from the registry at the moment you open it. This is how a decompose step can offer ThinkPad without knowing ThinkPad exists. A tool may promote one option to a button where it is the obvious next move ("Think this through" on a decompose step); the button names an intent, and the registry resolves it to a tool.
+- **Two kinds of hand-off.**
+  - **Ask:** send text and expect a result back. The result returns to whatever asked, like a function returning to its caller. You never pick a destination by hand. This is the `request` / `reply` pair in §4.2.
+  - **Send:** one-way. The text lands in the receiving tool and nothing comes back. This is a `request` with `replyTo: null`.
+- **The shelf.** A workspace-level tray of text items that any tool can drop onto and pull from. It is the visible common space, it gives a one-way Send somewhere to land when no tool is the obvious target, and it is where a reply waits if its origin is gone. Tools still share no data; the shelf belongs to the shell. *(Recommended; not yet confirmed by Miguel.)*
+- **Routing and placement.** When an Ask opens another tool, the shell opens it beside the asker if there is room and in its place if not, and draws the link between them: which item asked, and where the answer will go.
+
+One caution carried over from `recursive-resolve-contract.md` (rule 2 there): a permanent parent-and-child split divides attention. Side-by-side tools are fine when they are doing different jobs. When one tool is working on a piece of what the other is showing, dim or collapse the asker to its one relevant item so there is still a single place to look.
 
 **Future tools** are not planned here; the contract is the test for them. Anything that stands alone and speaks text through the broker can join without the existing tools changing.
 
@@ -221,16 +238,19 @@ Hold back until the loop is in daily use: variants and save-as-variant, records 
 
 **Exit test:** select a claim, start Doubt, slot a workflow into one step two levels down, and resolve everything. The claim in the root pad now carries the call, with any accepted doubt shown as a caveat. Resolve was refused at least once because of an undecided open item.
 
-### Phase 3 — The broker and the first two bridges (about 2 to 3 weeks)
+### Phase 3 — The shell and the first two bridges (about 3 to 4 weeks)
 
 The identity phase. It resolves G1 and G2 and delivers both bridges Miguel described, with the tools still decoupled.
 
 - **Runner stands alone first.** Give the runner its own persistence (its own IndexedDB store, mirroring `padsDb`), so contexts, stacks, parked state and `waitingOn` survive reload (G2). Keep every child result on the parent instead of overwriting (G3). Record time per focus (D8).
-- **The broker.** A small module: tools register what they receive and what they offer; `send(request)` routes and navigates; `reply(message)` routes back. Pending requests are persisted by the sender, so a hop survives a reload. Pure and node-testable, in the style of the existing domain code.
+- **Land the layout.** Finish and deploy the existing multi-tool layout as the shell's first job, with ThinkPad and the runner as the two tools it hosts. Everything below plugs into it.
+- **Registry and "Send to…".** Tools register what they accept; the shell renders one "Send to…" action on any text item a tool marks as sendable. Ship one-way Send first: it is the smallest end-to-end slice and proves the registry.
+- **The shelf.** Build it alongside Send, as its default landing place.
+- **The broker (Ask).** A small module in the shell: tools register what they receive and what they offer; `send(request)` routes and navigates; `reply(message)` routes back. Pending requests are persisted by the sender, so a hop survives a reload. Pure and node-testable, in the style of the existing domain code.
 - **ThinkPad as sender and receiver.** Send: an action on a span creates a pending open item and a request. Receive a reply: place the text at the anchor with the existing tolerant splice. Receive a request: open a new pad titled with the text, context shown above it; resolving the pad sends the reply.
 - **Runner as sender and receiver.** Receive a request: open a context whose root focus is the text, starting the workflow named by `intent` if there is one. Completing the root sends the reply. Send: the decompose composer offers "Think in ThinkPad" beside typing a sub-focus.
-- **Where you are across hops.** A thin return strip at the top of a tool opened by a request: what asked, from where, and "Send back". It follows the same cue-not-pane rule as the drill bar.
-- **Requests that do not come back cleanly.** Abandoning sends an `abandoned` reply so the origin's open item can be decided, not orphaned. If the origin span moved or was edited, the tolerant splice already handles relocation; if it was deleted, the reply is kept as an unplaced result the origin tool lists.
+- **Where you are across hops.** A tool opened by an Ask shows what asked, from where, and "Send back". With both tools on screen, the shell highlights the asking item and dims the rest of that tool; in a single-tool layout the same information is a thin strip at the top.
+- **Requests that do not come back cleanly.** Abandoning sends an `abandoned` reply so the origin's open item can be decided, not orphaned. If the origin span moved or was edited, the tolerant splice already handles relocation; if it was deleted, the reply goes to the shelf.
 
 One consequence for the capture-templates proposal: it models a run as a thread inside ThinkPad. With decoupled tools, a run executed in the runner lives in the runner's state, and ThinkPad holds only the pending open item and, later, the result. The open-item gate still works unchanged, since a pending request is an open item.
 
@@ -240,7 +260,7 @@ One consequence for the capture-templates proposal: it models a run as a thread 
 
 With the broker in place, the workspace home can answer "what is my next small step?".
 
-- **Home is the workspace.** Keep the tool launcher; a suite needs one. Add above it the open loops, which each tool reports for itself: open threads from ThinkPad; active and parked contexts from the runner; and requests still waiting on a reply. Each shows its one next step and opens in its own tool.
+- **Home is the workspace.** Opening Mindstream restores the layout you left: the same tools, in the same arrangement, each at the same place. The launcher becomes the shell's "open a tool" control. Add a workspace-level view of open loops, which each tool reports for itself: open threads from ThinkPad; active and parked contexts from the runner; and requests still waiting on a reply. Each shows its one next step and opens in its own tool.
 - **Resume lands you exactly where you were:** same pad, same thread, same phase. Set `resumeHint` on leave and show it on return.
 - **Parked tasks resurface.** A parked task shows how long it has waited; un-parking returns to its exact depth.
 - **Export.** One pad to Markdown, with the resolved root on top and archived threads nested below. For a personal local-only tool, this is also the backup.
@@ -268,6 +288,8 @@ With the broker in place, the workspace home can answer "what is my next small s
 - **Why Phase 1 before the broker:** replies land in ThinkPad through the fold-up and reveal path. If that path still has a one-way phase and root-only thread lists, every cross-tool result inherits those defects.
 - **Why the gate before the broker:** a pending request is an open item, so the gate from Phase 2 is what makes an unanswered request visible and decidable at its origin.
 - **Why runner persistence before the broker:** a reply addressed to a runner frame that vanished on reload cannot be delivered. Each tool has to be durable on its own before messages between them can be.
+- **Why Send before Ask:** one-way Send needs only the registry and the shelf. It proves the shell with almost no failure modes, and Ask then adds the reply path on top.
+- **Risk: the shell becomes the product.** Layout, registry, shelf and routing are all infrastructure. Keep each one as small as the two existing tools need, and add nothing for a hypothetical third tool until it exists.
 - **Largest risk: requests that never come home.** In a decoupled design nothing forces a reply. The contract's point 4, the `abandoned` outcome and the open-loop list on Home exist for this. Test the unhappy paths as carefully as the happy one.
 - **Second risk: getting lost across hops.** Span to runner to pad to drill is four levels across two tools. The return strip has to make "what asked for this, and how do I send it back" answerable at a glance.
 - **Third risk: ceremony.** Stamp, tag, choose workflow, hop, fill steps, decide open items, resolve, next draft. Keep the direct path one gesture long: typing the answer in place must always be available.
@@ -275,7 +297,9 @@ With the broker in place, the workspace home can answer "what is my next small s
 
 ### Questions for Miguel
 
-1. **View or import?** Settled in Revision 4: import and export through a broker; tools are decoupled.
+1. **View or import?** Settled in Revisions 4 and 5: tools own their state and exchange text through the workspace shell.
+5. **The shelf.** Do you want the workspace-level tray (§4.3), or should text only ever move directly between tools?
+6. **The layout work.** It was not on the remote, so Phase 3's first item is sized blind. Pushing that branch would let me check how much of the shell already exists.
 2. **Where is the in-flight code?** Only the proposal doc is on the remote. If implementation exists on an unpushed branch, §2 and §3 should be re-checked against it.
 3. **Resolve or Complete?** See the naming note in §4.
 4. **Does every tag map to a workflow?** Doubt is the example given. Should Question, Expand and Flag each open a workflow by default, or do some stay as a plain blank sub-pad?
