@@ -4,6 +4,9 @@ import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // GitHub Pages serves the app under /<repo>/; the Pages workflow sets BASE_PATH.
+  // Local dev and plain builds stay at the root.
+  base: process.env.BASE_PATH || '/',
   plugins: [
     vue({
       template: { transformAssetUrls },
