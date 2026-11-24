@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 22)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 23)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 23 (2026-11-24): phone layout pass.** Measured at iPhone 13 size (390px) before changing anything, then fixed the causes. The New/Open bar was fixed, transparent and 68px, so in Reflect the page scrolled under it and showed through; it is now opaque, and both bars are lower on phones (52px and 48px, from 68px each). Margins were a fixed half inch; they now scale from 16px to 48px. An outer container no longer adds padding in Reflect on phones, and the title scales down. Every visible control is at least 32px tall, the main ones 40px. The text column went from 259px to 324px while writing and from 189px to 286px in Reflect. Touch-style selection opens the move picker within the screen, and write, Reflect, drill, resolve and Write all work by tap. Desktop is unchanged. Also fixed: a new Reflect session now clears the previous study beat. Known phone limits that remain: changing an existing passage's tag relies on hover, which touch does not have; the page is about 5px taller than the screen, so it scrolls slightly; the runner and the workflow library were checked visually only.
 
 **Revision 22 (2026-11-24): synthesis over open threads.** Settled by Miguel ("I agree", then in his words):
 - **Open threads must be acknowledged before a synthesis replaces the text, not resolved.** "It's tooling and not supposed to be opinionated." The app surfaces them ("you previously doubted or challenged these; converge anyway?") and accepts "this doesn't change my overall view" as an answer.
