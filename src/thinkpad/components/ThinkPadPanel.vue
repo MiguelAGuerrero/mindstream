@@ -151,7 +151,14 @@ const hiddenAnnotations = computed(() =>
 const markedAnnotations = computed(() =>
   (props.thinkPad?.annotations ?? []).filter((a) => (a.link || a.needsSource === true) && !a.lost && a.hidden !== true),
 );
-const paintedAnnotations = computed(() => [...hiddenAnnotations.value, ...markedAnnotations.value, ...cuedAnnotations.value]);
+// Passages with a thread on them are always painted (open or resolved), so you
+// can find your threads in the text and tap one to reopen it.
+const threadAnnotations = computed(() =>
+  (props.thinkPad?.annotations ?? []).filter(
+    (a) => a.stepId && !a.lost && a.hidden !== true && !a.link && a.needsSource !== true && a.synthesis !== true && !a.disposition,
+  ),
+);
+const paintedAnnotations = computed(() => [...hiddenAnnotations.value, ...markedAnnotations.value, ...threadAnnotations.value, ...cuedAnnotations.value]);
 const hiddenCount = computed(() => hiddenAnnotations.value.length);
 
 const blockStates = computed(() => {
@@ -496,7 +503,7 @@ const editor = useEditor({
           const pmEnd = charToPos(charEnd);
           const text = view.state.doc.textBetween(pmStart, pmEnd, "\n", "\n");
           selectionState.value = { start: charStart, end: charEnd, text: text || annTarget.dataset.annotationId };
-          positionAboveSelection(view, pmStart);
+          positionAboveSelection(view, pmStart, pmEnd);
           return true;
         }
 
@@ -514,7 +521,7 @@ const editor = useEditor({
         const text = view.state.doc.textBetween(pmStart, pmEnd, "\n", "\n");
         if (!text) return false;
         selectionState.value = { start: charStart, end: charEnd, text };
-        positionAboveSelection(view, pmStart);
+        positionAboveSelection(view, pmStart, pmEnd);
         return true;
       },
     },
@@ -633,23 +640,28 @@ function openSelectionPopover(view, from, to) {
   // posToChar maps PM positions back to the flat-string offsets the domain model
   // stores — the drill-span payload is byte-for-byte what the textarea emitted.
   selectionState.value = { start: posToChar(from), end: posToChar(to), text };
-  positionAboveSelection(view, from);
+  positionAboveSelection(view, from, to);
 }
 
 // Position the bubble menu relative to the selection start using viewport-fixed
 // coordinates (position:fixed), so the card is never clipped by the panel's
 // overflow:hidden. Centered on the writing column, not the mouse cursor.
 // Flips to below-selection when there isn't enough room above (near viewport top).
-const BUBBLE_CARD_MAX_HEIGHT = 460;
-function positionAboveSelection(view, from) {
+// The picker is about 100px tall (more with reopen entries). It goes above the
+// selection when there is room, otherwise below its last line, never over it.
+const BUBBLE_CARD_MAX_HEIGHT = 170;
+function positionAboveSelection(view, from, to = from) {
   const coords = view.coordsAtPos(from);
+  const end = view.coordsAtPos(Math.max(from, to));
   const margins = marginsRef.value;
   const colRect = margins?.getBoundingClientRect();
   const colCenter = colRect
     ? (colRect.left + colRect.right) / 2
     : coords.left;
-  const below = coords.top < BUBBLE_CARD_MAX_HEIGHT + 8;
-  popoverPos.value = { top: coords.top, left: colCenter, below };
+  const roomAbove = coords.top >= BUBBLE_CARD_MAX_HEIGHT + 8;
+  const roomBelow = end.bottom + BUBBLE_CARD_MAX_HEIGHT + 8 <= window.innerHeight;
+  const below = !roomAbove && roomBelow;
+  popoverPos.value = { top: below ? end.bottom : coords.top, left: colCenter, below };
 }
 
 function dismissSelection() {
@@ -1542,13 +1554,20 @@ defineExpose({ flushText, dismissSelection });
   border-radius: 3px;
 }
 
+/* A passage with a thread on it: tinted, with a solid underline (the dashed one
+   is every paragraph's in Reflect). Resolved threads turn green. */
+/* !important: the mark shares its element with the paragraph's own Reflect
+   underline, whose rule comes later. */
 .thinkpad-editor :deep(.thinkpad-hl--anchored) {
-  background: rgba(var(--v-theme-primary), 0.18);
-  box-shadow: 0 0 0 1px rgba(var(--v-theme-primary), 0.22);
+  background: rgba(var(--v-theme-primary), 0.16) !important;
+  border-bottom: 2px solid rgba(var(--v-theme-primary), 0.8) !important;
+  cursor: pointer;
 }
 
 .thinkpad-editor :deep(.thinkpad-hl--resolved) {
-  background: rgba(var(--v-theme-success), 0.16);
+  background: rgba(var(--v-theme-success), 0.13) !important;
+  border-bottom: 2px solid rgba(var(--v-theme-success), 0.65) !important;
+  cursor: pointer;
 }
 
 /* Hidden span: a pure visibility toggle — collapse it out of the document flow.
@@ -2032,6 +2051,41 @@ defineExpose({ flushText, dismissSelection });
     border: none;
     border-radius: 0;
     box-shadow: none;
+  }
+}
+
+/* Phones: thumb-size controls in the selection picker and the paragraph chips
+   (at least 40px tall), the picker wraps inside the screen, and its second row
+   reads as active, not greyed out. */
+@media (max-width: 600px) {
+  .thinkpad-mini-picker {
+    max-width: calc(100vw - 16px);
+    padding: 8px;
+  }
+  .thinkpad-mini-picker__glyphs {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .thinkpad-tag-btn,
+  .thinkpad-tag-btn--sm {
+    min-height: 40px;
+    padding: 0 12px;
+    font-size: 0.85rem;
+  }
+  .thinkpad-mini-picker__dismiss {
+    display: none; /* tapping elsewhere closes the picker */
+  }
+  .thinkpad-mini-picker__hide-row {
+    gap: 2px 6px;
+  }
+  .thinkpad-mini-picker__hide-link {
+    min-height: 40px;
+    padding: 0 10px;
+    font-size: 0.82rem;
+    color: rgba(var(--v-theme-on-surface), 0.78);
+  }
+  .thinkpad-mini-picker__sep--v {
+    display: none;
   }
 }
 </style>

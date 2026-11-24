@@ -233,7 +233,7 @@ export function useThinkPadSurface() {
     padStore.ascendThread();
     const left = drillThreads.value.find((d) => d.threadId === head);
     leftOpen.value = left && left.hasWork && left.status !== "resolved"
-      ? { title: left.title, status: left.status }
+      ? { title: left.title, status: left.status, threadId: head }
       : null;
   }
 

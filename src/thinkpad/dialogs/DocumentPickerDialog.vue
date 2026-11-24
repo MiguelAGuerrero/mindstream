@@ -35,16 +35,34 @@ watch(
   },
 );
 
+// No title: name the pad by its first words, so untitled pads can be told apart.
 function docTitle(item) {
-  return (item.rootTitle || item.activeTitle || "").trim() || "Untitled";
+  const title = (item.rootTitle || item.activeTitle || "").trim();
+  if (title) return title;
+  const words = (item.previewText || "").replace(/\s+/g, " ").trim();
+  if (!words) return "Untitled";
+  return words.length > 48 ? `${words.slice(0, 47).trimEnd()}…` : words;
 }
+
+// Empty pads (nothing written, no title) are left out, except the one open now.
+const listed = computed(() =>
+  props.items.filter((item) => item.id === props.activeId || (item.previewText || "").trim() || (item.rootTitle || item.activeTitle || "").trim()),
+);
 
 // Items already arrive newest-first (contextPool). Filter client-side by title.
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase();
-  if (!q) return props.items;
-  return props.items.filter((item) => docTitle(item).toLowerCase().includes(q));
+  if (!q) return listed.value;
+  return listed.value.filter((item) => docTitle(item).toLowerCase().includes(q));
 });
+
+// Deleting asks first, on the card itself: one tap never loses a pad.
+const confirmId = ref(null);
+watch(() => props.modelValue, () => { confirmId.value = null; });
+function confirmDelete(id) {
+  emit("delete", id);
+  confirmId.value = null;
+}
 
 /** Flat think-pad text → a short card glimpse for the picker grid. */
 function truncatePreview(text, max = 280) {
@@ -114,8 +132,15 @@ function truncatePreview(text, max = 280) {
                 size="x-small"
                 density="comfortable"
                 aria-label="Delete document"
-                @click.stop="emit('delete', item.id)"
+                @click.stop="confirmId = item.id"
               />
+              <span v-if="confirmId === item.id" class="doc-card__confirm" @click.stop>
+                <span class="text-body-2">Delete “{{ docTitle(item) }}”? This can't be undone.</span>
+                <span class="doc-card__confirm-actions">
+                  <v-btn size="small" variant="text" @click.stop="confirmId = null">Keep</v-btn>
+                  <v-btn size="small" variant="flat" color="error" @click.stop="confirmDelete(item.id)">Delete</v-btn>
+                </span>
+              </span>
 
               <span class="doc-card__page">
                 <span v-if="item.previewText" class="doc-card__preview">{{ truncatePreview(item.previewText) }}</span>
@@ -309,5 +334,26 @@ function truncatePreview(text, max = 280) {
 .dialog-actions {
   padding: 1rem 1.5rem 1.5rem;
   gap: var(--space-1);
+}
+
+.doc-card__confirm {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px;
+  border-radius: inherit;
+  background: rgb(var(--v-theme-surface));
+  text-align: left;
+  cursor: default;
+}
+
+.doc-card__confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 </style>

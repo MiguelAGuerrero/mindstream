@@ -104,6 +104,20 @@ watch(
   },
 );
 
+// Notices close on their own timer (see the template).
+let leftOpenTimer = null;
+watch(() => surface.leftOpen, (v) => {
+  clearTimeout(leftOpenTimer);
+  if (v) leftOpenTimer = setTimeout(() => { surface.leftOpen = null; }, 4000);
+});
+let draftReadyTimer = null;
+watch(() => padStore.studyBeat, (v) => {
+  clearTimeout(draftReadyTimer);
+  if (v) draftReadyTimer = setTimeout(() => padStore.dismissStudyBeat(), 5000);
+});
+// Leaving a thread clears a notice about the level you just left.
+watch(() => surface.surfaceHead, () => { if (surface.leftOpen && surface.leftOpen.threadId === surface.surfaceHead) surface.leftOpen = null; });
+
 // New (the + button or the menu) may land on a blank pad you had already
 // started writing in; asking again brings its welcome back, so cancelling the
 // dialog leaves you on the list rather than on an empty page.
@@ -475,8 +489,9 @@ watch(
            history, instead of the old before / after card. -->
       <v-snackbar
         :model-value="!!padStore.studyBeat && !padStore.isDraftHistoryView"
-        timeout="5000"
-        :location="smAndDown ? 'top' : 'bottom'"
+        :timeout="-1"
+        location="bottom"
+        content-class="ms-raised-notice"
         @update:model-value="(v) => { if (!v) padStore.dismissStudyBeat(); }"
       >
         <template v-if="padStore.studyBeat">Draft {{ padStore.studyBeat.n + 1 }} is ready.</template>
@@ -485,11 +500,14 @@ watch(
         </template>
       </v-snackbar>
 
-      <!-- On phones it shows at the top: at the bottom it covers Write / Reflect. -->
+      <!-- Notices sit just above the Write / Reflect bar, never over the thread
+           strip (Back, Resolve). They close on their own timer, which a finger
+           resting on them can't hold open. -->
       <v-snackbar
         :model-value="!!surface.leftOpen"
-        timeout="4000"
-        :location="smAndDown ? 'top' : 'bottom'"
+        :timeout="-1"
+        location="bottom"
+        content-class="ms-raised-notice"
         @update:model-value="(v) => { if (!v) surface.leftOpen = null; }"
       >
         <template v-if="surface.leftOpen">
@@ -1299,6 +1317,13 @@ watch(
   }
   .drill-bar__actions :deep(.drill-bar__btn--squeeze .v-btn__prepend) {
     margin-inline: 0;
+  }
+}
+
+/* Notices (teleported, so global): lifted above the Write / Reflect bar on phones. */
+@media (max-width: 600px) {
+  :global(.ms-raised-notice) {
+    margin-bottom: calc(112px + env(safe-area-inset-bottom, 0px)) !important; /* above the bar and the page turner */
   }
 }
 </style>

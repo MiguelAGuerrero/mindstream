@@ -113,6 +113,9 @@ export function useThinkPadReflect({ surface, sessionUi, isBlankPad, dismissed, 
   function handleEscapeExpand(e) {
     if (e.key !== "Escape" || !sessionUi.padExpanded) return;
     if (peekOpen.value) return;
+    // Escape closing a dialog, menu or sheet must not also freeze the draft.
+    if (e.defaultPrevented || document.querySelector(".v-overlay--active")) return;
+    if (e.target?.closest?.(".v-overlay, [role=dialog], [role=menu]")) return;
     e.preventDefault();
     padStore.enterReflect({ padLocator: padStore.surfaceHead });
   }

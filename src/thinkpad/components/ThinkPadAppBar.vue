@@ -28,7 +28,8 @@ function goHome() {
 // top, threads nested below. For a local-only tool, this is also the backup.
 function exportPad() {
   const text = padStore.currentPadMarkdown;
-  const name = (padStore.currentPad?.title || "pad").replace(/[^\w\- ]+/g, "").trim().slice(0, 60) || "pad";
+  const base = padStore.currentPad?.title?.trim() || (padStore.currentPad?.doc?.text ?? "").trim().split(/\s+/).slice(0, 6).join(" ") || "pad";
+  const name = base.replace(/[^\w\- ]+/g, "").trim().slice(0, 60) || "pad";
   const url = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));
   const a = document.createElement("a");
   a.href = url;

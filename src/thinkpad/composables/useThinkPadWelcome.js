@@ -18,6 +18,11 @@ function threadTitleOf(pad, threadId) {
   return found;
 }
 
+function firstWords(text, max = 48) {
+  const t = String(text ?? "").replace(/\s+/g, " ").trim();
+  return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
+}
+
 export function useThinkPadWelcome({ thinkPad, sessionUi, isDraftFrozen }) {
   const padStore = usePadStore();
   const { currentPad: currentContext } = storeToRefs(padStore);
@@ -44,7 +49,8 @@ export function useThinkPadWelcome({ thinkPad, sessionUi, isDraftFrozen }) {
       )
       .map((pad) => ({
         contextId: pad.id,
-        title: (pad.title || "").trim() || "Untitled",
+        // No title: the first words, so untitled pads can be told apart.
+        title: (pad.title || "").trim() || firstWords(pad.doc?.text) || "Untitled",
         updatedAt: pad.updatedAt ?? null,
         previewText: (pad.doc?.text ?? "").trim(),
         // Where you were in it, so a return lands with context (Phase 4 resume).
