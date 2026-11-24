@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 29)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 30)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,13 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 30 (2026-11-24): per-tag shortcuts, shelf, Send, return strip; deployed to master.** Built on Revision 29's answers, verified at phone size and on desktop (549 tests, build, console clean, every earlier browser flow re-run):
+- **Tag shortcuts declared per tag.** After a workflow is brought into a tagged thread, a chip offers to make it that tag's shortcut; any thread with the tag then shows it as a one-tap button that writes its steps in. ThinkPad keeps its own copy (label and steps), so it never reads the library.
+- **One-way Send to…** (§4.3): a request may be marked one-way, with no reply address; it never shows as waiting. Destinations come from the registry plus the shelf. Offered in ThinkPad's move picker and on the runner's focus card.
+- **The shelf** (Revision 6): a workspace tray shown on Home; items can be sent on (and leave the shelf) or removed.
+- **Return strip** on phones: when ThinkPad was opened by another tool's ask, a strip under the toolbar says what asked and Reply jumps to the steps box.
+Phase 3 status: everything in it is built except the multi-tool layout (dropped for now, Revision 29). Its exit test (a) was not run end to end: a runner step that asks ThinkPad gets steps back, not a single result text, so "land back on the step with its result" is not how the bridge works today. Exit test (b) (the runner used cold, reload-safe) holds. Deployed to `master` at Miguel's request.
 
 **Revision 29 (2026-11-24): four answers from Miguel.** "One tool per screen for now. We can proceed with no pins. We can opt for having a shortcut be declared per tag. And proceed with reasonable defaults on the open questions." He asked for a fast turnaround so he can test, then iterate.
 - **One tool per screen** (question 17). No multi-tool layout for now; Home and the open-loop list connect the tools, and a thin strip shows what asked when one tool opens another.
@@ -376,7 +383,7 @@ Hold back until the loop is in daily use: variants and save-as-variant, records 
 
 **Exit test:** select a claim, start Doubt, slot a workflow into one step two levels down, and resolve everything. The claim in the root pad now carries the call, with any accepted doubt shown as a caveat. Resolve was refused at least once because of an undecided open item.
 
-### Phase 3 — The shell and the first two bridges (about 3 to 4 weeks)
+### Phase 3 — The shell and the first two bridges (about 3 to 4 weeks) — built except the multi-tool layout (dropped, Revision 29); exit test (a) not run, see Revision 30
 
 The identity phase. It resolves G1 and G2 and delivers both bridges Miguel described, with the tools still decoupled.
 
