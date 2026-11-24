@@ -2090,13 +2090,19 @@ export function dropSlot(pad, { handoffId } = {}, { now } = {}) {
 export function applySlot(pad, { handoffId, steps } = {}, { now, makeId } = {}) {
   const slot = (pad?.pendingSlots ?? []).find((s) => s.handoffId === handoffId);
   if (!slot) return pad;
-  let next = dropSlot(pad, { handoffId }, { now });
-  const doc = padForThread(next, slot.threadId);
+  const next = dropSlot(pad, { handoffId }, { now });
+  return writeStepsInto(next, { threadId: slot.threadId, steps }, { now, makeId });
+}
+
+/** Write steps into a thread as a document (a # heading per step), after what is there. */
+export function writeStepsInto(pad, { threadId, steps } = {}, { now, makeId } = {}) {
+  let next = pad;
+  const doc = padForThread(next, threadId);
   const form = formTextFromSteps(steps);
-  if (!doc || !form) return next;
-  if (doc.phase === "cultivate") next = leaveReflect(next, { padLocator: slot.threadId }, { now, makeId });
-  const before = (padForThread(next, slot.threadId)?.text ?? "").trim();
-  return setPadText(next, { padLocator: slot.threadId, text: before ? `${before}\n\n${form}` : form }, { now, makeId });
+  if (!doc || !form || !threadId) return next;
+  if (doc.phase === "cultivate") next = leaveReflect(next, { padLocator: threadId }, { now, makeId });
+  const before = (padForThread(next, threadId)?.text ?? "").trim();
+  return setPadText(next, { padLocator: threadId, text: before ? `${before}\n\n${form}` : form }, { now, makeId });
 }
 
 

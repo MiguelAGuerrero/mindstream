@@ -44,6 +44,7 @@ import {
   addPendingSlot as addPendingSlotOnPad,
   applySlot as applySlotOnPad,
   dropSlot as dropSlotOnPad,
+  writeStepsInto as writeStepsIntoOnPad,
   withCaveats as withCaveatsOnPad,
   openLoopsFor as openLoopsForPad,
   exportPadMarkdown as exportPadMarkdownOnPad,
@@ -56,6 +57,16 @@ import {
   threadIsOpen as threadIsOpenCheck,
 } from "../domain/padDomain";
 import { buildPadSnapshot, normalizePadRecord } from "../domain/padPersistenceMapper";
+import { normalizeTagShortcuts, setTagShortcut } from "../domain/tagShortcuts";
+
+// ThinkPad's own copy of the per-tag shortcuts (Revision 29), in this browser.
+const SHORTCUTS_KEY = "mindstream.thinkpad.tagShortcuts";
+function readShortcuts() {
+  try { return normalizeTagShortcuts(JSON.parse(localStorage.getItem(SHORTCUTS_KEY) ?? "{}")); } catch { return {}; }
+}
+function writeShortcuts(map) {
+  try { localStorage.setItem(SHORTCUTS_KEY, JSON.stringify(map)); } catch { /* storage unavailable: keep in memory */ }
+}
 import { makeId, nowIso } from "./idClock";
 import {
   upsertPad as upsertPadInDb,
@@ -102,6 +113,10 @@ export const usePadStore = defineStore("pad", {
     // The draft just revealed by Next Draft, shown as a study beat (G7) until
     // dismissed or until you move to another level or pad. In memory only.
     studyTarget: null,
+    // Per-tag workflow shortcuts (Revision 29), and the workflow last written
+    // into a thread through "Workflow", so it can be offered as the shortcut.
+    tagShortcuts: typeof localStorage === "undefined" ? {} : readShortcuts(),
+    lastSlot: null,
   }),
 
   getters: {
@@ -410,9 +425,11 @@ export const usePadStore = defineStore("pad", {
     },
 
     /** Settle a library reply on whichever pad is waiting for it. */
-    settleSlot({ handoffId, steps = [], dropped = false } = {}) {
+    settleSlot({ handoffId, steps = [], dropped = false, label = "" } = {}) {
       const pad = this.pads.find((p) => (p.pendingSlots ?? []).some((s) => s.handoffId === handoffId));
       if (!pad) return;
+      const slot = pad.pendingSlots.find((s) => s.handoffId === handoffId);
+      if (!dropped && steps.length) this.lastSlot = { threadId: slot.threadId, label, steps };
       const now = nowIso();
       const next = dropped
         ? dropSlotOnPad(pad, { handoffId }, { now })
@@ -420,6 +437,23 @@ export const usePadStore = defineStore("pad", {
       if (next === pad) return;
       this.pads = this.pads.map((p) => (p.id === pad.id ? next : p));
       persistPadToDb(next);
+    },
+
+    /** Make the workflow last brought into a thread the shortcut for `tag`. */
+    declareTagShortcut(tag) {
+      const slot = this.lastSlot;
+      if (!slot) return;
+      const next = setTagShortcut(this.tagShortcuts, tag, { label: slot.label || "Workflow", steps: slot.steps });
+      if (next === this.tagShortcuts) return;
+      this.tagShortcuts = next;
+      if (typeof localStorage !== "undefined") writeShortcuts(next);
+    },
+
+    /** Write a tag's shortcut steps into a thread (one tap, no trip to the library). */
+    applyTagShortcut({ tag, threadId } = {}) {
+      const shortcut = this.tagShortcuts?.[tag];
+      if (!shortcut || !threadId) return;
+      this._applyOnPad((pad, now) => writeStepsIntoOnPad(pad, { threadId, steps: shortcut.steps }, { now, makeId }));
     },
 
     /** Open (or return to) the synthesis of the surface level, and go into it. */

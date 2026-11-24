@@ -47,7 +47,7 @@ export function useWorkflowSlot() {
         const reply = handoffs.replyFor(slot.handoffId, "thinkpad");
         if (!reply) continue;
         const steps = reply.outcome === "abandoned" ? [] : (reply.steps ?? []);
-        padStore.settleSlot({ handoffId: slot.handoffId, steps, dropped: !steps.length });
+        padStore.settleSlot({ handoffId: slot.handoffId, steps, dropped: !steps.length, label: reply.text ?? "" });
       }
     }
   }

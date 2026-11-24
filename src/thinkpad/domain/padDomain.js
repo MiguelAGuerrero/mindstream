@@ -73,6 +73,7 @@ export {
   addPendingSlot,
   applySlot,
   dropSlot,
+  writeStepsInto,
   withCaveats,
   caveatsFor,
   openLoopsFor,

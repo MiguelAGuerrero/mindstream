@@ -85,6 +85,7 @@ const resolveFieldRef = ref(null);
 const linkPending = ref(null);
 const quoteOpen = ref(false);
 const workflowSlot = useWorkflowSlot();
+const tagLabel = (tag) => ({ question: "Question", expand: "Expand", converge: "Flag" })[tag] ?? tag;
 const viewingLinkId = ref(null);
 
 watch(
@@ -338,6 +339,27 @@ watch(
                       >
                         <v-icon icon="mdi-set-merge" size="14" />
                         <span>Synthesize</span>
+                      </button>
+                      <!-- A tag's shortcut (Revision 29): one tap writes its steps in. -->
+                      <button
+                        v-if="!surface.isAtRoot && surface.currentAnchor?.tag && padStore.tagShortcuts[surface.currentAnchor.tag] && !padStore.isDraftHistoryView"
+                        type="button"
+                        class="thinkpad-bar-action"
+                        :title="`Use the ${tagLabel(surface.currentAnchor.tag)} shortcut: ${padStore.tagShortcuts[surface.currentAnchor.tag].label}`"
+                        @click="padStore.applyTagShortcut({ tag: surface.currentAnchor.tag, threadId: surface.surfaceHead })"
+                      >
+                        <v-icon icon="mdi-lightning-bolt-outline" size="14" />
+                        <span>{{ padStore.tagShortcuts[surface.currentAnchor.tag].label }}</span>
+                      </button>
+                      <!-- Offer the workflow just brought in as this tag's shortcut. -->
+                      <button
+                        v-if="!surface.isAtRoot && surface.currentAnchor?.tag && padStore.lastSlot?.threadId === surface.surfaceHead && padStore.tagShortcuts[surface.currentAnchor.tag]?.label !== padStore.lastSlot?.label"
+                        type="button"
+                        class="thinkpad-bar-action"
+                        @click="padStore.declareTagShortcut(surface.currentAnchor.tag)"
+                      >
+                        <v-icon icon="mdi-pin-outline" size="14" />
+                        <span>Make it the {{ tagLabel(surface.currentAnchor.tag) }} shortcut</span>
                       </button>
                       <!-- Slot a workflow into this thread: its steps come back as headings. -->
                       <button
