@@ -208,12 +208,13 @@ watch(
               />
               <v-dialog v-model="sessionUi.newPadDialogOpen" max-width="440">
                 <v-card class="thinkpad-new-dialog">
-                  <v-card-title class="text-subtitle-1 pt-4">New think-pad</v-card-title>
+                  <v-card-title class="text-subtitle-1 pt-4 thinkpad-new-dialog__title">What question are you trying to answer?</v-card-title>
                   <v-card-text class="pb-1">
                     <form @submit.prevent="sessionUi.newPadDialogOpen = false; welcome.submitQuestion()">
                       <v-textarea
                         v-model="welcome.questionDraft"
-                        label="What question are you trying to answer?"
+                        placeholder="Your question"
+                        aria-label="What question are you trying to answer?"
                         variant="outlined"
                         density="comfortable"
                         rows="1"
@@ -684,6 +685,12 @@ watch(
 </template>
 
 <style scoped>
+/* The question wraps instead of being cut off on a phone. */
+.thinkpad-new-dialog__title {
+  white-space: normal;
+  line-height: 1.35;
+}
+
 .thinkpad-page-layout {
   position: relative;
   flex: 1 1 auto;
