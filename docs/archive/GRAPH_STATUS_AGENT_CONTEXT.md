@@ -1,6 +1,6 @@
 # Rep-it Graph/Status Agent Context
 
-> **Historical document.** Describes the removed graph/session workflow stack. See [`FRONTEND_PATHS.md`](./FRONTEND_PATHS.md) for current paths (`src/pages/ThinkPadPage.vue`, `src/stores/padStore.js`, `src/domain/thinkPadModel.js`).
+> **Historical document.** Describes the removed graph/session workflow stack. See [`FRONTEND_PATHS.md`](../FRONTEND_PATHS.md) for current paths (`src/pages/ThinkPadPage.vue`, `src/stores/padStore.js`, `src/domain/thinkPadModel.js`).
 
 Use this as handoff context for any agent changing graph representation, status/completion rules, navigation constraints, or mutator behavior.
 

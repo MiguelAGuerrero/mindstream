@@ -1,6 +1,6 @@
 # TRIAGE_IDEATION_CONTEXT
 
-> **Historical document.** Triage route and graph mutators were not implemented in the current think-pad architecture. See [`FRONTEND_PATHS.md`](./FRONTEND_PATHS.md).
+> **Historical document.** Triage route and graph mutators were not implemented in the current think-pad architecture. See [`FRONTEND_PATHS.md`](../FRONTEND_PATHS.md).
 
 ## Purpose
 This document is a context handoff for any agent or contributor working on the Triage feature in Rep-it. It captures the architectural decisions, the mental model behind the feature, and the distinctions that justify it as a *separate surface* rather than another workflow or panel. Read this before writing code that touches triage; it explains *why* the feature is shaped the way it is, not just what to build.

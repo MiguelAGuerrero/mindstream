@@ -1,6 +1,6 @@
 # PRODUCT_IDEATION_CONTEXT
 
-> **Partially historical.** See [`FRONTEND_PATHS.md`](./FRONTEND_PATHS.md) for current route and store paths.
+> **Partially historical.** See [`FRONTEND_PATHS.md`](../FRONTEND_PATHS.md) for current route and store paths.
 
 ## Purpose
 This document gives another agent enough product context to generate useful feature ideas for Rep-it without re-reading the full codebase. It combines current product reality with near-term direction.

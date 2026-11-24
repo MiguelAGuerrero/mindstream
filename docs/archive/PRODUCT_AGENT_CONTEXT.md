@@ -1,6 +1,6 @@
 # Rep-it — product context for agents
 
-> **Partially historical.** Route and store paths below may reference removed views. See [`FRONTEND_PATHS.md`](./FRONTEND_PATHS.md) for current paths.
+> **Partially historical.** Route and store paths below may reference removed views. See [`FRONTEND_PATHS.md`](../FRONTEND_PATHS.md) for current paths.
 
 Use this document as **system or top-of-thread context** when handing work to another agent. Trim sections if the model has a tight context limit.
 

@@ -1,6 +1,6 @@
 # Feature-to-Science Map: Rep-it / Mindstream
 
-> **Partially historical.** Implementation references below describe the removed workflow/session UI where noted. See [`FRONTEND_PATHS.md`](./FRONTEND_PATHS.md) for current paths.
+> **Historical as a description of the product.** This map was written for "Rep-it", the earlier workflow-step session app. Every "Implemented in" line points at removed code (for example §3's `sessionNavigation.js`, `Session.vue` and `FocusTreePanel.vue`), and the features it scores are not the current ThinkPad and Focus runner. The research principles themselves are still useful. For what exists now, see [`PRODUCT_ASSESSMENT_AND_ROADMAP.md`](./PRODUCT_ASSESSMENT_AND_ROADMAP.md) §2 and [`FRONTEND_PATHS.md`](./FRONTEND_PATHS.md).
 
 **Date:** 2026-04-16
 **Purpose:** Map every implemented feature to the psychological principle it (intentionally or accidentally) leverages, score alignment, and identify refinement opportunities.
