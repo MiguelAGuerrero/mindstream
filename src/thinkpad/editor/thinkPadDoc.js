@@ -44,13 +44,18 @@ function serializeInline(nodes) {
  * `\n\n` (blank line) → new paragraph node.
  * `\n` within a paragraph → HardBreak node (soft break).
  * Empty string → single empty paragraph.
+ * Optional `ideas` seeds paragraph `attrs.id` so editor nodes match doc.ideas.
  */
-export function textToDocJSON(text) {
+export function textToDocJSON(text, ideas = null) {
   const str = typeof text === "string" ? text : "";
   const paragraphs = str.split(/\n\n+/);
-  const content = paragraphs.map((para) => {
+  const seeded = Array.isArray(ideas) ? ideas : [];
+  const content = paragraphs.map((para, i) => {
     const inline = textToInlineJSON(para);
-    return inline.length ? { type: "paragraph", content: inline } : { type: "paragraph" };
+    const node = inline.length ? { type: "paragraph", content: inline } : { type: "paragraph" };
+    const id = seeded[i]?.id;
+    if (typeof id === "string" && id) node.attrs = { id };
+    return node;
   });
   return { type: "doc", content: content.length ? content : [{ type: "paragraph" }] };
 }

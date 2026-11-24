@@ -24,6 +24,7 @@
 // ---------------------------------------------------------------------------
 
 import { INTENT_CLASSES } from "../moves";
+import { ideasFromText, ideasToText } from "./ideas";
 import { DISPOSITION_KINDS } from "./thinkPadModel";
 
 // ---------------------------------------------------------------------------
@@ -48,6 +49,16 @@ function normalizeConfig(value) {
   };
 }
 
+function normalizeIdea(value) {
+  if (!value || typeof value !== "object") return null;
+  const id = asString(value.id);
+  if (!id) return null;
+  return {
+    id,
+    text: typeof value.text === "string" ? value.text : "",
+  };
+}
+
 function normalizeThinkPadAnnotation(value, { now } = {}) {
   if (!value || typeof value !== "object") return null;
   const id = asString(value.id);
@@ -60,6 +71,7 @@ function normalizeThinkPadAnnotation(value, { now } = {}) {
   if (selectionStart >= selectionEnd) return null;
   return {
     id,
+    ideaId: asString(value.ideaId) ?? asString(value.blockId),
     selectionStart,
     selectionEnd,
     selectedText: typeof value.selectedText === "string" ? value.selectedText : "",
@@ -119,6 +131,7 @@ function normalizeStagedOutput(value) {
     id,
     stepId,
     annotationId: asString(value.annotationId),
+    ideaId: asString(value.ideaId) ?? asString(value.blockId),
     text: typeof value.text === "string" ? value.text : "",
     at: asString(value.at),
   };
@@ -153,17 +166,38 @@ function normalizeDraftHistoryEntry(value) {
 
 function normalizeDoc(value, { now } = {}) {
   if (!value || typeof value !== "object") {
-    return { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], draftHistory: [], lifted: [] };
+    return {
+      text: "", ideas: [], annotations: [], phase: "stream",
+      frozenText: null, frozenIdeas: null, staged: [], draftHistory: [], lifted: [],
+    };
   }
+  const text = typeof value.text === "string" ? value.text : "";
+  const legacyBlocks = Array.isArray(value.blocks) ? value.blocks : [];
+  let ideas = Array.isArray(value.ideas)
+    ? value.ideas.map(normalizeIdea).filter(Boolean)
+    : [];
+  if (!ideas.length) {
+    ideas = legacyBlocks.map(normalizeIdea).filter(Boolean);
+  }
+  if (!ideas.length && text.trim()) {
+    let i = 0;
+    ideas = ideasFromText(text, { makeId: () => `idea:legacy-${i++}` });
+  }
+  const legacyFrozen = Array.isArray(value.frozenBlocks) ? value.frozenBlocks : null;
+  const frozenIdeas = Array.isArray(value.frozenIdeas)
+    ? value.frozenIdeas.map(normalizeIdea).filter(Boolean)
+    : legacyFrozen
+      ? legacyFrozen.map(normalizeIdea).filter(Boolean)
+      : null;
   return {
-    text: typeof value.text === "string" ? value.text : "",
+    text: ideas.length ? ideasToText(ideas) : text,
+    ideas,
     annotations: Array.isArray(value.annotations)
       ? value.annotations.map((a) => normalizeThinkPadAnnotation(a, { now })).filter(Boolean)
       : [],
-    // Draft phase state machine fields — default-filled for older records that
-    // predate the stream-reflect-lifecycle feature. Additive: no schema bump.
     phase: value.phase === "cultivate" ? "cultivate" : "stream",
     frozenText: typeof value.frozenText === "string" ? value.frozenText : null,
+    frozenIdeas,
     staged: Array.isArray(value.staged)
       ? value.staged.map(normalizeStagedOutput).filter(Boolean)
       : [],

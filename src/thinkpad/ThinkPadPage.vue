@@ -1,8 +1,7 @@
 <script setup>
-import { toRef } from "vue";
+import { toRef, ref, watch, nextTick } from "vue";
 import { storeToRefs } from "pinia";
 import ThinkPadPanel from "./components/ThinkPadPanel.vue";
-import IdeasPanel from "./components/IdeasPanel.vue";
 import DraftPhaseBar from "./components/DraftPhaseBar.vue";
 import DocumentPickerDialog from "./dialogs/DocumentPickerDialog.vue";
 import OpenItemsDialog from "./dialogs/OpenItemsDialog.vue";
@@ -11,6 +10,7 @@ import { useSessionUi } from "./composables/useSessionUi";
 import { useThinkPadSurface } from "./composables/useThinkPadSurface";
 import { useThinkPadWelcome } from "./composables/useThinkPadWelcome";
 import { useThinkPadReflect } from "./composables/useThinkPadReflect";
+import { useFocusHandoff } from "./composables/useFocusHandoff";
 
 // US-Letter sheet at 96dpi; expand widens the sheet while keeping it centered.
 const THINKPAD_PAGE_WIDTH = 816;
@@ -32,6 +32,7 @@ function handlePickerNew() {
   sessionUi.documentPickerOpen = false;
 }
 
+const focusHandoff = useFocusHandoff({ surface, currentContext });
 const welcome = useThinkPadWelcome({ thinkPad: surface, sessionUi, isDraftFrozen });
 const reflect = useThinkPadReflect({
   surface,
@@ -41,9 +42,35 @@ const reflect = useThinkPadReflect({
   peekOpen: toRef(surface, "peekOpen"),
 });
 
+// Focus the question field whenever the blank-pad prompt appears (cold start or
+// returning to a fresh pad) so the user can answer without reaching for the mouse.
+const questionInputRef = ref(null);
+watch(
+  () => welcome.showQuestionPrompt,
+  (show) => {
+    if (show) nextTick(() => questionInputRef.value?.focus());
+  },
+  { immediate: true },
+);
+
 const pageWidth = `${THINKPAD_PAGE_WIDTH}px`;
 const pageMaxHeight = `${THINKPAD_PAGE_MAX_HEIGHT}px`;
 const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
+
+const drillContextExpanded = ref(false);
+const resolveFieldRef = ref(null);
+
+watch(
+  () => surface.resolveDialog.open,
+  (open) => {
+    if (open) nextTick(() => resolveFieldRef.value?.focus?.());
+  },
+);
+
+watch(
+  () => surface.surfaceHead,
+  () => { drillContextExpanded.value = false; },
+);
 </script>
 
 <template>
@@ -83,63 +110,129 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
             </div>
           </v-expand-transition>
 
+          <div v-if="welcome.showQuestionPrompt" class="thinkpad-prompt">
+            <div class="thinkpad-prompt__inner">
+              <p class="thinkpad-prompt__eyebrow text-overline text-medium-emphasis">New think-pad</p>
+              <h1 class="thinkpad-prompt__heading">What question are you trying to answer?</h1>
+              <form class="thinkpad-prompt__form" @submit.prevent="welcome.submitQuestion">
+                <input
+                  ref="questionInputRef"
+                  v-model="welcome.questionDraft"
+                  type="text"
+                  class="thinkpad-prompt__input"
+                  placeholder="Type your question…"
+                  aria-label="What question are you trying to answer?"
+                  autocomplete="off"
+                  autofocus
+                />
+                <button
+                  type="submit"
+                  class="thinkpad-prompt__submit"
+                  :disabled="!welcome.questionDraft.trim()"
+                  aria-label="Start writing"
+                >
+                  <v-icon icon="mdi-arrow-right" size="20" />
+                </button>
+              </form>
+              <button type="button" class="thinkpad-prompt__skip" @click="welcome.handleThinkPadFocus">
+                or just start writing
+              </button>
+            </div>
+          </div>
+
           <div
+            v-else
             class="thinkpad-page-col"
             :class="{ 'thinkpad-page-col--expanded': sessionUi.padExpanded }"
           >
               <div
                 v-if="!surface.isAtRoot"
                 class="drill-bar"
-                :class="{ 'drill-bar--expanded': sessionUi.padExpanded }"
+                :class="{
+                  'drill-bar--expanded': sessionUi.padExpanded,
+                  'drill-bar--context-open': drillContextExpanded,
+                }"
               >
-                <nav class="drill-bar__crumbs" aria-label="Thread breadcrumb">
-                  <button type="button" class="drill-crumb" @click="surface.jumpToSurface(0)">
-                    <v-icon icon="mdi-home-outline" size="14" />
-                    <span class="drill-crumb__label">{{ currentContext.title || 'Document' }}</span>
-                    <span v-if="surface.openCountAt(null)" class="drill-crumb__open">· {{ surface.openCountAt(null) }} open</span>
-                  </button>
-                  <template v-for="(frame, i) in surface.threadPath" :key="frame.id">
-                    <v-icon icon="mdi-chevron-right" size="13" class="drill-crumb__sep" />
+                <button
+                  type="button"
+                  class="drill-bar__intent"
+                  :aria-expanded="drillContextExpanded"
+                  :aria-label="`Show thread path — ${surface.currentStance.label}`"
+                  @click="drillContextExpanded = !drillContextExpanded"
+                >
+                  <v-icon
+                    :icon="drillContextExpanded ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+                    size="16"
+                    class="drill-bar__intent-chevron"
+                  />
+                  <span
+                    v-if="surface.currentStance.symbol"
+                    class="drill-bar__move-symbol"
+                    aria-hidden="true"
+                  >{{ surface.currentStance.symbol }}</span>
+                  <v-icon
+                    :icon="surface.currentStance.icon"
+                    size="16"
+                    class="drill-bar__stance-icon"
+                  />
+                  <span class="drill-bar__intent-text">{{ surface.currentStance.label }}</span>
+                </button>
+
+                <v-expand-transition>
+                  <nav
+                    v-if="drillContextExpanded"
+                    class="drill-bar__thread"
+                    aria-label="Thread path"
+                    @click.stop
+                  >
+                    <button type="button" class="drill-crumb" @click="surface.jumpToSurface(0)">
+                      <v-icon icon="mdi-home-outline" size="14" />
+                      <span class="drill-crumb__label">{{ currentContext.title || 'Document' }}</span>
+                        <span v-if="surface.openCountAt(null)" class="drill-crumb__open">· {{ surface.openCountAt(null) }} open</span>
+                    </button>
+                    <template v-for="(frame, i) in surface.threadPath" :key="frame.id">
+                      <v-icon icon="mdi-chevron-right" size="13" class="drill-crumb__sep" />
+                      <button
+                        type="button"
+                        class="drill-crumb"
+                        :class="{ 'drill-crumb--current': i === surface.threadPath.length - 1 }"
+                        :disabled="i === surface.threadPath.length - 1"
+                        @click="surface.jumpToSurface(i + 1)"
+                      >
+                        <span class="drill-crumb__label">{{ frame.steps?.[0]?.title || 'Untitled' }}</span>
+                        <span v-if="surface.openCountAt(frame.id)" class="drill-crumb__open">· {{ surface.openCountAt(frame.id) }} open</span>
+                      </button>
+                    </template>
                     <button
                       type="button"
-                      class="drill-crumb"
-                      :class="{ 'drill-crumb--current': i === surface.threadPath.length - 1 }"
-                      :disabled="i === surface.threadPath.length - 1"
-                      @click="surface.jumpToSurface(i + 1)"
+                      class="drill-bar__peek"
+                      @click="surface.peekOpen = true"
                     >
-                      <span class="drill-crumb__label">{{ frame.steps?.[0]?.title || 'Untitled' }}</span>
-                      <span v-if="surface.openCountAt(frame.id)" class="drill-crumb__open">· {{ surface.openCountAt(frame.id) }} open</span>
+                      <v-icon icon="mdi-eye-outline" size="14" />
+                      Peek parent
                     </button>
-                  </template>
-                </nav>
-                <div class="drill-bar__goal">
-                  <v-icon icon="mdi-target" size="14" class="drill-bar__goal-icon" />
-                  <span class="text-medium-emphasis">Working on:</span>
-                  <strong class="drill-bar__goal-text">{{ surface.currentGoal }}</strong>
-                </div>
-                <div class="drill-bar__actions">
-                  <v-btn size="small" variant="text" prepend-icon="mdi-eye-outline" @click="surface.peekOpen = true">Peek parent</v-btn>
+                  </nav>
+                </v-expand-transition>
+
+                <div class="drill-bar__actions" @click.stop>
+                  <v-chip
+                    v-if="focusHandoff.focusSummary.value"
+                    size="small"
+                    variant="tonal"
+                    prepend-icon="mdi-timer-outline"
+                    :title="focusHandoff.focusSummary.value.reflection || undefined"
+                  >{{ focusHandoff.focusSummary.value.label }}</v-chip>
+                  <v-btn v-if="focusHandoff.canFocus.value" size="small" variant="text" prepend-icon="mdi-timer" @click="focusHandoff.focusOnThisMove()">Focus on this</v-btn>
                   <v-btn size="small" variant="text" prepend-icon="mdi-arrow-up-left" @click="surface.handleAscend()">Back</v-btn>
                   <v-btn
-                    v-if="surface.converged && surface.openItems.length"
                     size="small"
-                    color="warning"
-                    variant="tonal"
-                    prepend-icon="mdi-arrow-up-bold-box-outline"
-                    @click="surface.gateOpen = true"
-                  >
-                    Resolve · {{ surface.openItems.length }} open
-                  </v-btn>
-                  <v-btn
-                    v-else
-                    size="small"
-                    color="primary"
-                    variant="flat"
+                    :color="surface.openItems.length ? 'warning' : 'primary'"
+                    :variant="surface.openItems.length ? 'tonal' : 'flat'"
                     prepend-icon="mdi-arrow-up-bold-box-outline"
                     :disabled="!surface.canResolve"
                     @click="surface.handleResolve()"
                   >
-                    Resolve
+                    {{ surface.openItems.length ? `Resolve · ${surface.openItems.length} open` : "Resolve" }}
                   </v-btn>
                 </div>
               </div>
@@ -162,6 +255,7 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
                     :highlight-step-id="reflect.peekedStepId"
                     :drill-threads="surface.drillThreads"
                     :candidate-spans="reflect.candidateSpans"
+                    :staged-ideas="padStore.isDraftHistoryView ? [] : reflect.ideas"
                     :read-only="reflect.isDraftFrozen || padStore.isDraftHistoryView"
                     :reflect-mode="reflect.isDraftFrozen && !padStore.isDraftHistoryView"
 
@@ -176,19 +270,13 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
 
                     @reopen-drill="({ threadId }) => surface.navigateToThread(threadId)"
                     @reorder-block="({ fromIdx, toIdx, padLocator }) => padStore.reorderBlock({ padLocator, fromIdx, toIdx })"
+                    @idea-peek="reflect.setPeekedStepId"
                   >
                     <template v-if="!surface.isAtRoot" #title>
                       <blockquote class="thinkpad-quote">{{ surface.surfaceTitle }}</blockquote>
                     </template>
                     <template #footer>
                       <DraftPhaseBar />
-                    </template>
-                    <template #bar-end>
-                      <IdeasPanel
-                        v-if="reflect.isDraftFrozen && !padStore.isDraftHistoryView"
-                        :items="reflect.ideas"
-                        @peek="reflect.setPeekedStepId"
-                      />
                     </template>
                   </ThinkPadPanel>
                 </div>
@@ -206,6 +294,39 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
         @new="handlePickerNew"
         @delete="surface.handleDeleteDocument"
       />
+
+      <v-dialog v-model="surface.resolveDialog.open" max-width="520" scrim="rgba(0,0,0,0.35)">
+        <v-card rounded="lg">
+          <v-card-title class="px-6 pt-6 pb-1">Synthesize your takeaway</v-card-title>
+          <v-card-text class="px-6 py-3">
+            <p class="text-body-2 text-medium-emphasis mb-3">
+              {{ surface.resolveMove?.prompt ?? "Given what you now see, what's your call?" }}
+            </p>
+            <v-textarea
+              ref="resolveFieldRef"
+              v-model="surface.resolveDialog.value"
+              :label="surface.resolveMove?.resolutionPlaceholder ?? 'My call is…'"
+              variant="outlined"
+              rows="3"
+              auto-grow
+              hide-details
+              @keydown.enter.exact.prevent="surface.confirmResolve()"
+            />
+          </v-card-text>
+          <v-card-actions class="px-6 pb-5">
+            <v-spacer />
+            <v-btn variant="text" @click="surface.resolveDialog.open = false">Cancel</v-btn>
+            <v-btn
+              color="primary"
+              variant="flat"
+              :disabled="!surface.resolveDialog.value.trim()"
+              @click="surface.confirmResolve()"
+            >
+              Resolve up
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <OpenItemsDialog
         v-model="surface.gateOpen"
@@ -266,12 +387,10 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
   width: 100%;
   min-width: 0;
   min-height: 0;
-  max-height: calc(100dvh - 100px);
+  /* Container-relative, not viewport-relative: the page renders full-route
+     AND inside a dashboard widget cell, so the host decides the bounds. */
+  max-height: 100%;
   overflow: hidden;
-}
-
-.thinkpad-workspace--expanded {
-  max-height: 100dvh;
 }
 
 .thinkpad-canvas {
@@ -345,9 +464,9 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
   width: 100%;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 6px 16px;
-  padding: 7px 12px;
+  align-items: flex-start;
+  gap: 8px 12px;
+  padding: 8px 12px;
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   border-radius: 8px;
   background: rgba(var(--v-theme-surface), 0.65);
@@ -357,26 +476,101 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
   width: 100%;
 }
 
-.drill-bar__crumbs {
+.drill-bar--context-open {
+  padding-block-end: 10px;
+}
+
+.drill-bar__intent {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 2px 4px;
+  margin: -2px -4px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgb(var(--v-theme-on-surface));
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.drill-bar__intent:hover {
+  background: rgba(var(--v-theme-on-surface), 0.06);
+}
+
+.drill-bar__intent-chevron {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: rgba(var(--v-theme-on-surface), 0.45);
+}
+
+.drill-bar__move-symbol {
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: rgb(var(--v-theme-primary));
+}
+
+.drill-bar__stance-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: rgb(var(--v-theme-primary));
+}
+
+.drill-bar__intent-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.drill-bar__thread {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 2px;
-  min-width: 0;
+  gap: 2px 4px;
+  width: 100%;
+  padding: 4px 0 0;
+  border-top: 1px solid rgba(var(--v-border-color), calc(var(--v-border-opacity) * 0.6));
+}
+
+.drill-bar__peek {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: auto;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(var(--v-theme-on-surface), 0.65);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.drill-bar__peek:hover {
+  background: rgba(var(--v-theme-on-surface), 0.08);
+  color: rgb(var(--v-theme-on-surface));
 }
 
 .drill-crumb {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  max-width: 22ch;
+  max-width: min(28ch, 100%);
   padding: 2px 6px;
   border: 0;
   border-radius: 6px;
   background: transparent;
   color: rgba(var(--v-theme-on-surface), 0.7);
   font: inherit;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   cursor: pointer;
 }
 
@@ -410,28 +604,10 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
   color: rgba(var(--v-theme-on-surface), 0.3);
 }
 
-.drill-bar__goal {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.82rem;
-  min-width: 0;
-}
-
-.drill-bar__goal-icon {
-  color: rgb(var(--v-theme-primary));
-}
-
-.drill-bar__goal-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 36ch;
-}
-
 .drill-bar__actions {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 2px;
   margin-inline-start: auto;
 }
@@ -465,6 +641,113 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
   width: 100%;
   min-width: 0;
   min-height: 0;
+}
+
+/* Blank-pad prompt — replaces the empty document with a single framing question. */
+.thinkpad-prompt {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+}
+
+.thinkpad-prompt__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  max-width: 600px;
+  padding: 24px;
+  text-align: center;
+}
+
+.thinkpad-prompt__eyebrow {
+  margin: 0;
+}
+
+.thinkpad-prompt__heading {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: clamp(1.6rem, 4vw, 2.3rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.thinkpad-prompt__form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.thinkpad-prompt__input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 12px 16px;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 12px;
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  outline: none;
+  transition: border-color 0.13s ease, box-shadow 0.13s ease;
+}
+
+.thinkpad-prompt__input:focus {
+  border-color: rgba(var(--v-theme-primary), 0.6);
+  box-shadow: 0 0 0 3px rgba(var(--v-theme-primary), 0.12);
+}
+
+.thinkpad-prompt__input::placeholder {
+  color: rgba(var(--v-theme-on-surface), 0.4);
+}
+
+.thinkpad-prompt__submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  cursor: pointer;
+  transition: opacity 0.13s ease;
+}
+
+.thinkpad-prompt__submit:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.thinkpad-prompt__submit:not(:disabled):hover {
+  opacity: 0.92;
+}
+
+.thinkpad-prompt__skip {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(var(--v-theme-on-surface), 0.5);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: color 0.13s ease, background-color 0.13s ease;
+}
+
+.thinkpad-prompt__skip:hover {
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.08);
 }
 
 .thinkpad-welcome {

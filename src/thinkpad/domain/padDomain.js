@@ -69,3 +69,11 @@ export {
   canResolve,
   decidedItems,
 } from "./thinkPadModel";
+
+export {
+  ideasToText,
+  ideaRanges,
+  ideaIdForRange,
+  ensureDocIdeas,
+  syncIdeasFromNodes,
+} from "./ideas";

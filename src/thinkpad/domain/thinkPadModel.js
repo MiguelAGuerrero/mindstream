@@ -24,7 +24,15 @@
 // ---------------------------------------------------------------------------
 
 import { INTENT_CLASSES, ANNOTATION_TAG_LIST } from "../moves";
-import { parseBlocks } from "./ideaParser";
+import {
+  ideasToText,
+  syncIdeasFromNodes,
+  reconcileIdeasFromText,
+  ensureDocIdeas,
+  ideaIdForRange,
+  docHasMultipleIdeas,
+  remapAnnotationsForIdeaReorder,
+} from "./ideas";
 
 const DEFAULT_CONFIG = Object.freeze({
   timing: Object.freeze({ enabled: true, timeboxMinutes: 10 }),
@@ -32,7 +40,17 @@ const DEFAULT_CONFIG = Object.freeze({
 
 /** A fresh, empty document surface (root pad.doc or any thread's sub-pad). */
 function emptyDoc() {
-  return { text: "", annotations: [], phase: "stream", frozenText: null, staged: [], draftHistory: [], lifted: [] };
+  return {
+    text: "",
+    ideas: [],
+    annotations: [],
+    phase: "stream",
+    frozenText: null,
+    frozenIdeas: null,
+    staged: [],
+    draftHistory: [],
+    lifted: [],
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -89,12 +107,12 @@ export function createPad({ id, title, config, now } = {}, { makeId } = {}) {
 
 /**
  * A thread is "open" when its sub-pad contains more than one block (paragraph-
- * separated by a blank line). Open threads cannot be completed — the 1-to-1
- * substitution contract requires a single converged idea. Converge the blocks
- * down to one before completing. Returns false for empty/single-block pads.
+ * separated by a blank line). Open threads need an explicit synthesized result
+ * at complete time (the resolve-move prompt); single-block pads can roll up
+ * directly. Returns false for empty/single-block pads.
  */
 export function threadIsOpen(thread) {
-  return parseBlocks(thread?.doc?.text ?? "").length > 1;
+  return docHasMultipleIdeas(thread?.doc);
 }
 
 export function findStepInThread(thread, stepId) {
@@ -289,7 +307,7 @@ export function promoteSpanToMove(pad, {
     resolved: false,
     placement: "anchored",
     resolvedAt: null,
-  } }, { now });
+  } }, { now, makeId });
   return { pad: next, step, annotationId: aid };
 }
 
@@ -481,14 +499,23 @@ function withPad(pad, padLocator, nextDoc, { now } = {}) {
 }
 
 /** Set a pad's text — padLocator null = the root document, a thread id = that thread's sub-pad. */
-export function setPadText(pad, { padLocator = null, text } = {}, { now } = {}) {
+export function setPadText(pad, { padLocator = null, text, nodes = null } = {}, { now, makeId } = {}) {
   if (!pad) return pad;
   const doc = padForThread(pad, padLocator);
   if (!doc) return pad; // unknown thread — same ref
   if (doc.phase === "cultivate") return pad; // frozen — editing blocked until reveal
-  const next = typeof text === "string" ? text : "";
-  if ((doc.text ?? "") === next) return pad;
-  return withPad(pad, padLocator, { ...doc, text: next }, { now });
+  const nextText = typeof text === "string" ? text : "";
+  const base = ensureDocIdeas(doc, { makeId });
+  const ideas = Array.isArray(nodes) && nodes.length > 0
+    ? syncIdeasFromNodes(base.ideas ?? [], nodes, { makeId })
+    : reconcileIdeasFromText(base.ideas ?? [], nextText, { makeId });
+  const syncedText = ideasToText(ideas);
+  const prevIdeas = base.ideas ?? [];
+  const unchanged = (base.text ?? "") === syncedText
+    && prevIdeas.length === ideas.length
+    && prevIdeas.every((i, idx) => i.id === ideas[idx]?.id && i.text === ideas[idx]?.text);
+  if (unchanged) return pad;
+  return withPad(pad, padLocator, { ...base, text: syncedText, ideas }, { now });
 }
 
 // ---------------------------------------------------------------------------
@@ -559,11 +586,12 @@ export function revealHiddenInPad(pad, { padLocator = null } = {}, { now } = {})
  * anchor carrying the CHILD step's id, so the roll-up (resolveStepIntoPad) can
  * re-find that anchor by stepId one level up. (recursive-resolve contract §6.3)
  */
-export function addPadAnnotation(pad, { padLocator = null, annotation } = {}, { now } = {}) {
+export function addPadAnnotation(pad, { padLocator = null, annotation } = {}, { now, makeId } = {}) {
   if (!pad) return pad;
   const doc = padForThread(pad, padLocator);
   if (!doc) return pad; // unknown thread — same ref
-  const { id, selectionStart, selectionEnd, selectedText, source, stepId, stepTitle, move, writeBack, createdAt, resolved, placement, resolvedAt, intent, note, tag } = annotation ?? {};
+  const base = ensureDocIdeas(doc, { makeId });
+  const { id, selectionStart, selectionEnd, selectedText, source, stepId, stepTitle, move, writeBack, createdAt, resolved, placement, resolvedAt, intent, note, tag, ideaId, blockId } = annotation ?? {};
   if (
     typeof id !== "string" || !id ||
     typeof stepId !== "string" || !stepId ||
@@ -571,10 +599,15 @@ export function addPadAnnotation(pad, { padLocator = null, annotation } = {}, { 
     typeof selectionEnd !== "number" ||
     selectionStart >= selectionEnd
   ) return pad;
+  const explicitIdeaId = typeof ideaId === "string" && ideaId ? ideaId : blockId;
+  const resolvedIdeaId = typeof explicitIdeaId === "string" && explicitIdeaId
+    ? explicitIdeaId
+    : ideaIdForRange(base.ideas, selectionStart, selectionEnd);
   const nextDoc = {
-    ...doc,
-    annotations: [...(doc.annotations ?? []), {
+    ...base,
+    annotations: [...(base.annotations ?? []), {
       id,
+      ideaId: resolvedIdeaId,
       selectionStart,
       selectionEnd,
       selectedText: typeof selectedText === "string" ? selectedText : "",
@@ -829,7 +862,7 @@ export function drillIntoSpan(pad, {
     resolved: false,
     placement: "anchored",
     resolvedAt: null,
-  } }, { now });
+  } }, { now, makeId });
 
   return { pad: next, frame, annotationId: aid };
 }
@@ -851,8 +884,8 @@ export function resolveThreadIntoParent(pad, { threadId, result, reframe = null 
   if (!pad || !threadId) return noop;
   const frame = findThreadById(pad, threadId);
   if (!frame) return noop;
-  if (threadIsOpen(frame)) return noop; // open thread — converge to one block first
-  const text = typeof result === "string" ? result : "";
+  const text = typeof result === "string" ? result.trim() : "";
+  if (threadIsOpen(frame) && !text) return noop; // open thread — synthesize first
   if (!text) return noop; // empty result — nothing to fold up
   const anchor = frame.parentAnchor;
   if (!anchor || typeof anchor.annotationId !== "string" || !anchor.annotationId) return noop;
@@ -1121,16 +1154,19 @@ export function ideasForPanel(pad) {
  * transition to cultivate mode. No-op when already cultivating.
  * padLocator null = the root document, a thread id = that thread's sub-pad.
  */
-export function stampDraft(pad, { padLocator = null } = {}, { now } = {}) {
+export function stampDraft(pad, { padLocator = null } = {}, { now, makeId } = {}) {
   if (!pad) return pad;
-  const doc = padForThread(pad, padLocator);
-  if (!doc) return pad;
-  if (doc.phase === "cultivate") return pad; // already stamped — same ref
+  const rawDoc = padForThread(pad, padLocator);
+  if (!rawDoc) return pad;
+  if (rawDoc.phase === "cultivate") return pad; // already stamped — same ref
+  const doc = ensureDocIdeas(rawDoc, { makeId });
   const frozenText = doc.text ?? "";
+  const frozenIdeas = (doc.ideas ?? []).map((i) => ({ ...i }));
   const nextDoc = {
     ...doc,
     phase: "cultivate",
     frozenText,
+    frozenIdeas,
     staged: doc.staged ?? [],
   };
   return withPad(pad, padLocator, nextDoc, { now });
@@ -1148,12 +1184,17 @@ export function stageStepOutput(pad, {
   if (!pad || !stepId) return pad;
   const doc = padForThread(pad, padLocator);
   if (!doc || doc.phase !== "cultivate") return pad; // guard: cultivate only
+  const ann = (doc.annotations ?? []).find(
+    (a) => a.id === annotationId || a.stepId === stepId,
+  );
+  const ideaId = ann?.ideaId ?? ann?.blockId ?? null;
   const nextDoc = {
     ...doc,
     staged: [...(doc.staged ?? []), {
       id: makeId("staged"),
       stepId,
       annotationId: typeof annotationId === "string" && annotationId ? annotationId : null,
+      ideaId,
       text: typeof text === "string" ? text : "",
       at: now,
     }],
@@ -1322,84 +1363,47 @@ export function advanceToNextDraft(pad, { padLocator = null } = {}, { now, makeI
 // ---------------------------------------------------------------------------
 
 /**
- * Reorder a block (paragraph) within a doc.
- * `fromIdx` / `toIdx` are indices into parseBlocks(text) — the same indices
- * the UI uses for candidateSpans, so the caller can pass hoveredBlockIdx
- * directly without any translation.
- *
- * Annotation character offsets are remapped so each annotation's position
- * within its block is preserved. Annotations that span multiple blocks are
- * left unchanged (they are rare and would become stale regardless).
- *
- * In cultivate phase, frozenText is reordered in lock-step with text so that
- * staged outputs (which reference frozenText positions via annotations) stay
- * consistent.
+ * Reorder an idea within a doc by index into doc.ideas.
+ * `fromIdx` / `toIdx` match the UI block indices (candidateSpans / hoveredBlockIdx).
  */
-export function reorderBlock(pad, { padLocator = null, fromIdx, toIdx } = {}, { now } = {}) {
+export function reorderBlock(pad, { padLocator = null, fromIdx, toIdx } = {}, { now, makeId } = {}) {
   if (!pad) return pad;
   if (typeof fromIdx !== "number" || typeof toIdx !== "number" || fromIdx === toIdx) return pad;
 
   const doc = padForThread(pad, padLocator);
   if (!doc) return pad;
 
-  const result = _reorderDocText(doc.text ?? "", fromIdx, toIdx);
-  if (!result) return pad;
+  const base = ensureDocIdeas(doc, { makeId });
+  const ideas = (base.ideas ?? []).filter((i) => (i.text ?? "").trim().length > 0);
+  if (fromIdx < 0 || fromIdx >= ideas.length || toIdx < 0 || toIdx >= ideas.length) return pad;
 
-  const newAnnotations = (doc.annotations ?? []).map((ann) => {
-    const newStart = result.remapOffset(ann.selectionStart);
-    const newEnd = result.remapOffset(ann.selectionEnd);
-    if (newStart === ann.selectionStart && newEnd === ann.selectionEnd) return ann;
-    return { ...ann, selectionStart: newStart, selectionEnd: newEnd };
-  });
+  const reordered = [...ideas];
+  const [moved] = reordered.splice(fromIdx, 1);
+  reordered.splice(toIdx, 0, moved);
+  const newText = ideasToText(reordered);
+  const newAnnotations = remapAnnotationsForIdeaReorder(base.annotations, ideas, reordered);
 
-  let frozenText = doc.frozenText ?? null;
-  if (doc.phase === "cultivate" && frozenText != null) {
-    const frozenResult = _reorderDocText(frozenText, fromIdx, toIdx);
-    if (frozenResult) frozenText = frozenResult.newText;
+  let frozenText = base.frozenText ?? null;
+  let frozenIdeas = base.frozenIdeas ?? null;
+  if (base.phase === "cultivate" && frozenText != null) {
+    const frozenList = (base.frozenIdeas ?? base.ideas ?? []).filter((i) => (i.text ?? "").trim());
+    if (fromIdx < frozenList.length && toIdx < frozenList.length) {
+      const nextFrozen = [...frozenList];
+      const [movedFrozen] = nextFrozen.splice(fromIdx, 1);
+      nextFrozen.splice(toIdx, 0, movedFrozen);
+      frozenIdeas = nextFrozen.map((i) => ({ ...i }));
+      frozenText = ideasToText(nextFrozen);
+    }
   }
 
   return withPad(pad, padLocator, {
-    ...doc,
-    text: result.newText,
+    ...base,
+    text: newText,
+    ideas: reordered,
     annotations: newAnnotations,
     frozenText,
+    frozenIdeas,
   }, { now });
-}
-
-/**
- * Internal: split `text` into blocks via parseBlocks, move the block at
- * `fromIdx` to `toIdx`, rebuild the text with `\n\n` separators, and return
- * a `remapOffset(charOffset)` function that maps old absolute offsets to new
- * ones. Returns null if either index is out of bounds.
- */
-function _reorderDocText(text, fromIdx, toIdx) {
-  const blocks = parseBlocks(typeof text === "string" ? text : "");
-  if (fromIdx < 0 || fromIdx >= blocks.length) return null;
-  if (toIdx < 0 || toIdx >= blocks.length) return null;
-
-  const reordered = [...blocks];
-  const [moved] = reordered.splice(fromIdx, 1);
-  reordered.splice(toIdx, 0, moved);
-
-  const newText = reordered.map((b) => b.text).join("\n\n");
-
-  // Compute the new start position for each block in the reordered text.
-  const newStarts = new Map();
-  let pos = 0;
-  for (const b of reordered) {
-    newStarts.set(b, pos);
-    pos += b.text.length + 2; // +2 for the \n\n separator
-  }
-
-  function remapOffset(charOffset) {
-    // Find the old block that contains this offset (inclusive of block end
-    // so selectionEnd at the last char maps cleanly).
-    const block = blocks.find((b) => charOffset >= b.start && charOffset <= b.end);
-    if (!block) return charOffset; // in a separator or past EOF — leave unchanged
-    return newStarts.get(block) + (charOffset - block.start);
-  }
-
-  return { newText, remapOffset };
 }
 
 // ---------------------------------------------------------------------------

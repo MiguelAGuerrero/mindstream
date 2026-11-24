@@ -1,11 +1,28 @@
 <script setup>
 // Left rail of isolated contexts. Each is its own problem (a drillable focus
-// stack); click one to switch to it. Parked contexts show what they're waiting
-// on. Presentational only: props in, events out.
-defineProps({
+// stack); click one to switch to it. Stopped contexts show an editable optional
+// reason. Presentational only: props in, events out.
+import { computed } from "vue";
+
+const props = defineProps({
   contexts: { type: Array, default: () => [] },
 });
-const emit = defineEmits(["switch", "new"]);
+const emit = defineEmits(["switch", "new", "update-waiting-on"]);
+
+// Each card surfaces at most one status icon in a fixed header slot. Resolved
+// and paused are the states worth flagging at a glance; an in-progress context
+// shows none. Resolved is terminal, so it wins if both flags are ever set.
+const STATUS = {
+  resolved: { icon: "mdi-check-circle", tone: "success" },
+  parked: { icon: "mdi-pause-circle", tone: "muted" },
+};
+
+const cards = computed(() =>
+  props.contexts.map((c) => ({
+    ...c,
+    status: c.resolved ? STATUS.resolved : c.parked ? STATUS.parked : null,
+  })),
+);
 </script>
 
 <template>
@@ -16,7 +33,7 @@ const emit = defineEmits(["switch", "new"]);
 
     <div class="ctx-rail__list">
       <button
-        v-for="c in contexts"
+        v-for="c in cards"
         :key="c.id"
         type="button"
         class="ctx-card"
@@ -25,13 +42,25 @@ const emit = defineEmits(["switch", "new"]);
       >
         <div class="ctx-card__header">
           <div class="ctx-card__problem">{{ c.problem }}</div>
-          <v-icon v-if="c.resolved" size="15" icon="mdi-check-circle" class="ctx-card__check" />
+          <v-icon
+            v-if="c.status"
+            size="15"
+            :icon="c.status.icon"
+            class="ctx-card__status"
+            :class="`ctx-card__status--${c.status.tone}`"
+          />
         </div>
         <div v-if="!c.resolved && c.depth > 1" class="ctx-card__current">↳ {{ c.current }}</div>
         <div v-if="c.resolved && c.result" class="ctx-card__result">{{ c.result }}</div>
-        <div v-if="c.parked" class="ctx-card__parked">
-          <v-icon size="13" icon="mdi-pause-circle-outline" class="mr-1" />
-          {{ c.waitingOn ? `waiting on ${c.waitingOn}` : "parked" }}
+        <div v-if="c.parked" class="ctx-card__stopped" @click.stop>
+          <v-text-field
+            :model-value="c.waitingOn"
+            label="Reason (optional)"
+            variant="outlined"
+            density="compact"
+            hide-details
+            @update:model-value="emit('update-waiting-on', { id: c.id, reason: $event })"
+          />
         </div>
       </button>
     </div>
@@ -161,9 +190,16 @@ const emit = defineEmits(["switch", "new"]);
   gap: 6px;
 }
 
-.ctx-card__check {
+.ctx-card__status {
   flex-shrink: 0;
+}
+
+.ctx-card__status--success {
   color: rgb(var(--v-theme-success));
+}
+
+.ctx-card__status--muted {
+  color: rgba(var(--v-theme-on-surface), 0.5);
 }
 
 .ctx-card__problem {
@@ -194,12 +230,8 @@ const emit = defineEmits(["switch", "new"]);
   font-style: italic;
 }
 
-.ctx-card__parked {
-  display: flex;
-  align-items: center;
-  font-size: 0.74rem;
-  color: rgb(var(--v-theme-warning));
-  margin-top: 4px;
+.ctx-card__stopped {
+  margin-top: 6px;
 }
 
 @media (max-width: 959px) {

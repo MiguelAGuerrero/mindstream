@@ -15,6 +15,7 @@ export default defineConfig({
     // 5273 instead of Vite's default 5173: on this machine other projects squat
     // [::1]:5173, so `localhost:5173` resolves to the wrong app. A unique port
     // keeps `localhost` pointed at Mindstream on both IPv4 and IPv6.
-    port: 5273,
+    // PORT env wins when a harness (e.g. preview tooling) assigns one.
+    port: Number(process.env.PORT) || 5273,
   },
 })

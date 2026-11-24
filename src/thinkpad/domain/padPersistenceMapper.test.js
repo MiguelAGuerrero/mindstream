@@ -51,7 +51,10 @@ describe("normalizePad", () => {
 
   it("defaults doc to empty when field is absent", () => {
     const result = normalizePad({ id: "ctx:1" }, { now: NOW });
-    expect(result.doc).toEqual({ text: "", annotations: [], phase: "stream", frozenText: null, staged: [], draftHistory: [], lifted: [] });
+    expect(result.doc).toEqual({
+      text: "", ideas: [], annotations: [], phase: "stream",
+      frozenText: null, frozenIdeas: null, staged: [], draftHistory: [], lifted: [],
+    });
   });
 
   it("normalizes doc text and filters invalid annotations", () => {

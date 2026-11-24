@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 8)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 9)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -26,7 +26,24 @@
 - **The workflow library belongs to the workspace** and has its own page.
 - **Reflection is not an app feature.** Nothing prompts it; it is a step or a workflow you choose to run.
 
-**Revision 8 (2026-11-24): Phase 0 done.** Miguel asked for Phase 0 to be performed. Status changes only; no product decision was made. The Focus runner now says Resolve throughout (button, dialog, badge, `resolveFocus`), which completes the Revision 7 rename. D1, D3, D4 and D5 are fixed, and D2 was already fixed by the open-item gate (`6cf989f`), which this doc had not recorded. The README describes the product, the Rep-it-era docs are in `docs/archive/`, `FRONTEND_PATHS.md` matches the tree, and the unused Font Awesome dependency and audio files are gone. §2, §3.3, §3.4 and Phase 0 were updated to match. One correction: §3.4 said Font Awesome shipped in the bundle; it did not (nothing imported it), so removing it did not shrink the build. New defect D9 logged. The order question (the gate was built before Phase 1) is open in §6.
+**Revision 8 (2026-11-24):** merged the parallel build of the runner, the workflow library and the first two bridges (branch `feature/workflows-decision-steps`) and aligned it with Revision 7. What landed is in §2; what is designed but not built is in §5, "Backlog from the workflows build"; the points where the build departs from a settled rule are new questions in §6.
+- **The message in §4.2 is now real** (`src/handoff/`): requests carry `text`, `context`, `steps`, `want`, `replyTo`, `tag`; replies carry `outcome`, `text`, `steps`, `notes`. Routing matches the `want` verbs each tool registers. Older stored records are read and converted.
+- **Two extensions to the step shape**, both readable as plain prompts by a tool that ignores them: `expects: "call"` marks a decision step (the §7 "Call" type), and `options` lists the outputs to choose from. Miguel asked for decision steps: "any step that requires a decision can be marked as such … those outputs can be encoded as decisions on that step to proceed."
+- **"Resolve" is restored** on the Focus card and in ThinkPad's drill bar. Identifier renames (`completeFocus`, `canComplete`) remain Phase 0 work.
+- **Settled by Miguel in that session** (do not reopen without him):
+  - A workflow is only its steps. Anything it needs you to consider or produce is a step, a call where an output is required. There are no workflow-level notes.
+  - Notes belong to the run, in the context where it happened, never to the workflow.
+  - The runner's card shows the current step and only the current step. A side panel showing every step is the fallback for seeing the plan and pivoting away from it.
+  - The gap check at the end of a plan is offered only when there are open items.
+  - The library supplies steps: anything that takes steps can get them from it through a request.
+
+**Revision 9 (2026-11-24): Phase 0 done.** Miguel asked for Phase 0 to be performed and the result merged. Status changes only; no product decision was made. Phase 0 was built on a branch in parallel with the Revision 8 merge and then merged with it, so this note describes the combined state.
+- The identifier rename is finished: `resolveFocus`, the card's `resolve` event, and in ThinkPad `canResolve`, `handleResolve`, `confirmResolve`, `resolveDialog`. The stored ThinkPad field `completedAt` keeps its name on purpose, since renaming it would need a data migration for no visible gain.
+- D1 was fixed by the workflows build. D2 was fixed by the open-item gate. D3, D4 and D5 are fixed here.
+- The README describes the product. The Rep-it-era docs, including `PRODUCT_IDEATION_CONTEXT.md` (already marked historical in Revision 8), are in `docs/archive/`. The unused Font Awesome dependency and audio files are gone.
+- Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
+- The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
+- New defect D9 logged. The phase-order question is open in §6.
 
 **How this was assessed:** read every design doc and all non-test source, ran `vitest` and `vite build`, and drove both tools in a real browser (stream, reflect, drill two levels, complete, next draft, Focus decompose, reload).
 
@@ -60,9 +77,12 @@ Everything in the roadmap is judged by two questions: does it help a big thing b
 | **ThinkPad: recursive drill** | Working to arbitrary depth, with breadcrumb, goal line and parent peek. | `drillIntoSpan`, `surfaceThreadId`, drill bar in `ThinkPadPage.vue` |
 | **ThinkPad: fold-up** | Working. Completing a one-block sub-pad stages its text against the parent; "Next Draft" splices it in. | `resolveThreadIntoParent`, `revealReflectPass` |
 | **ThinkPad: persistence** | Working. IndexedDB, survives reload, document picker and "pick up where you left off" grid. | `padsDb.js`, `padPersistenceMapper.js` |
-| **ThinkPad: open-item gate** | Working (added after this assessment). A level cannot resolve while moves started there are undecided; each is addressed, accepted as a caveat, lifted or parked. Resolve shows the open count. | `openItems`, `canResolve` in `thinkPadModel.js`; `OpenItemsDialog.vue`; commit `6cf989f` |
-| **Focus runner** | Working in memory only. Contexts, decompose stack, resolve with takeaway (at the root this marks the context resolved and moves to the next live one), park with "waiting on". | `sessionRunStore.js` |
-| **Domain quality** | Strong. Pure reducers, injected clock and ids, 289 passing tests (Revision 8). | `thinkPadModel.js` and its test files |
+| **Focus runner** | *(Revision 8)* Persists to its own IndexedDB (contexts, stacks, parked state, `waitingOn`, time spent). A focus can hold an ordered **plan** of steps: done per step, out of order allowed, switch steps from the side panel, the card shows the current step only. Decision steps finish by choosing an output. Resolve never prompts; Reflect is an opt-in button per step. | `sessionRunStore.js`, `focusDb.js`, `ContextTrail.vue` |
+| **ThinkPad: open-item gate** | *(Revision 8)* Built (Phase 2's first item): open items, the three decisions, open counts in the breadcrumb, Resolve refused while any item is undecided. | `openItems`, `disposeOpenItem`, `OpenItemsDialog.vue` |
+| **Handoff (the §4.2 message)** | *(Revision 8)* Built as a store plus a registry, not yet a shell: requests, replies, `want` verbs, opaque `tag`, persisted pending requests. The URL carries only the request id. | `src/handoff/` |
+| **Bridges** | *(Revision 8)* ThinkPad → runner ("Focus on this", `step-through`). Runner → ThinkPad ("Think it through", `think`): a pad opens with a side column for the steps to send back. Runner ↔ library (`choose-steps`, `keep`). | `useFocusHandoff.js` (both tools), `useDecomposeHandoff.js`, `DecomposeHandoffPanel.vue` |
+| **Workflow library** | *(Revision 8)* Its own page (`/workflows`): library, editor (calls with options), picker. Workflows carry a version; runs carry `id@vN` as their tag. The five starter workflows from `GENERIC_PROBLEM_SOLVING_WORKFLOWS.md` seed once. | `src/workflows/` |
+| **Domain quality** | Strong. Pure reducers, injected clock and ids, 457 passing tests (Revision 9). | `thinkPadModel.js` and its test files |
 | **Research base** | Unusually deep; design rules are traceable to literature. | `recursive-resolve-contract.md` §3, `research-productivity-science.md` |
 
 The recursive ThinkPad loop is real and it works. In the browser run, a two-level drill folded a converged sentence back into its parent and minted "Draft 2 / 2" exactly as the contract describes. That is the hard part, and it is built.
@@ -98,19 +118,20 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 
 | # | Defect | Where | Status |
 |---|---|---|---|
-| D1 | 2 failing tests. They assert the pre-`b0fa956` behaviour (no `resolved` field; root complete stays on the context). | `focus/model/session.test.js`, `focus/store/sessionRunStore.test.js` | Fixed (Phase 0): rewritten to assert the current behaviour, plus a test for skipping parked and resolved contexts. |
+| D1 | 2 failing tests. They assert the pre-`b0fa956` behaviour (no `resolved` field; root complete stays on the context). | `focus/model/session.test.js`, `focus/store/sessionRunStore.test.js` | Fixed by the workflows build (Revision 8). |
 | D2 | "Complete" is enabled on an empty sub-pad and silently does nothing. | `canComplete` in `useThinkPadSurface.js` vs the empty-text guard in `padStore.resolveThreadIntoParent` | Fixed by the open-item gate: `canResolve` refuses empty text, so the button is disabled. No tooltip says why. |
 | D3 | Stray `<ThinkPadAppBar />` in the page template; Vue warns "Failed to resolve component" on every render. | `ThinkPadPage.vue:81` | Fixed (Phase 0). |
 | D4 | `<router-view>` directly inside a transition; Vue Router warns and the fade does not apply. | `App.vue` | Fixed (Phase 0): the transition wraps the routed component. |
 | D5 | Placeholder says "Right-click highlighted text to make a move"; there is no right-click handler. | `ThinkPadPanel.vue:178` | Fixed (Phase 0): the placeholder now points to Begin Reflect, where moves are available. |
 | D6 | Overlapping staged moves are not detected at reveal (the lifecycle doc requires blocking). | `revealReflectPass` | Open (Phase 1). |
 | D7 | In the automated run, a single click on a block in Reflect descended immediately instead of only showing the chips. Not reproduced by hand; worth a manual check. | block click routing in `ThinkPadPanel.vue` | Open (Phase 1). |
-| D8 | Focus timer resets on every action and is display-only; time spent is never recorded. | `FocusRunnerPage.vue` | Open (Phase 3). |
+| D8 | Focus timer resets on every action and is display-only; time spent is never recorded. | `FocusRunnerPage.vue` | Fixed by the workflows build (Revision 8): time spent is recorded per focus. |
 | D9 | `snapshot.json` is a browser devtools dump of an old Rep-it graph, not valid JSON, and imported by nothing. | `src/thinkpad/domain/snapshot.json` | Open. Likely safe to delete; confirm it is not wanted as a reference. |
+| D10 | Vuetify warns that `dense` is deprecated on every visit to `/workflows`. | `WorkflowLibrary.vue` | Fixed (Revision 9): `density="comfortable"`. |
 
 ### 3.4 Hygiene
 
-*Revision 8: the first and third items below are resolved (README rewritten, Rep-it docs archived, `FRONTEND_PATHS.md` corrected, Font Awesome and the audio files removed). The bundle claim was wrong: Font Awesome was never imported, so only the Material Design Icons font ships. Naming is partly resolved: both tools now say Resolve.*
+*Revision 9: the first and third items below are resolved (README rewritten, Rep-it docs archived, `FRONTEND_PATHS.md` corrected, Font Awesome and the audio files removed). The bundle claim was wrong: Font Awesome was never imported, so only the Material Design Icons font ships. Naming is partly resolved: both tools now say Resolve.*
 
 - **Docs describe three different products.** `README.md` is the Vite template. `PRODUCT_AGENT_CONTEXT.md` describes "Rep-it", a workflow-step session app, and points at files that no longer exist. `FRONTEND_PATHS.md` says `/` redirects to `/thinkpad` and lists a `src/workflow/` module; the app has a Home launcher and no workflow module. Since these docs are fed to agents as context, the drift costs real work.
 - **Naming is unsettled.** Threads are called frames, threads, drills and sub-pads; pads are also contexts and documents; "focus" means both a ThinkPad drill (older docs) and the Focus tool.
@@ -229,7 +250,7 @@ One caution carried over from `recursive-resolve-contract.md` (rule 2 there): a 
 
 Sized for one developer. Phases are ordered so each one makes the identity more true and leaves the app usable. Each has an exit test you can perform by hand.
 
-### Phase 0 — Make the ground true (about 2 days) — done (Revision 8)
+### Phase 0 — Make the ground true (about 2 days) — done (Revision 9)
 
 Nothing here changes behaviour; it stops the repo from misdescribing itself.
 
@@ -239,7 +260,7 @@ Nothing here changes behaviour; it stops the repo from misdescribing itself.
 - Mark `PRODUCT_AGENT_CONTEXT.md`, `PRODUCT_IDEATION_CONTEXT.md`, `TRIAGE_IDEATION_CONTEXT.md`, `GRAPH_STATUS_AGENT_CONTEXT.md` and `feature-science-map.md` §3 as historical, or move them to `docs/archive/`. Correct `FRONTEND_PATHS.md`.
 - Remove Font Awesome and the unused audio assets if confirmed unused.
 
-*Done. All items shipped. D2 was fixed by the gate, though the tooltip saying why the button is disabled was not added; it is small and left for Phase 1. The README was rewritten rather than given the full §4 rules, which stay here. Verified: 289 tests pass, the build succeeds, and the browser console showed no warnings on `/`, `/thinkpad` or `/focus`; the same check run against the code before the fixes showed the router warning on all three and the `ThinkPadAppBar` warning on `/thinkpad`.*
+*Done. All items shipped. D1 was fixed by the workflows build and D2 by the gate, though the tooltip saying why the button is disabled was not added; it is small and left for Phase 1. The README was rewritten rather than given the full §4 rules, which stay here. Verified before the merge with Revision 8: the browser console showed no warnings on `/`, `/thinkpad` or `/focus`, and the same check run against the code before the fixes showed the router warning on all three and the `ThinkPadAppBar` warning on `/thinkpad`. Verified after the merge: 457 tests pass, the build succeeds, the console shows no warnings on `/`, `/thinkpad`, `/focus` or `/workflows`, and creating and resolving a focus in the runner works, with "Resolved" on the card and in the stack. The merge also fixed D10 and the stack's "Completed" label.*
 
 **Exit test:** `npm test` is green, the browser console is clean on both routes, and a fresh agent session given only `README.md` and this doc describes the product correctly.
 
@@ -308,6 +329,30 @@ With the broker in place, the workspace home can answer "what is my next small s
 - A tree overview of a pad (read-only map of what was resolved into what), shown on demand.
 - Code-split the routes and trim the icon fonts.
 
+### Phase status after Revision 8
+
+- **Phase 2:** the open-item gate and the library page are built. Tag shortcuts, ThinkPad's form view, slots and pins are not.
+- **Phase 3:** runner persistence, the registry, and both bridges are built over a store, without the shell's layout, "Send to…" or the shelf. G2 (runner forgets) and D8 (time not recorded) are fixed. G3 is fixed for plans (each step keeps its own result) but not for one-off sub-focuses.
+
+### Backlog from the workflows build
+
+Designed in the session that produced Revision 8, not built. Each item names the phase it belongs to.
+
+1. **Notes as one shared tool (Phase 4).** One notes surface any layout hosts beside a tool, not a notes feature per tool. A note reuses ThinkPad's idea record: `text`, an optional one-line result that folds up, an optional type (question, doubt, call, idea…), a status (parked, active, resolved), and an anchor generalized to a runner step. Scoped to the current step with earlier notes collapsed, plus "Open in ThinkPad". It would replace the runner's inline step reflections (`stepResults`). Notes belong to the run, in the context where it happened, never to the workflow.
+2. **Open items in the runner, and the gap check (Phase 4).** On resolving a step with open notes, offer: carry up, resolve, or drop. At the end of a plan, **only when open items exist**, show each step's result against the goal and a gap status: closed, narrowed, still open, reframed. Depends on 1. This is the runner's counterpart of ThinkPad's gate.
+3. **ThinkPad receives steps (Phase 2).** ThinkPad registers `steps: "none"` today. It should take text-only steps and show them as a document (the form view), per Revision 6.
+4. **Marking a call outside the library (Phase 3).** Only the workflow editor can mark a step as a call. The runner's decompose composer and ThinkPad's reply column cannot.
+5. **A routine from inside the runner (Phase 3).** Start a new context from a workflow in the runner's "New context" dialog. Today it starts from the library's "Run as new context".
+6. **The steps panel in every layout (Phase 5).** It shows only in the stack view and when the runner is at least 440px wide. The rail view and narrow layouts need another place for it.
+7. **Editing a plan mid-run (Phase 3).** Add, drop, reorder or reword steps for this run only, as the proposal's §5.3 pivots describe. Today you can only switch steps.
+8. **Re-entry cue (Phase 4).** Turn Stop's "waiting on" into a "next move" line, and show the last result, the next move and the open-item count on resume.
+9. **Time across a hop (Phase 3).** Elapsed time is banked when the runner unmounts and the clock restarts on return. There is no pause rule.
+10. **Active context across reload (Phase 4).** `activeContextId` is not persisted; after a reload you reselect the context before its waiting chip shows.
+11. **A one-note "think" from a running step (Phase 3).** From a step, ask ThinkPad to think about one question and return one note to the step, not a list of steps.
+12. **Picker when several tools serve a verb (Phase 3).** `toolsFor()` returns every match; the senders take the first. No verb has two servers yet.
+13. **`produces: "action"` in the editor (Phase 2).** The field is stored and travels; the editor does not offer it yet.
+14. **Empty pad left behind (hygiene).** Arriving in ThinkPad from a request can leave an empty pad, which is reused later.
+
 ### Explicitly not on this roadmap
 
 - AI generation or agent execution. Rule 5. If revisited, an agent would join as one more tool behind the broker, receiving and replying in text like any other.
@@ -333,16 +378,19 @@ With the broker in place, the workspace home can answer "what is my next small s
 
 Open:
 
-1. **Phase order.** The open-item gate (Phase 2's first item) was built before Phase 1. Was that a deliberate reordering, or should Phase 1 (the "Write more" escape hatch, symmetric recursion, the study beat) come next as written? The case for Phase 1 first is in this section's first bullet.
-2. **The layout work.** It was not on the remote, so Phase 3's first item is sized blind. Pushing that branch would let me check how much of the shell already exists.
-3. **Where is other in-flight code?** If implementation exists on an unpushed branch, §2 and §3 should be re-checked against it.
-4. **Where tag shortcuts come from:** pinned per tag, recent use, or the library only. Open in the capture-templates proposal.
+1. **Phase order.** The open-item gate (Phase 2) and most of Phase 3 (runner persistence, the registry, both bridges) were built before Phase 1. Was that a deliberate reordering, or should Phase 1 (the "Write more" escape hatch, symmetric recursion, the study beat) come next? The case for Phase 1 first is the first bullet of this section: replies land in ThinkPad through the fold-up path, and that path still has a one-way phase and root-only thread lists.
+2. **The layout work.** Phase 3's shell layout, "Send to…" and the shelf are not built. If the multi-tool layout exists on an unpushed branch, pushing it would let it be checked.
+3. **Where tag shortcuts come from:** pinned per tag, recent use, or the library only. Open in the capture-templates proposal.
+4. **The runner's Reflect button vs decision 17.** Revision 7 says reflection is not an app feature. In the session that produced Revision 8, Miguel asked for "reflection [as] an opt-in side button per step". It is built that way: never prompted, never required. Keep it, or replace it with a reflection step you put in a workflow?
+5. **Typed synthesis vs "one block".** Rule 2 says nothing ascends unless it is one block. The ThinkPad work that was uncommitted on `master` added a dialog that lets a thread with several blocks resolve with a typed synthesis. The merge keeps it, after the open-item gate: every open item must be decided first. Keep it, or require convergence?
+6. **Does a call branch?** Today a call (decision step) only gates progress: you choose, and the plan moves to its next undone step. Should an option be able to lead to different next steps?
+7. **Library access rule (capture-templates §10.8).** Built as proposed: the runner never reads the library. It asks with `choose-steps`, the library page answers, and only the library page writes (`keep`). Confirm before it hardens.
 
 Settled:
 
 - **View or import?** Revisions 4 and 5: tools own their state and exchange text through the workspace shell.
 - **The shelf.** Revision 6: yes.
-- **Resolve or Complete?** Revision 7: Resolve. Done in code in Revision 8.
+- **Resolve or Complete?** Revision 7: Resolve. Done in code in Revision 9.
 - **Does every tag map to a workflow?** Revision 7: no. Tags offer shortcuts; none is bound.
 
 ---

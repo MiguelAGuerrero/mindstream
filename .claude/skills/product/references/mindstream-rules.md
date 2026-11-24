@@ -6,7 +6,7 @@ A compact summary of what is settled, for checking proposals quickly. The source
 - `docs/capture-templates-proposal.md`: workflows, the open-item gate, resolution. Read its decisions table first.
 - `reports/`: research on comparable apps.
 
-If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 8 and proposal decisions 1 to 22.
+If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 9 and proposal decisions 1 to 22.
 
 ## Contents
 
@@ -27,7 +27,10 @@ A thinking workspace: a suite of independent tools that help one person process 
 
 - **ThinkPad** is a document. You free-write (Stream), freeze the draft (Reflect), drill a passage into its own blank sub-pad, converge it to one idea, and resolve that back up to replace the passage. It holds the context of your thinking.
 - **The Focus runner** is a stepper. One focus in view; decompose it into a smaller one; finish with a takeaway; park a context that is waiting on something. It is usable on its own, without ThinkPad.
+- **Workflows** is the library of reusable methods, a tool with its own page (`/workflows`). Using a workflow copies its steps into the tool that asked.
 - More tools may join.
+
+What is built (roadmap Revision 8): the runner persists and holds plans of steps with decision steps; the message in §4 is real in `src/handoff/` (a store plus a registry of `want` verbs, not yet the shell's layout, "Send to…" or shelf); bridges exist between ThinkPad, the runner and the library.
 
 Scope for now: one user (Miguel), local-first in the browser, no accounts, no sync, no AI generation. The person does the thinking; the app guides.
 
@@ -108,7 +111,8 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 - **Tags do not start workflows.** Question, Expand and Flag open a plain sub-pad and offer shortcuts to workflows. No workflow is bound to a tag or a type of move.
 - **A level ends in a call or a sharper question.** A sharper question is a legitimate result.
 - **Open-item gate.** A level cannot resolve while moves started there are undecided. Each is addressed, accepted as a stated caveat, lifted to an ancestor, or parked. Built in ThinkPad.
-- **Steps declare what they produce:** text or an action. ThinkPad accepts a set of steps only if all produce text; the runner accepts any.
+- **Steps declare what they produce:** text or an action. ThinkPad accepts a set of steps only if all produce text; the runner accepts any. A step may also carry `expects: "call"` with `options`: a decision step, finished by choosing an output (Revision 8).
+- **A workflow is only its steps.** No workflow-level notes; notes belong to the run. The runner's card shows the current step only; a side panel is the fallback for the whole plan (Revision 8, settled by Miguel).
 - **Reflection is not an app feature.** Nothing prompts it. It is a step or a workflow the person chooses.
 - **Human executes.** No AI agent in this horizon. If revisited, an agent would be one more tool behind the shell.
 - **No shared data model between tools.** Considered and rejected in favour of message passing. The strongest counter-argument (Ink and Switch, "one shared reality") is known; do not re-propose a shared tree without new evidence.
@@ -141,9 +145,10 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 
 Check the documents for the current list. At last sync:
 
-- Phase order: the open-item gate (Phase 2) was built before Phase 1. Deliberate reordering, or return to Phase 1 next? Asked in roadmap §6.
+- Revision 8 questions: the runner's opt-in Reflect button vs decision 17; ThinkPad's typed synthesis vs "one block"; whether a call can branch; the library access rule as built.
+- Phase order: the open-item gate (Phase 2) and most of Phase 3 were built before Phase 1. Deliberate reordering, or return to Phase 1 next? Asked in roadmap §6.
 - Where tag shortcuts to workflows come from: pinned per tag, recent use, or the library only.
-- Who may read the workflow library. Proposed, not confirmed: tools that start a run may read it through the shell; receivers never do; only the library page writes.
+- Who may read the workflow library. Built as: the runner never reads it, asks with `choose-steps`; only the library page writes. Not yet confirmed by Miguel.
 - How much of the shell already exists in the undeployed multi-tool layout work.
 - Whether ThinkPad's one-way stamp into Reflect is too formal. Research found a published critique of mandatory drafts ("formality on demand"); the roadmap already calls for a "Write more" escape.
 

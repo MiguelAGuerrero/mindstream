@@ -1,6 +1,6 @@
 # PRODUCT_IDEATION_CONTEXT
 
-> **Partially historical.** See [`FRONTEND_PATHS.md`](../FRONTEND_PATHS.md) for current route and store paths.
+> **Historical document.** Superseded by [`PRODUCT_ASSESSMENT_AND_ROADMAP.md`](../PRODUCT_ASSESSMENT_AND_ROADMAP.md) (current product context, roadmap and backlog). See [`FRONTEND_PATHS.md`](../FRONTEND_PATHS.md) for current paths. Kept for the intent behind the earlier "Rep-it" design.
 
 ## Purpose
 This document gives another agent enough product context to generate useful feature ideas for Rep-it without re-reading the full codebase. It combines current product reality with near-term direction.
@@ -33,9 +33,12 @@ Use this vocabulary consistently in ideation:
 - Session supports one-step display, completion toggle, adjacent-step navigation, subproblem creation, and parent return.
 
 ### Workflow Surfaces
-- Workflow library exists with list/create/edit/run routes.
-- Workflow run instances are persisted with run config and status transitions.
-- A session step can reference a workflow and later engage it as injected children when valid.
+- `/workflows` is its own tool: library, editor, and a picker that answers other tools' requests for steps.
+- A workflow is a template only: name, the gap it closes, ordered steps, a use count. Using it copies (stamps) its steps; later edits never touch work already started.
+- Any step can be a decision step with a set of outputs (or a free answer). Running it finishes by choosing an output, not by Complete.
+- Workflows supply steps through the handoff: decompose a Focus step ("A workflow" in the Decompose dialog), start a new context ("Run as new context"), or receive a Focus plan ("Save as workflow").
+
+See PRODUCT_ASSESSMENT_AND_ROADMAP.md §2 and §5 for what is built and what is designed but not built.
 
 ### Domain + Persistence Foundation
 - Tree/graph mutations are centralized in pure domain mutators.
@@ -64,6 +67,10 @@ These are directional hypotheses intended to guide ideation:
 - Improve clarity of cross-surface transitions so users always understand where they are (home/plan/session/workflow-run) and why.
 - Convert interruption handling from "save state" into "fast cognitive re-entry" (resume context cues).
 - Expand support for practice-oriented feedback loops (completion signals, reflection points, and lightweight progression cues).
+
+## Build State and Backlog
+
+Moved to [`PRODUCT_ASSESSMENT_AND_ROADMAP.md`](../PRODUCT_ASSESSMENT_AND_ROADMAP.md): what is built is in §2, the backlog is in §5 ("Backlog from the workflows build"), and open decisions are in §6 ("Questions for Miguel"). That doc is the current product context.
 
 ## Agent Ideation Prompts (Problem -> Hypothesis -> Validation Signal)
 - **Problem:** users may not understand when to plan vs focus.  
@@ -98,6 +105,10 @@ These are directional hypotheses intended to guide ideation:
 - Note-vault sprawl: free-form editing that is **not** anchored to an outcome and never converges into single-step execution. (The think-pad document — a goal-framed surface whose highlights become runnable steps, then get overwritten by their results — is in scope; an unbounded notes app is not.)
 
 ## Source Anchors
+- `docs/FRONTEND_PATHS.md` (current paths)
+- `src/handoff/` (tool registry, handoff, shared step type)
+- `src/workflows/`, `src/focus/`, `src/thinkpad/`
+- Historical (removed views, kept for intent): the anchors below.
 - `docs/PRODUCT_AGENT_CONTEXT.md`
 - `docs/feature-science-map.md`
 - `src/router/index.js`

@@ -1,13 +1,15 @@
 <script setup>
 import { onUnmounted } from "vue";
 import ThinkPadAppBar from "./components/ThinkPadAppBar.vue";
-import { useSessionUi } from "./composables/useSessionUi";
+import DecomposeHandoffPanel from "./components/DecomposeHandoffPanel.vue";
+import { provideSessionUi } from "./composables/useSessionUi";
 import { useThinkPadBootstrap } from "./composables/useThinkPadBootstrap";
 
 // Shell content column max-width (px) — owned by the ThinkPad route layout.
 const THINKPAD_PAGE_MAX_WIDTH = 880;
 
-const sessionUi = useSessionUi();
+// Route-scoped chrome state; the dashboard widget host provides its own.
+const sessionUi = provideSessionUi();
 
 useThinkPadBootstrap();
 
@@ -35,6 +37,7 @@ onUnmounted(() => {
             <router-view />
           </v-container>
         </v-col>
+        <DecomposeHandoffPanel />
       </v-row>
     </v-container>
   </v-main>

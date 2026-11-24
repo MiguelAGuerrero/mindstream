@@ -1,0 +1,17 @@
+{
+  "packId": "sci-fi-ui",
+  "packRoot": "packs/sci-fi-ui",
+  "map": {
+    "home.tool.hover": "Tone2/Tritone/Tone2A_TritoneUp.wav",
+    "home.tool.select": "Tone2/Tritone/Tone2A_TritoneOctaveUp.wav",
+    "home.goHome": "Tone2/Tritone/Tone2A_TritoneOctaveDown.wav",
+    "focus.tool.hover": "Clicks/Click_Mid.wav",
+    "focus.tool.select": "Clicks/Click.wav",
+    "focus.complete": "Tone2/Major/Tone2D_MajorTriadUp.wav",
+    "focus.park": "Tone1/Minor/Tone1C_MinorTriadDown.wav",
+    "thinkpad.tool.hover": "Clicks/Click.wav",
+    "thinkpad.tool.select": "Click Combos/Click_Combo_2_Low.wav",
+    "thinkpad.idea.hover": "Clicks/Ting_Pitched_Up.wav",
+    "thinkpad.complete": "Tone1/Major/Tone1B_MajorTriadUp.wav"
+  }
+}

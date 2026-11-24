@@ -1,15 +1,16 @@
 import { createRouter, createWebHistory } from "vue-router";
-import Home from "../home/Home.vue";
+import DashboardPage from "../dashboard/DashboardPage.vue";
 import ThinkPadLayout from "../thinkpad/ThinkPadLayout.vue";
 import ThinkPadPage from "../thinkpad/ThinkPadPage.vue";
 import FocusLayout from "../focus/FocusLayout.vue";
 import FocusRunnerPage from "../focus/FocusRunnerPage.vue";
+import WorkflowsPage from "../workflows/WorkflowsPage.vue";
 
 const routes = [
   {
     path: "/",
     name: "home",
-    component: Home,
+    component: DashboardPage,
   },
   {
     path: "/thinkpad",
@@ -20,6 +21,11 @@ const routes = [
     path: "/focus",
     component: FocusLayout,
     children: [{ path: "", name: "focus", component: FocusRunnerPage }],
+  },
+  {
+    path: "/workflows",
+    name: "workflows",
+    component: WorkflowsPage,
   },
   { path: "/:pathMatch(.*)*", redirect: "/" },
 ];
