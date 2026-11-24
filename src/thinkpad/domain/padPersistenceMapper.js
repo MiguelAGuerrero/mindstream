@@ -99,6 +99,9 @@ function normalizeThinkPadAnnotation(value, { now } = {}) {
     ...(value.lost === true ? { lost: true } : {}),
     ...(value.synthesis === true ? { synthesis: true } : {}),
     ...(typeof value.originalText === "string" ? { originalText: value.originalText } : {}),
+    ...(Array.isArray(value.caveats) && value.caveats.length
+      ? { caveats: value.caveats.filter((c) => typeof c === "string" && c.trim()) }
+      : {}),
   };
 }
 
@@ -174,6 +177,7 @@ function normalizeDraftHistoryContribution(value) {
     tag: typeof value.tag === "string" ? value.tag : null,
     source: typeof value.source === "string" ? value.source : "",
     output: typeof value.output === "string" ? value.output : "",
+    ...(Array.isArray(value.caveats) && value.caveats.length ? { caveats: value.caveats.filter((c) => typeof c === "string") } : {}),
   };
 }
 
@@ -310,6 +314,12 @@ export function normalizePad(value, { now } = {}) {
     resumeHint: typeof value.resumeHint === "string" ? value.resumeHint : null,
     surfaceThreadId: asString(value.surfaceThreadId),
     doc: normalizeDoc(value.doc, { now }),
+    // Threads waiting on the library for steps (slotting a workflow).
+    ...(Array.isArray(value.pendingSlots) && value.pendingSlots.length
+      ? { pendingSlots: value.pendingSlots
+          .filter((x) => x && typeof x.handoffId === "string" && typeof x.threadId === "string")
+          .map((x) => ({ handoffId: x.handoffId, threadId: x.threadId })) }
+      : {}),
   };
 }
 

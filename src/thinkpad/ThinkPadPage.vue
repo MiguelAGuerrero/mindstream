@@ -5,6 +5,7 @@ import ThinkPadPanel from "./components/ThinkPadPanel.vue";
 import DraftPhaseBar from "./components/DraftPhaseBar.vue";
 import StudyBeatCard from "./components/StudyBeatCard.vue";
 import LinkDialogs from "./dialogs/LinkDialogs.vue";
+import { useWorkflowSlot } from "./composables/useWorkflowSlot";
 import DocumentPickerDialog from "./dialogs/DocumentPickerDialog.vue";
 import OpenItemsDialog from "./dialogs/OpenItemsDialog.vue";
 import { usePadStore } from "./store/padStore";
@@ -64,6 +65,7 @@ const resolveFieldRef = ref(null);
 // Links: the selection being linked, and the link whose sheet is open.
 const linkPending = ref(null);
 const quoteOpen = ref(false);
+const workflowSlot = useWorkflowSlot();
 const viewingLinkId = ref(null);
 
 watch(
@@ -314,6 +316,17 @@ watch(
                       >
                         <v-icon icon="mdi-set-merge" size="14" />
                         <span>Synthesize</span>
+                      </button>
+                      <!-- Slot a workflow into this thread: its steps come back as headings. -->
+                      <button
+                        v-if="!surface.isAtRoot && !padStore.isSynthesisSurface && !padStore.isDraftHistoryView && workflowSlot.canUseWorkflow.value"
+                        type="button"
+                        class="thinkpad-bar-action"
+                        title="Use a workflow here: choose saved steps, written into this thread"
+                        @click="workflowSlot.useWorkflow({ threadId: surface.surfaceHead, title: surface.currentGoal })"
+                      >
+                        <v-icon icon="mdi-format-list-numbered" size="14" />
+                        <span>Workflow</span>
                       </button>
                       <button
                         v-if="padStore.isSynthesisSurface && !isDraftFrozen && padStore.quoteSources.length"

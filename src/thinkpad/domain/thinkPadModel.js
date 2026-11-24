@@ -24,6 +24,7 @@
 // ---------------------------------------------------------------------------
 
 import { INTENT_CLASSES, ANNOTATION_TAG_LIST } from "../moves";
+import { formTextFromSteps } from "./formFromSteps";
 import {
   ideasToText,
   syncIdeasFromNodes,
@@ -907,8 +908,10 @@ export function resolveThreadIntoParent(pad, { threadId, result, reframe = null 
   }
 
   // Single-loop (always): set the child's output, then splice it into the parent
-  // pad at the anchor using the tested tolerant logic.
-  let next = setStepOutput(pad, { stepId: childStep.id, output: text }, { now });
+  // pad at the anchor using the tested tolerant logic. Items accepted at this
+  // thread's gate travel up as caveats on the result.
+  let next = withCaveats(pad, threadId, { now });
+  next = setStepOutput(next, { stepId: childStep.id, output: text }, { now });
   const spliced = spliceStepIntoPad(next, { stepId: childStep.id, padLocator: parentFrameId, now });
   next = spliced.pad;
   if (anchorRec?.synthesis === true) {
@@ -1382,6 +1385,7 @@ export function advanceToNextDraft(pad, { padLocator = null } = {}, { now, makeI
       tag: ann?.tag ?? null,
       source: ann?.selectedText ?? ann?.source ?? "",
       output: s.text,
+      ...(Array.isArray(ann?.caveats) && ann.caveats.length ? { caveats: ann.caveats } : {}),
     };
   });
 
@@ -2017,6 +2021,7 @@ export function drillThreadsAt(pad, padLocator = null) {
         completed: isResolved,
         tag: ann?.tag ?? null,
         status: isResolved ? "resolved" : canResolve(pad, t.id) ? "converged" : "open",
+        caveats: Array.isArray(ann?.caveats) ? ann.caveats.length : 0,
       };
     });
 }
@@ -2059,4 +2064,71 @@ export function decidedItems(pad, padLocator = null) {
     .filter((l) => l.disposition)
     .map((l) => ({ id: l.id, kind: "lifted", text: l.text, source: l.source, disposition: l.disposition }));
   return [...moves, ...sources, ...lifted];
+}
+
+// ---------------------------------------------------------------------------
+// Slotting a workflow into a thread (roadmap Phase 2). ThinkPad asks the
+// library for steps (want "choose-steps"); the pad remembers which thread is
+// waiting (pad.pendingSlots), and the reply is written into that thread as a
+// document: a heading per step, after whatever is already there.
+// ---------------------------------------------------------------------------
+
+/** Remember that `threadId` is waiting on request `handoffId`. Same ref for an unknown thread. */
+export function addPendingSlot(pad, { handoffId, threadId } = {}, { now } = {}) {
+  if (!pad || typeof handoffId !== "string" || !handoffId || !findThreadById(pad, threadId)) return pad;
+  const pending = (pad.pendingSlots ?? []).filter((s) => s.handoffId !== handoffId);
+  return { ...pad, pendingSlots: [...pending, { handoffId, threadId }], updatedAt: now };
+}
+
+/** Forget a pending request (it came back empty or was abandoned). */
+export function dropSlot(pad, { handoffId } = {}, { now } = {}) {
+  if (!pad || !(pad.pendingSlots ?? []).some((s) => s.handoffId === handoffId)) return pad;
+  return { ...pad, pendingSlots: pad.pendingSlots.filter((s) => s.handoffId !== handoffId), updatedAt: now };
+}
+
+/** Write a reply's steps into the waiting thread as a document, and forget the request. */
+export function applySlot(pad, { handoffId, steps } = {}, { now, makeId } = {}) {
+  const slot = (pad?.pendingSlots ?? []).find((s) => s.handoffId === handoffId);
+  if (!slot) return pad;
+  let next = dropSlot(pad, { handoffId }, { now });
+  const doc = padForThread(next, slot.threadId);
+  const form = formTextFromSteps(steps);
+  if (!doc || !form) return next;
+  if (doc.phase === "cultivate") next = leaveReflect(next, { padLocator: slot.threadId }, { now, makeId });
+  const before = (padForThread(next, slot.threadId)?.text ?? "").trim();
+  return setPadText(next, { padLocator: slot.threadId, text: before ? `${before}\n\n${form}` : form }, { now, makeId });
+}
+
+
+// ---------------------------------------------------------------------------
+// Caveats (capture-templates §8.2; roadmap §4.2). An item accepted at a
+// thread's gate ("go ahead anyway") travels up with its result: the note
+// written when accepting it, or the item's own text. Stored on the parent
+// anchor annotation as `caveats`.
+// ---------------------------------------------------------------------------
+
+/** Copy the thread's accepted items onto its parent anchor as caveats. */
+export function withCaveats(pad, threadId, { now } = {}) {
+  const thread = findThreadById(pad, threadId);
+  const anchor = thread?.parentAnchor;
+  if (!anchor?.annotationId) return pad;
+  const caveats = decidedItems(pad, threadId)
+    .filter((d) => d.disposition?.kind === "accepted")
+    .map((d) => (d.disposition.note || d.text || "").trim())
+    .filter(Boolean);
+  if (!caveats.length) return pad;
+  const level = anchor.parentFrameId ?? null;
+  const doc = padForThread(pad, level);
+  if (!doc) return pad;
+  return withPad(pad, level, {
+    ...doc,
+    annotations: (doc.annotations ?? []).map((a) => (a.id === anchor.annotationId ? { ...a, caveats } : a)),
+  }, { now });
+}
+
+/** The caveats a resolved passage carries ([] when none). */
+export function caveatsFor(pad, padLocator, annotationId) {
+  const doc = padForThread(pad, padLocator);
+  const ann = (doc?.annotations ?? []).find((a) => a.id === annotationId);
+  return Array.isArray(ann?.caveats) ? ann.caveats : [];
 }

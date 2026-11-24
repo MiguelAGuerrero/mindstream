@@ -41,6 +41,7 @@ const showChanges = ref(true);
         <span class="study-beat__before">{{ c.source }}</span>
         <v-icon icon="mdi-arrow-right" size="13" class="mx-1" />
         <span class="study-beat__after">{{ c.output }}</span>
+        <span v-for="(cv, j) in c.caveats" :key="j" class="study-beat__caveat">with caveat: {{ cv }}</span>
       </li>
     </ul>
   </section>
@@ -105,6 +106,13 @@ const showChanges = ref(true);
 
 .study-beat__after {
   font-weight: 500;
+}
+
+.study-beat__caveat {
+  display: block;
+  margin-left: 1rem;
+  font-size: 0.78rem;
+  color: rgb(var(--v-theme-warning));
 }
 
 /* Mobile-first: comfortable tap targets on phones (Revision 14). */

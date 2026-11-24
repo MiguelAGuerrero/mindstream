@@ -41,6 +41,10 @@ import {
   startSynthesis as startSynthesisOnPad,
   quoteInto as quoteIntoOnPad,
   synthesisToAcknowledge as synthesisToAcknowledgeOnPad,
+  addPendingSlot as addPendingSlotOnPad,
+  applySlot as applySlotOnPad,
+  dropSlot as dropSlotOnPad,
+  withCaveats as withCaveatsOnPad,
   unstageOutput as unstageOutputOnPad,
   openItems as openItemsOnPad,
   disposeOpenItem as disposeOpenItemOnPad,
@@ -199,7 +203,7 @@ export const usePadStore = defineStore("pad", {
       if (!entry) return null;
       return {
         n: t.n,
-        changes: (entry.contributions ?? []).map((c) => ({ source: c.source ?? "", output: c.output ?? "" })),
+        changes: (entry.contributions ?? []).map((c) => ({ source: c.source ?? "", output: c.output ?? "", caveats: c.caveats ?? [] })),
       };
     },
 
@@ -388,6 +392,24 @@ export const usePadStore = defineStore("pad", {
       this.viewingDraftN = null;
     },
 
+    /** Remember that a thread on the current pad is waiting on the library for steps. */
+    addPendingSlot({ handoffId, threadId } = {}) {
+      this._applyOnPad((pad, now) => addPendingSlotOnPad(pad, { handoffId, threadId }, { now }));
+    },
+
+    /** Settle a library reply on whichever pad is waiting for it. */
+    settleSlot({ handoffId, steps = [], dropped = false } = {}) {
+      const pad = this.pads.find((p) => (p.pendingSlots ?? []).some((s) => s.handoffId === handoffId));
+      if (!pad) return;
+      const now = nowIso();
+      const next = dropped
+        ? dropSlotOnPad(pad, { handoffId }, { now })
+        : applySlotOnPad(pad, { handoffId, steps }, { now, makeId });
+      if (next === pad) return;
+      this.pads = this.pads.map((p) => (p.id === pad.id ? next : p));
+      persistPadToDb(next);
+    },
+
     /** Open (or return to) the synthesis of the surface level, and go into it. */
     startSynthesis() {
       if (!this.currentPad) return;
@@ -551,7 +573,9 @@ export const usePadStore = defineStore("pad", {
         return { resolved: true, delta: direct.delta ?? null };
       }
 
-      let pad = setStepOutputOnPad(this.currentPad, { stepId: childStep.id, output: rollUpText }, { now });
+      // Items accepted at this thread's gate travel up as caveats on the result.
+      let pad = withCaveatsOnPad(this.currentPad, threadId, { now });
+      pad = setStepOutputOnPad(pad, { stepId: childStep.id, output: rollUpText }, { now });
       pad = stageStepOutputOnPad(pad, {
         stepId: childStep.id, annotationId, text: rollUpText, padLocator: parentFrameId,
       }, { now, makeId });

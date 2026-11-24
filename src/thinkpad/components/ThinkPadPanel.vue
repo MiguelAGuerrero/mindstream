@@ -854,7 +854,9 @@ defineExpose({ flushText, dismissSelection });
               />
             </template>
             <v-list-item-title class="text-body-2 text-truncate">{{ drill.title }}</v-list-item-title>
-            <v-list-item-subtitle class="text-caption">{{ THREAD_STATUS_LABEL[drill.status] ?? "" }}</v-list-item-subtitle>
+            <v-list-item-subtitle class="text-caption">
+              {{ THREAD_STATUS_LABEL[drill.status] ?? "" }}<template v-if="drill.caveats"> · {{ drill.caveats }} caveat{{ drill.caveats === 1 ? "" : "s" }}</template>
+            </v-list-item-subtitle>
           </v-list-item>
         </v-list>
       </v-menu>
