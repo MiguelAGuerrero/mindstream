@@ -288,8 +288,8 @@ step.resolution        = { text, type: Type | null, caveats: string[] }   // cav
    - workflows you've pinned to that tag yourself;
    - the ones you've used most recently with it;
    - only the library, with no shortcuts until you pin some.
-8. **Does `produces` travel on the routing slip?** The runner needs only the prompts. The ThinkPad, though, should accept a slip only if every step produces text. Options: mark each item on the slip (the shared shape is then a list of text with one marker per item), or let the library page check before offering the ThinkPad, sending plain prompts. To settle with the roadmap session.
 7. **Renaming "Complete" back to "Resolve" in code.** `master` renamed "Resolve up" to "Complete" in the ThinkPad surface and the Focus runner (decision 21). This rename should land before the gate UI.
+8. **Does `produces` travel on the routing slip?** The runner needs only the prompts. The ThinkPad, though, should accept a slip only if every step produces text. Options: mark each item on the slip (the shared shape is then a list of text with one marker per item), or let the library page check before offering the ThinkPad, sending plain prompts. To settle with the roadmap session.
 
 ---
 
