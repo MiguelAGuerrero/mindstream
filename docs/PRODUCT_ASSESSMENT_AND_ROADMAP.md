@@ -12,6 +12,8 @@
 
 **Revision 3 (same day):** Miguel widened the frame. Mindstream is not one recursive tool; it is a **thinking workspace**: a suite of tools for processing and refining thoughts so you can answer questions, make decisions, and turn big goals into small actions you can take. ThinkPad and the runner are the first two tools, and others may join. §1 and §4 were rewritten around that, a tool contract was added (§4.1), and Phase 4 now treats Home as the workspace entry instead of removing it.
 
+**Revision 4 (2026-11-24):** Miguel settled the architecture question. **Tools are decoupled.** Each tool stands alone, owns its own state, and is usable without the others. They share one principle (break a daunting thing, written as text, into pieces small enough to act on) and one message type (text), exchanged through a broker so any tool can import from and export to any other. The "one shared tree, tools are views" design from Revisions 2 and 3 is withdrawn. §4, Phase 3, Phase 4 and §6 were rewritten for the broker model.
+
 **How this was assessed:** read every design doc and all non-test source, ran `vitest` and `vite build`, and drove both tools in a real browser (stream, reflect, drill two levels, complete, next draft, Focus decompose, reload).
 
 ---
@@ -24,7 +26,7 @@ Mindstream is a **thinking workspace**: a suite of tools that help you process a
 - **The runner** is where you work through a workflow one step at a time to carry out an action, whether that is an intellectual move (doubt this claim), a thinking pattern, or a practice that moves a goal forward.
 - **Other tools** may join the suite later.
 
-What makes it a suite and not a folder of apps is the shared material: **text that stands for a thought** (a claim, a doubt, a question, a feeling, an intention). Every tool takes such text in and hands text back to where it came from. And one mechanism recurs in all of them, because it is how big becomes small:
+The tools are independent. You can sit down in the runner and iterate on something you are trying to get done without ever opening a ThinkPad. What makes them a suite is two things they share. The first is the message type: **text that stands for a thought** (a claim, a doubt, a question, a feeling, an intention, an action). Any tool can accept such text from another tool and send text back. The second is the principle each tool leans into in its own way, because it is how something overwhelming becomes approachable:
 
 ```
 resolve(thing):
@@ -67,7 +69,7 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 
 **G2. The executor forgets everything.** Focus state is in memory and is lost on reload (confirmed in the browser). An executor that cannot survive a refresh cannot hold a parked context "waiting on" something, which is the feature's whole reason to exist.
 
-**G3. The recursion is the same idea implemented twice.** ThinkPad has threads, sub-threads and a parent anchor. Focus has contexts and a frame stack. Both are "descend, resolve, fold up", with different names, different shapes, and different fold-up semantics (ThinkPad splices text; Focus overwrites a single `result` string, so a second child's takeaway erases the first).
+**G3. The runner's fold-up loses results.** Each tool decomposing in its own way is by design (Revision 4). The defect is narrower: completing a sub-focus overwrites a single `result` string on the parent, so a second child's takeaway erases the first.
 
 **G4. Reflect is a one-way door.** `resolveThreadIntoParent` in the store force-stamps the parent, and `restreamDraft` / `restreamFromDraftHistory` exist in the domain but are not wired to any UI. Once a pad is in Reflect there is no way to write freely in it again. The lifecycle doc says the escape hatch must exist ("never trapped"); the build has the trap without the hatch.
 
@@ -105,13 +107,13 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 **Rules that follow from it.** Use these to accept or reject features and new tools.
 
 0. **Text is the interface.** Every tool consumes a piece of text that stands for a thought and returns text anchored to it. A span is a workable thing, not decoration on a document. A feature that needs its own non-text input format is suspect.
-1. **One mechanism, many tools.** Tools differ in how they present work, not in what work is. Thoughts, workflow steps and tasks are the same kind of thing underneath: a goal, a place to work, smaller pieces, and a result that folds up. Build that once and let each tool be a way of working on it.
+1. **One principle, independent tools.** Every tool breaks something daunting into pieces small enough to act on, and folds results back up. Each tool implements that in the way that suits its job, with its own state and its own model. They are coupled by the principle and the message type, not by shared data.
 2. **Convergence is the gate.** Nothing ascends unresolved: one block, and no open items left undecided (the proposal's open-item gate). Abandoning is allowed but is a visible, named act.
 3. **Fold the result, archive the process.** The parent only ever receives the chunk. The path that produced it stays re-openable.
 4. **One level in view.** At any moment you see one node, its goal, and a cue to where you are. Never a two-pane parent and child.
 5. **The app guides, you execute.** The app asks the next question or shows the next step of a workflow. It never generates the answer.
 7. **Every session can end in a next small action.** Wherever you stop, the workspace can tell you the one next step. A tool that leaves you with a bigger pile than you brought is working against the product.
-6. **The anchor chain is never broken.** However many levels a move descends, and whichever tool it runs in, its result lands at the span that produced it. This is only possible if the work stays in one tree, so moving work between tools means changing the view, not copying the data.
+6. **Results come home.** However many levels a move descends, and however many tools it passes through, its result lands at the span or step that asked for it. Between tools this is done by a reply address carried on the message, not by shared data.
 
 **What it is not** (for this horizon): a note vault, an outliner you browse, a general to-do list, a team tool, or an AI writer.
 
@@ -119,17 +121,44 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 
 A suite needs a rule for what counts as a tool, or it becomes a pile of features. A Mindstream tool:
 
-1. **Takes text in.** It can be started from a span, a step, or a blank prompt, and treats its input as a thought to work on.
-2. **Gives text back to the origin.** Its result lands at the span or step that started it (rule 6). A tool whose output stays inside the tool does not qualify.
-3. **Works on the shared tree.** It keeps no private copy of the work. It may keep view state: what is on screen, which step, a timer.
-4. **Ends in something smaller.** An answer, a decision, a sharper question, or a next step.
-5. **Can be entered and left mid-work.** You can hop to another tool from any point and come back to the same place.
+1. **Stands alone.** It is useful opened cold, with a blank prompt, and never requires another tool to be present.
+2. **Owns its state.** Its own store, its own model, its own persistence. No tool reads or writes another tool's data.
+3. **Speaks text through the broker.** It declares which messages it can receive and which actions send one. That is its entire surface to the rest of the suite.
+4. **Replies to what it was asked.** If it was opened by a request, finishing sends a reply to the sender. A request is never left silently unanswered: it ends resolved, as a sharper question, or abandoned.
+5. **Ends in something smaller.** An answer, a decision, a sharper question, or a next step.
 
-Against this contract today: ThinkPad meets 1 to 4 and partly 5. The runner on `master` meets 1 and 4 only; it has no origin to return to and keeps a private, unsaved copy. Phases 2 and 3 are what bring it into the contract.
+Against this contract today: both tools meet 1 and 5. ThinkPad meets 2. The runner does not persist, so it only half meets 2. Neither meets 3 or 4, because the broker does not exist yet.
 
-**The first two tools.** ThinkPad is the open-ended tool: many spans visible, you choose where to work. The runner is the guided tool: one step visible, the workflow tells you what is next. They stay distinct tools with distinct jobs. What they share is the tree underneath, which is what lets a span be run in the runner and a runner step open its own pad without copying anything. The proposal's "form view" and "step view" (§4.1 there) are these two tools looking at one run.
+### 4.2 The message
 
-**Future tools** are not planned here, but the contract is the test for them. A weekly review, a decision log, or a goal breakdown would each qualify if it reads and writes the same tree. A habit tracker with its own data would not.
+A sketch, to be hardened when built. Keep it this small.
+
+```js
+Message = {
+  id,
+  kind: "request" | "reply",
+  text,            // the payload: the thought, claim, step or action to work on
+  context: [],     // optional lines of surrounding context, outermost first (e.g. parent prompts)
+  intent: null,    // optional hint: "think", "doubt", "decompose", ... the receiver may ignore it
+  replyTo: null,   // { tool, ref } set by the sender; opaque to the receiver
+  // replies only:
+  inReplyTo: id,
+  outcome: "resolved" | "question" | "abandoned",
+}
+```
+
+- `ref` means something only to the sender: an annotation id in ThinkPad, a frame id in the runner. The receiver stores it and hands it back untouched. This is how results come home without either tool knowing the other's model.
+- The sender keeps a **pending request** at its origin, shown as an open item, until the reply arrives.
+- Requests nest. A ThinkPad span sends to the runner; a runner step sends to a new ThinkPad pad; each reply unwinds one hop.
+
+**The two examples Miguel gave, as messages:**
+
+| Action | Request | Reply |
+|---|---|---|
+| Doubt a claim in ThinkPad | `text`: the claim. `intent`: "doubt". `replyTo`: ThinkPad, the span's annotation. The runner starts the Doubt workflow on it. | `text`: the call. ThinkPad places it at the span through the existing splice. |
+| A runner decompose step offers "Think in ThinkPad" | `text`: the step's prompt. `context`: the parent prompts. `replyTo`: runner, the frame. ThinkPad opens a pad titled with the prompt. | `text`: the pad's resolved text. The runner records it as the step's result. |
+
+**Future tools** are not planned here; the contract is the test for them. Anything that stands alone and speaks text through the broker can join without the existing tools changing.
 
 **Vocabulary to standardise** (one word per concept, in UI and code):
 
@@ -169,7 +198,7 @@ Nothing here changes behaviour; it stops the repo from misdescribing itself.
 Make the existing recursion complete and trustworthy before extending it.
 
 - **Escape hatch (G4).** Wire `restreamDraft` as a named "Write more" action in the phase bar. Stop `resolveThreadIntoParent` from force-stamping a parent that is still in Stream; either stage without freezing, or ask.
-- **Symmetric recursion (G6).** Compute `drillThreads` for the current surface at any depth so every sub-pad shows its own threads and Continue / Reopen. Take the root-as-thread unification from the contract (§13.3) if it falls out cheaply; otherwise leave it for Phase 3.
+- **Symmetric recursion (G6).** Compute `drillThreads` for the current surface at any depth so every sub-pad shows its own threads and Continue / Reopen. Take the root-as-thread unification from the contract (§13.3) only if it falls out cheaply.
 - **Make the fold-up the moment (G7).** After "Next Draft", show a short before/after of each replaced span, then the whole new draft. This is the study beat. Keep it skippable.
 - **Open-thread hygiene.** On the parent, mark threads as open, converged-not-completed, or completed. On Back from a thread with content, say it is being left open. Contract rule 6 calls unclosed drills "worse than no feature".
 - **Reveal conflicts (D6).** Block the reveal when two staged results overlap and let you pick.
@@ -191,26 +220,26 @@ Hold back until the loop is in daily use: variants and save-as-variant, records 
 
 **Exit test:** select a claim, start Doubt, slot a workflow into one step two levels down, and resolve everything. The claim in the root pad now carries the call, with any accepted doubt shown as a caveat. Resolve was refused at least once because of an undecided open item.
 
-### Phase 3 — One tree, two views (about 2 to 3 weeks)
+### Phase 3 — The broker and the first two bridges (about 2 to 3 weeks)
 
-The identity phase. It resolves G1, G2 and G3 together, and delivers both bridges Miguel described.
+The identity phase. It resolves G1 and G2 and delivers both bridges Miguel described, with the tools still decoupled.
 
-- **The runner is the step view of a run.** The Focus route renders a run thread from the pad store one step at a time: prompt, the origin span as context, one resolution. Decompose is "slot a workflow or sub-step here". Complete is the same fold-up as in ThinkPad. Retire `sessionRunStore`'s separate contexts and frame stack.
-- **Bridge down: span to runner.** From a span in Reflect, "Run in Focus" opens that span's run in step view. Nothing is imported or copied; the surface pointer moves. This is what keeps rule 6 true: a step resolved five levels down still lands at its anchor, because it never left the tree.
-- **Bridge up: step to pad.** From any step in the runner, "Think here" opens that step's own think pad, which is just the thread's `doc`. Stream, reflect and drill all work there. When it converges, its one block is the step's resolution and you are back in step view.
-- **Freestanding focus still exists.** "What are you working on?" creates a pad whose root is a task with no origin span. It is the same thread kind without a parent anchor, so authored focuses and span-born runs are one thing.
-- **Persistence for free.** Runs live in pads, so `padsDb` saves them. Parked state and `waitingOn` survive reload (G2).
-- **Results accumulate.** A level keeps every child's resolution in its process and summarises to one; a second child no longer erases the first (G3).
-- **One breadcrumb** across both views, with open counts: pad, span, run, step, slotted run, step.
-- **Record time** per step instead of resetting a display clock (D8).
+- **Runner stands alone first.** Give the runner its own persistence (its own IndexedDB store, mirroring `padsDb`), so contexts, stacks, parked state and `waitingOn` survive reload (G2). Keep every child result on the parent instead of overwriting (G3). Record time per focus (D8).
+- **The broker.** A small module: tools register what they receive and what they offer; `send(request)` routes and navigates; `reply(message)` routes back. Pending requests are persisted by the sender, so a hop survives a reload. Pure and node-testable, in the style of the existing domain code.
+- **ThinkPad as sender and receiver.** Send: an action on a span creates a pending open item and a request. Receive a reply: place the text at the anchor with the existing tolerant splice. Receive a request: open a new pad titled with the text, context shown above it; resolving the pad sends the reply.
+- **Runner as sender and receiver.** Receive a request: open a context whose root focus is the text, starting the workflow named by `intent` if there is one. Completing the root sends the reply. Send: the decompose composer offers "Think in ThinkPad" beside typing a sub-focus.
+- **Where you are across hops.** A thin return strip at the top of a tool opened by a request: what asked, from where, and "Send back". It follows the same cue-not-pane rule as the drill bar.
+- **Requests that do not come back cleanly.** Abandoning sends an `abandoned` reply so the origin's open item can be decided, not orphaned. If the origin span moved or was edited, the tolerant splice already handles relocation; if it was deleted, the reply is kept as an unplaced result the origin tool lists.
 
-**Exit test:** dump a thought, start Doubt on a claim, run it in the Focus runner, hit a step that needs thinking, open its pad, drill once inside it, converge, return to the runner, finish the run, and see the claim updated in the original pad. Reload at any point without losing your place.
+One consequence for the capture-templates proposal: it models a run as a thread inside ThinkPad. With decoupled tools, a run executed in the runner lives in the runner's state, and ThinkPad holds only the pending open item and, later, the result. The open-item gate still works unchanged, since a pending request is an open item.
+
+**Exit test:** (a) In ThinkPad, start Doubt on a claim; it opens in the runner; one step needs thinking, so you send it to ThinkPad, resolve that pad, and land back on the step with its result; finish the run; the claim in the original pad carries the call. (b) Separately, open the runner cold, author a focus, decompose it twice, and finish, never touching ThinkPad. Reload at any point in either without losing your place.
 
 ### Phase 4 — Resume and the open-loop ledger (about 1 to 2 weeks)
 
-With one tree, the workspace home can answer "what is my next small step?".
+With the broker in place, the workspace home can answer "what is my next small step?".
 
-- **Home is the workspace.** Keep the tool launcher; a suite needs one. Add above it the open loops across all pads: open thought threads, runs in progress, and parked work with what it is waiting on. Each shows its one next step and opens in the tool it was left in.
+- **Home is the workspace.** Keep the tool launcher; a suite needs one. Add above it the open loops, which each tool reports for itself: open threads from ThinkPad; active and parked contexts from the runner; and requests still waiting on a reply. Each shows its one next step and opens in its own tool.
 - **Resume lands you exactly where you were:** same pad, same thread, same phase. Set `resumeHint` on leave and show it on return.
 - **Parked tasks resurface.** A parked task shows how long it has waited; un-parking returns to its exact depth.
 - **Export.** One pad to Markdown, with the resolved root on top and archived threads nested below. For a personal local-only tool, this is also the backup.
@@ -226,7 +255,7 @@ With one tree, the workspace home can answer "what is my next small step?".
 
 ### Explicitly not on this roadmap
 
-- AI generation or agent execution. Rule 5. If revisited, Phase 3's `kind` field is where an `agent` executor would attach.
+- AI generation or agent execution. Rule 5. If revisited, an agent would join as one more tool behind the broker, receiving and replying in text like any other.
 - Accounts, sync, sharing, mobile layout, onboarding.
 - From the proposal, for now: variants, records and citation, and the "comes back later" behaviours (prediction checks, call reviews). They depend on the run loop being in daily use first.
 - Multiple drills per span with AND/OR roll-up, and sibling re-validation after a fold-up. Real ideas, deferred in the contract, still deferred.
@@ -235,15 +264,17 @@ With one tree, the workspace home can answer "what is my next small step?".
 
 ## 6. Sequencing rationale and risks
 
-- **Why Phase 1 before unification:** Phase 3 moves tasks onto the thread model. If that model still has a one-way phase and root-only thread lists, the defects are inherited by the executor.
-- **Why the gate before workflows, and workflows before the runner:** the gate is small, pure and immediately useful. Workflows then exist as run threads in ThinkPad's form view, where they can be tested with the UI that already works. Only then does the runner become a second view over something proven.
-- **Largest risk: building the bridge as an import.** If spans are copied into the Focus store, the anchor chain breaks at the copy, every fold-up needs a sync step, and G3 becomes permanent. The description "imported into the focus state" could be read that way. Recommendation: the runner reads run threads from the pad store and Focus keeps no state of its own beyond which run and step are in view.
-- **Second risk: ceremony.** Stamp, tag, choose workflow, fill steps, decide open items, resolve, next draft. Workflows add acts. Keep the direct path one gesture long: writing a step by hand must always be available, and a single staged result should be able to resolve and reveal in one act.
-- **Third risk: Phase 3 is a real refactor.** Do it additively: add the step view over run threads while the old Focus store still runs, switch the route, delete the old store last.
+- **Why Phase 1 before the broker:** replies land in ThinkPad through the fold-up and reveal path. If that path still has a one-way phase and root-only thread lists, every cross-tool result inherits those defects.
+- **Why the gate before the broker:** a pending request is an open item, so the gate from Phase 2 is what makes an unanswered request visible and decidable at its origin.
+- **Why runner persistence before the broker:** a reply addressed to a runner frame that vanished on reload cannot be delivered. Each tool has to be durable on its own before messages between them can be.
+- **Largest risk: requests that never come home.** In a decoupled design nothing forces a reply. The contract's point 4, the `abandoned` outcome and the open-loop list on Home exist for this. Test the unhappy paths as carefully as the happy one.
+- **Second risk: getting lost across hops.** Span to runner to pad to drill is four levels across two tools. The return strip has to make "what asked for this, and how do I send it back" answerable at a glance.
+- **Third risk: ceremony.** Stamp, tag, choose workflow, hop, fill steps, decide open items, resolve, next draft. Keep the direct path one gesture long: typing the answer in place must always be available.
+- **Accepted cost: the principle is implemented per tool.** ThinkPad and the runner each have their own decompose and fold-up. That is the price of independence and it is the right one here. Share pure helpers where it is free; do not share models.
 
 ### Questions for Miguel
 
-1. **View or import?** Read from Revision 3: the runner stays its own tool, and the roadmap assumes it works on the shared tree and keeps only view state (tool contract, point 3). Say so if you intend the runner to hold its own copy of the work.
+1. **View or import?** Settled in Revision 4: import and export through a broker; tools are decoupled.
 2. **Where is the in-flight code?** Only the proposal doc is on the remote. If implementation exists on an unpushed branch, §2 and §3 should be re-checked against it.
 3. **Resolve or Complete?** See the naming note in §4.
 4. **Does every tag map to a workflow?** Doubt is the example given. Should Question, Expand and Flag each open a workflow by default, or do some stay as a plain blank sub-pad?
@@ -257,6 +288,6 @@ Count these from the data already stored; no analytics needed.
 - **Resolved roots:** pads whose root reached a one-block converged state. The product's reason to exist.
 - **Open-thread ratio:** threads left open with content, over threads created. Should fall after Phase 1.
 - **Depth actually used:** distribution of max depth per pad. If it is always 1, recursion is not earning its place.
-- **Thought-to-task conversion:** after Phase 3, share of resolved pads that produced at least one task, and share of those tasks completed.
+- **Requests that came home:** after Phase 3, share of cross-tool requests that ended resolved or as a sharper question, versus abandoned or still pending.
 - **Sessions ending in a next step:** share of sessions where, on leaving, some thread or run has a named next step. This is the workspace-level measure.
 - **Resume success:** after Phase 4, how often a return visit continues an existing thread instead of starting a new pad.
