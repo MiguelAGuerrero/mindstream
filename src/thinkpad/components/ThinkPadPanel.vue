@@ -337,6 +337,10 @@ const editor = useEditor({
       //   [data-candidate-start] → open the tag picker for that block
       click: (view, event) => {
         if (!props.reflectMode) return false;
+        // A drag inside one block also fires a click on release. The drag's own
+        // selection already opened the picker (handleDocMouseUp); treating this
+        // click as a block click would widen it to the whole block (D11).
+        if (!view.state.selection.empty) return false;
 
         // Annotated span click: focus into the thought (drill / re-open).
         const annTarget = event.target?.closest?.("[data-annotation-id]");
