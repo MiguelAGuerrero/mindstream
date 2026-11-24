@@ -10,7 +10,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^7.2.0",
     "@mdi/font": "^7.4.47",
     "@tiptap/core": "^3.25.0",
     "@tiptap/extension-document": "^3.25.0",
