@@ -35,6 +35,8 @@ A move like **Investigate** is a **workflow of steps**, and a "form" is one way 
 | 15 | **(proposed)** Steps declare `produces: "text" \| "action"`; each tool's registration decides what it accepts; the shell only filters | §3.1 |
 | 16 | **(proposed)** The workflow library is **shell-level**, a sibling of the shelf. Workflows travel **by reference** (`{ id, version }`) | §3.1 |
 | 17 | **(proposed)** A workflow may suggest a follow-up (`then`), e.g. reflect. It is offered as a one-tap action, never run automatically | §6.3 |
+| 18 | **The shelf is confirmed.** Confirmed in roadmap Revision 6 | §8.2 |
+| 19 | **The ThinkPad has no step-by-step view.** A pad is a document that holds the context of your thinking. A run in the ThinkPad is shown only as a document (the form view). Stepping through a workflow means sending it to the runner. Confirmed in roadmap Revision 6 | §4.1 |
 
 ---
 
@@ -80,9 +82,9 @@ Move, template and workflow from v1 collapse into **workflow**. A move such as I
 
 ## 4. Views and filling
 
-### 4.1 Two views over the same run
-- **Form view.** Every step is laid out in order with its resolution. A slotted workflow appears folded under its step, and you can drill in to see its process. This is the document view, for reading where you stand.
-- **Step view.** One step at a time. **Open (§10):** the roadmap session recommends against building this inside the ThinkPad, which would make a second runner. Instead, step view would be what you get by sending the workflow to the runner. This matters most on phones, and Miguel decides.
+### 4.1 The ThinkPad shows a run as a document
+- **Form view is the only view in the ThinkPad.** Every step is laid out in order with its resolution. A slotted workflow appears folded under its step, and you can drill in to see its process. This is for reading where you stand, and on a phone it is the same document, stacked.
+- **Stepping through goes to the runner.** "Step through in runner" sends the workflow to the runner, using a Send or Ask through the shell. The ThinkPad does not re-implement the runner. A pad is a document that holds the context of your thinking and reasoning; it is not a step-by-step tool. (Decision 19.)
 - **Ordered but jumpable.** Steps are suggested in order, but you can write in any step at any time. Capture never waits on structure.
 
 ### 4.2 One resolution per step; lists live in the process
@@ -273,8 +275,7 @@ step.resolution        = { text, type: Type | null, caveats: string[] }   // cav
 3. **How section headers are represented in the run doc.** Header paragraphs protected by a TipTap extension (recommended), or a separate doc per step.
 4. **Do records outlive their pad?** Proposed: yes, marked as orphaned.
 5. **Starter workflows:** Investigate (with Research and Debugging variants), Experiment, Decide.
-6. **Confirm the proposed items** in §2 (15–17) and §6.3. Miguel hasn't confirmed them, and the roadmap's shelf is also unconfirmed.
-7. **Step view inside the ThinkPad, or only in the runner?** See §4.1. The mockup's phone step view currently shows it inside the ThinkPad.
+6. **Confirm the proposed items** in §2 (15–17) and §6.3. Miguel hasn't confirmed them. In particular, the two envelope additions (a workflow reference on requests, caveats on replies) are still being explained to him through on-screen examples by the roadmap session. (The shelf and the ThinkPad-has-no-step-view question are settled: decisions 18 and 19.)
 8. **Resolve vs Complete.** `master` renamed "Resolve up" to "Complete". Both design sessions lean towards **Resolve**, because a sharper question is resolved but not complete.
 9. **Does every palette tag (Question, Expand, Flag) default to a workflow?** Or do some stay plain blank sub-pads? This is shared with the roadmap.
 
@@ -287,7 +288,7 @@ The canvas now shows the v2 model:
 - **Investigate · Debugging**: a step added during the run, and step 4's workflow being swapped.
 - **The Resolve gate**, with the four decisions and the scope check.
 - **The result rolled up** with its caveat, plus the parked question.
-- **On phone**: the preview with a variant picker, and the step view.
+- **On phone**: the preview with a variant picker, and the form view stacked as a document. "Step through in runner" sends the workflow to the runner (decision 19).
 
 The workflow-step and cite screens are carried over from v1.
 
