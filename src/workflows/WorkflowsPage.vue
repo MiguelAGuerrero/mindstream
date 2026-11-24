@@ -57,6 +57,8 @@ function removeAndBack(id) {
           @back="backToLibrary"
           @delete="removeAndBack(editing.id)"
           @run="handoff.runAsContext(editing.id)"
+          :can-write-out="handoff.canWriteOut(editing)"
+          @write-out="handoff.writeOut(editing.id)"
         />
         <WorkflowLibrary v-else :workflows="workflows.library" @open="open" @new="openNew" />
       </template>

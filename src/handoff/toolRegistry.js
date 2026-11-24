@@ -33,7 +33,8 @@ export const TOOLS = Object.freeze([
     job: "Think a problem through, one move at a time.",
     route: Object.freeze({ name: "thinkpad" }),
     icon: "mdi-notebook",
-    receives: Object.freeze({ wants: Object.freeze([WANTS.THINK]), steps: "none" }),
+    // Takes steps that all produce text and writes them out as a document (decisions 15, 19).
+    receives: Object.freeze({ wants: Object.freeze([WANTS.THINK]), steps: "text" }),
   }),
   Object.freeze({
     id: "focus",

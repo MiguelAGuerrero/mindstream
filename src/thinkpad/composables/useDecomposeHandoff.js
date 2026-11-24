@@ -5,6 +5,7 @@ import { useHandoffStore } from "../../handoff/handoffStore.js";
 import { HANDOFF_QUERY_PARAM, routeForTool } from "../../handoff/toolRegistry.js";
 import { usePadStore } from "../store/padStore";
 import { itemsFromDraft } from "../domain/decomposeReturn.js";
+import { formTextFromSteps } from "../domain/formFromSteps.js";
 
 /**
  * ThinkPad as a receiver of "think this through" (roadmap §4.2, `want: "think"`).
@@ -42,7 +43,14 @@ export function useDecomposeHandoff() {
       const fresh = store.peek(id, "thinkpad");
       if (fresh) {
         const accepted = store.consume(id, "thinkpad");
-        if (accepted) {
+        if (accepted?.steps?.length) {
+          // A workflow run: written out as a document, a heading per step. The
+          // sender waits on nothing, so the request is answered on arrival.
+          const pad = padStore.newPad({ outcome: accepted.text });
+          padStore.setPadText({ text: formTextFromSteps(accepted.steps) });
+          store.reply(accepted.id, { outcome: "resolved", notes: ["Written out as a document in a new pad."] });
+          void pad;
+        } else if (accepted) {
           const pad = padStore.newPad({ outcome: accepted.text });
           store.bindTarget(accepted.id, "thinkpad", pad.id);
         }

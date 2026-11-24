@@ -23,7 +23,8 @@ describe("toolRegistry", () => {
     const action = [{ prompt: "a", produces: "action" }];
     expect(serves("focus", WANTS.STEP_THROUGH, action)).toBe(true);
     expect(serves("thinkpad", WANTS.THINK)).toBe(true);
-    expect(serves("thinkpad", WANTS.THINK, text)).toBe(false); // ThinkPad takes no steps yet
+    expect(serves("thinkpad", WANTS.THINK, text)).toBe(true); // a run written out as a document
+    expect(serves("thinkpad", WANTS.THINK, action)).toBe(false); // but never steps that produce an action
     expect(serves("focus", WANTS.THINK)).toBe(false);
     expect(serves("nope", WANTS.THINK)).toBe(false);
   });

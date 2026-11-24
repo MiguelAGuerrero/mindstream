@@ -47,7 +47,7 @@ describe("createRequest", () => {
     expect(make({ ...valid(), text: "  " })).toBe(null);
     expect(make({ ...valid(), to: { tool: "thinkpad" } })).toBe(null);
     expect(make({ ...valid(), want: "nope" })).toBe(null);
-    expect(make({ ...valid(), to: { tool: "thinkpad" }, want: "think", steps: ["a"] })).toBe(null);
+    expect(make({ ...valid(), to: { tool: "thinkpad" }, want: "think", steps: [{ prompt: "a", produces: "action" }] })).toBe(null);
     expect(createRequest(valid(), {})).toBe(null);
   });
 });

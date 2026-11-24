@@ -101,7 +101,28 @@ export function useWorkflowsHandoff() {
     return true;
   }
 
+  /** Write this workflow out as a document to work through in your own order (text-only steps). */
+  function writeOut(workflowId) {
+    const wf = workflows.byId(workflowId);
+    const target = wf ? toolsFor(WANTS.THINK, wf.steps)[0] ?? null : null;
+    if (!wf || !wf.steps.length || !target) return false;
+    const handoff = store.create({
+      replyTo: { tool: "workflows", ref: wf.id },
+      to: { tool: target.id },
+      want: WANTS.THINK,
+      text: workflowLabel(wf),
+      steps: wf.steps,
+      tag: workflowTag(wf),
+    });
+    if (!handoff) return false;
+    workflows.markUsed(wf.id);
+    router.push(store.routeFor(handoff));
+    return true;
+  }
+
   return {
+    writeOut,
+    canWriteOut: (wf) => !!wf && wf.steps.length > 0 && toolsFor(WANTS.THINK, wf.steps).length > 0,
     pickRequest,
     requesterName,
     choose,

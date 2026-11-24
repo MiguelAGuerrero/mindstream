@@ -9,8 +9,10 @@ import { workflowLabel } from "../model/workflow.js";
 const props = defineProps({
   workflow: { type: Object, required: true },
   canRun: { type: Boolean, default: false },
+  /** Text-only steps can also be written out as a document in ThinkPad. */
+  canWriteOut: { type: Boolean, default: false },
 });
-const emit = defineEmits(["update", "back", "delete", "run"]);
+const emit = defineEmits(["update", "back", "delete", "run", "write-out"]);
 
 let key = 0;
 function toRow(step) {
@@ -154,6 +156,16 @@ const hasSteps = () => rows.value.some((r) => r.prompt.trim());
     <div class="wf-edit__actions">
       <v-btn variant="text" color="error" @click="confirmDelete = true">Delete</v-btn>
       <v-spacer />
+      <v-btn
+        v-if="canWriteOut"
+        variant="tonal"
+        prepend-icon="mdi-file-document-edit-outline"
+        :disabled="!hasSteps()"
+        title="Open it as a document in ThinkPad: a heading per step, answered in any order"
+        @click="emit('write-out')"
+      >
+        Write it out
+      </v-btn>
       <v-btn
         v-if="canRun"
         color="primary"
