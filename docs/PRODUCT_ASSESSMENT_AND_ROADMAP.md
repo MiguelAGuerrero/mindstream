@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 25)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 26)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 26 (2026-11-24): Synthesize built.** The synthesis model (Revisions 19 to 22) is in the app. A Synthesize chip in Reflect opens a thread over the whole draft; Quote copies the draft's paragraphs into it as snapshot quotes; lines starting with # are theme headings. Resolving it asks you to acknowledge threads still open in the draft, then asks for the thesis, which replaces the draft; the open threads move under the thesis, keep the passage they were opened on, and their results land beside it. Defaults chosen: one open synthesis per level (starting again returns to it); quoting happens while writing in the synthesis; quotes of a draft that a synthesis replaced read as "quoted from draft N", not as lost. Not built: the "1 source still open" caveat shown on a resolved thesis (open threads stay visible in the thread list instead), and quoting from levels other than the one being synthesized.
 
 **Revision 25 (2026-11-24): links built.** Miguel asked for the remaining phases to be executed autonomously until a product decision is needed. First slice: links (Revisions 15 and 22). In Reflect, the move picker offers Link (a URL, or another paragraph as a snapshot connection) and Needs source (an open item until a link covers it or it is decided). Linked passages are underlined; tapping one opens the URL or shows the paragraph as it was linked, with "refined later" when it has changed. Bare URLs in the text read as links. Defaults chosen: the Link action lives in Reflect, not while writing, so writing stays uninterrupted, and pasted URLs are covered by showing bare URLs as links; links to passages point at a paragraph of the same level; text leaving the pad writes URL links as Markdown (`textWithLinks`, used by export). Also fixed: a passage's tag was not saved and was lost on reload.
 
