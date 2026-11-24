@@ -16,6 +16,8 @@
 
 **Revision 5 (2026-11-24):** "Decoupled" is refined to **loosely coupled through a shell**, the pattern used by plugin hosts such as VS Code and Obsidian and by the phone share sheet. Tools still own their state and never reference each other, but they cooperate through a workspace shell that owns the layout, a capability registry, and message routing. Miguel confirmed the workspace should feel like one place where several tools are open at once; a multi-tool layout feature exists but is not deployed and was not visible on the remote. Added §4.3 (the shell), a Send/Ask distinction on messages, and a shelf; Phase 3 and Phase 4 adjusted.
 
+**Revision 6 (2026-11-24):** two decisions from Miguel. **The shelf is confirmed.** **ThinkPad has no step-by-step view:** a pad is a document that offloads the context of your thinking, interpretation and reasoning; working through steps one at a time is the runner's job, and ThinkPad must not re-implement it. A workflow run inside ThinkPad is shown as a document (the form view in the capture-templates proposal); to step through it, send it to the runner.
+
 **How this was assessed:** read every design doc and all non-test source, ran `vitest` and `vite build`, and drove both tools in a real browser (stream, reflect, drill two levels, complete, next draft, Focus decompose, reload).
 
 ---
@@ -170,10 +172,12 @@ The shell is the one shared thing. It is what makes separate tools feel like one
 - **Two kinds of hand-off.**
   - **Ask:** send text and expect a result back. The result returns to whatever asked, like a function returning to its caller. You never pick a destination by hand. This is the `request` / `reply` pair in §4.2.
   - **Send:** one-way. The text lands in the receiving tool and nothing comes back. This is a `request` with `replyTo: null`.
-- **The shelf.** A workspace-level tray of text items that any tool can drop onto and pull from. It is the visible common space, it gives a one-way Send somewhere to land when no tool is the obvious target, and it is where a reply waits if its origin is gone. Tools still share no data; the shelf belongs to the shell. *(Recommended; not yet confirmed by Miguel.)*
+- **The shelf.** A workspace-level tray of text items that any tool can drop onto and pull from. It is the visible common space, it gives a one-way Send somewhere to land when no tool is the obvious target, and it is where a reply waits if its origin is gone. Tools still share no data; the shelf belongs to the shell. *(Confirmed by Miguel.)*
 - **Routing and placement.** When an Ask opens another tool, the shell opens it beside the asker if there is room and in its place if not, and draws the link between them: which item asked, and where the answer will go.
 
 One caution carried over from `recursive-resolve-contract.md` (rule 2 there): a permanent parent-and-child split divides attention. Side-by-side tools are fine when they are doing different jobs. When one tool is working on a piece of what the other is showing, dim or collapse the asker to its one relevant item so there is still a single place to look.
+
+**Each tool has one job.** ThinkPad is a document: it holds the context of your thinking and lets you work on any part of it. The runner is a stepper: one thing in view, and what comes next. Neither grows the other's mode. If a pad's content needs stepping through, it is sent to the runner; if a step needs room to think, it is sent to ThinkPad.
 
 **Future tools** are not planned here; the contract is the test for them. Anything that stands alone and speaks text through the broker can join without the existing tools changing.
 
@@ -298,7 +302,7 @@ With the broker in place, the workspace home can answer "what is my next small s
 ### Questions for Miguel
 
 1. **View or import?** Settled in Revisions 4 and 5: tools own their state and exchange text through the workspace shell.
-5. **The shelf.** Do you want the workspace-level tray (§4.3), or should text only ever move directly between tools?
+5. **The shelf.** Settled in Revision 6: yes.
 6. **The layout work.** It was not on the remote, so Phase 3's first item is sized blind. Pushing that branch would let me check how much of the shell already exists.
 2. **Where is the in-flight code?** Only the proposal doc is on the remote. If implementation exists on an unpushed branch, §2 and §3 should be re-checked against it.
 3. **Resolve or Complete?** See the naming note in §4.
