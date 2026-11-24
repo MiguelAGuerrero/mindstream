@@ -19,8 +19,9 @@ function toRow(step) {
   return {
     key: key++,
     prompt: step.prompt ?? "",
-    // Kept as-is; the editor does not offer "action" steps yet.
-    produces: step.produces ?? "text",
+    // What finishing the step yields: a piece of text, or an action you take
+    // (decision 15). ThinkPad only takes workflows whose steps all yield text.
+    produces: step.produces === "action" ? "action" : "text",
     isDecision: step.expects === "call",
     options: [...(step.options ?? [])],
   };
@@ -69,6 +70,9 @@ function move(i, delta) {
 function toggleDecision(row) {
   row.isDecision = !row.isDecision;
 }
+function toggleAction(row) {
+  row.produces = row.produces === "action" ? "text" : "action";
+}
 // Pasting several lines into a step makes one step per line.
 function onPaste(i, event) {
   const text = event.clipboardData?.getData("text") ?? "";
@@ -113,15 +117,29 @@ const hasSteps = () => rows.value.some((r) => r.prompt.trim());
             @paste="onPaste(i, $event)"
             @keydown.enter.prevent="addStep(i + 1)"
           />
-          <v-btn
-            icon="mdi-call-split"
-            :variant="row.isDecision ? 'tonal' : 'text'"
-            :color="row.isDecision ? 'primary' : undefined"
-            size="small"
+        </div>
+        <div class="wf-edit__kinds">
+          <button
+            type="button"
+            class="wf-edit__kind"
+            :class="{ 'wf-edit__kind--on': row.isDecision }"
             :aria-pressed="row.isDecision"
-            :title="row.isDecision ? 'Decision step (click to make it a plain step)' : 'Make this a decision step'"
+            title="A decision: finishing it means choosing an output"
             @click="toggleDecision(row)"
-          />
+          >
+            <v-icon icon="mdi-call-split" size="13" /> Decision
+          </button>
+          <button
+            type="button"
+            class="wf-edit__kind"
+            :class="{ 'wf-edit__kind--on': row.produces === 'action' }"
+            :aria-pressed="row.produces === 'action'"
+            title="An action: finishing it means doing something, not writing something"
+            @click="toggleAction(row)"
+          >
+            <v-icon icon="mdi-run" size="13" /> Action
+          </button>
+          <v-spacer />
           <v-btn icon="mdi-chevron-up" variant="text" size="small" :disabled="i === 0" aria-label="Move up" @click="move(i, -1)" />
           <v-btn
             icon="mdi-chevron-down"
@@ -236,5 +254,36 @@ const hasSteps = () => rows.value.some((r) => r.prompt.trim());
   display: flex;
   align-items: center;
   margin-top: 24px;
+}
+
+.wf-edit__kinds {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0 28px;
+}
+
+.wf-edit__kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(var(--v-theme-on-surface), 0.65);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.wf-edit__kind--on {
+  border-color: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.1);
+}
+
+@media (max-width: 600px) {
+  .wf-edit__kind { min-height: 36px; }
 }
 </style>
