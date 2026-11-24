@@ -717,4 +717,13 @@ watch(
     flex-direction: column;
   }
 }
+
+/* Mobile-first: comfortable tap targets for the bar on phones. */
+@media (max-width: 600px) {
+  .session-runner__bar-back,
+  .session-runner__bar-action {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
 </style>

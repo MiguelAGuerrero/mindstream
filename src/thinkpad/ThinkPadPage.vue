@@ -212,6 +212,19 @@ watch(
                       <v-icon icon="mdi-eye-outline" size="14" />
                       Peek parent
                     </button>
+                    <!-- Tag this thread's passage. Works by tap, since touch has no
+                         hover to reach the tag picker on the passage itself. -->
+                    <div v-if="surface.currentAnchor" class="drill-bar__tags" role="group" aria-label="Tag this thread">
+                      <button
+                        v-for="t in surface.tagChoices"
+                        :key="t.id"
+                        type="button"
+                        class="drill-bar__tag"
+                        :class="{ 'drill-bar__tag--on': surface.currentAnchor.tag === t.id }"
+                        :aria-pressed="surface.currentAnchor.tag === t.id"
+                        @click="surface.setCurrentTag(t.id)"
+                      >{{ t.glyph }} {{ t.label }}</button>
+                    </div>
                   </nav>
                 </v-expand-transition>
 
@@ -427,6 +440,22 @@ watch(
   gap: 16px;
 }
 
+/* Phones: the thread bar's own buttons get a comfortable tap height. */
+@media (max-width: 600px) {
+  .drill-bar__intent,
+  .drill-crumb,
+  .drill-bar__peek {
+    min-height: 40px;
+  }
+}
+
+/* Phones: nothing sits below the page any more, so don't reserve ~100px for it. */
+@media (max-width: 600px) {
+  .thinkpad-canvas {
+    padding-block-end: 12px;
+  }
+}
+
 .thinkpad-page {
   display: flex;
   flex-direction: column;
@@ -534,6 +563,31 @@ watch(
   font-size: 0.85rem;
   line-height: 1.4;
   color: rgb(var(--v-theme-primary));
+}
+
+.drill-bar__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.drill-bar__tag {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(var(--v-theme-on-surface), 0.75);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.drill-bar__tag--on {
+  border-color: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-primary));
+  background: rgba(var(--v-theme-primary), 0.1);
 }
 
 .drill-bar__stance-icon {

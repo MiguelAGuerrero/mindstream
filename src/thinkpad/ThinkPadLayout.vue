@@ -32,7 +32,7 @@ onUnmounted(() => {
             fluid
             :max-width="THINKPAD_PAGE_MAX_WIDTH"
             min-height="0"
-            class="pa-0 w-100 d-flex flex-column flex-grow-1 h-100 min-h-0 thinkpad-content-wrap mx-auto justify-center flex-grow-1 h-screen h-md-auto"
+            class="pa-0 w-100 d-flex flex-column flex-grow-1 h-100 min-h-0 thinkpad-content-wrap mx-auto justify-center flex-grow-1"
           >
             <router-view />
           </v-container>
@@ -57,6 +57,15 @@ onUnmounted(() => {
 .thinkpad-row {
   flex: 1 1 auto;
   min-height: 0;
+}
+
+/* Phones and tablets: the page fills the screen below the app bars, not a
+   full screen height pushed down beneath them (which forced ~100px of scroll).
+   dvh also accounts for the browser's own toolbars. */
+@media (max-width: 959.98px) {
+  .thinkpad-content-wrap {
+    height: calc(100dvh - var(--v-layout-top, 0px));
+  }
 }
 
 @media (min-width: 960px) {

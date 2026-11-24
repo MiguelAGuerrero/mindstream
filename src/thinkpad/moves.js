@@ -224,7 +224,7 @@ export const MOVES = Object.freeze([
 export const ANNOTATION_TAG_DISPLAY = Object.freeze({
   question: { label: "Question", icon: "mdi-help-circle-outline", glyph: "?" },
   expand: { label: "Expand", icon: "mdi-arrow-expand-all", glyph: "!" },
-  converge: { label: "Resolve", icon: "mdi-flag-checkered", glyph: "⚑" },
+  converge: { label: "Flag", icon: "mdi-flag-checkered", glyph: "⚑" },
 });
 
 /** Look up a move by id. Returns null when unknown. */

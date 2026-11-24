@@ -111,7 +111,7 @@ describe("getStanceDisplay", () => {
 
   it("falls back to tag labels when no move is set", () => {
     expect(getStanceDisplay({ tag: "expand" }).label).toBe("Expand");
-    expect(getStanceDisplay({ tag: "converge" }).label).toBe("Resolve");
+    expect(getStanceDisplay({ tag: "converge" }).label).toBe("Flag"); // matches the chip; "Resolve" is the action
     expect(getStanceDisplay({ tag: "question" }).label).toBe("Question");
   });
 

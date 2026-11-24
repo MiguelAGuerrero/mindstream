@@ -3,7 +3,7 @@ import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { usePadStore } from "../store/padStore";
 import { drillThreadsAt, padForThread, threadIsOpen } from "../domain/padDomain";
-import { getMoveById, getStanceDisplay } from "../moves";
+import { getMoveById, getStanceDisplay, ANNOTATION_TAG_LIST, ANNOTATION_TAG_DISPLAY } from "../moves";
 
 /**
  * ThinkPad surface — navigation stack head, drill UI, and pad mutations.
@@ -98,6 +98,23 @@ export function useThinkPadSurface() {
     }
     return getStanceDisplay({ moveId, tag });
   });
+
+  // The passage this thread was opened on, with its tag, so the tag can be
+  // changed by tap from inside the thread (touch has no hover on the passage).
+  const currentAnchor = computed(() => {
+    const anchor = viewFrame.value?.parentAnchor;
+    const pad = currentContext.value;
+    if (!anchor?.annotationId || !pad) return null;
+    const parentLocator = anchor.parentFrameId ?? null;
+    const ann = (padForThread(pad, parentLocator)?.annotations ?? []).find((a) => a.id === anchor.annotationId);
+    return ann ? { annotationId: ann.id, padLocator: parentLocator, tag: ann.tag ?? null } : null;
+  });
+  const tagChoices = ANNOTATION_TAG_LIST.map((id) => ({ id, ...ANNOTATION_TAG_DISPLAY[id] }));
+  function setCurrentTag(tag) {
+    const a = currentAnchor.value;
+    if (!a) return;
+    padStore.tagAnnotation({ annotationId: a.annotationId, padLocator: a.padLocator, tag: a.tag === tag ? null : tag });
+  }
 
   // Threads drilled from the level on screen, at any depth (G6).
   const drillThreads = computed(() => drillThreadsAt(currentContext.value, surfaceHead.value));
@@ -305,6 +322,9 @@ export function useThinkPadSurface() {
     currentGoal,
     currentStance,
     drillThreads,
+    currentAnchor,
+    tagChoices,
+    setCurrentTag,
     leftOpen,
     peekOpen,
     peekPad,

@@ -1702,4 +1702,12 @@ defineExpose({ flushText, dismissSelection });
 .thinkpad-editor-wrap__body {
   min-width: 0;
 }
+
+/* Phones: the footer holds the Writing/Reflect pill, whose buttons are 40px
+   tall here for tapping; give the strip room so the pill is not clipped. */
+@media (max-width: 600px) {
+  .thinkpad-panel--card {
+    --thinkpad-footer-height: 56px;
+  }
+}
 </style>

@@ -43,3 +43,16 @@ kbd,
 samp {
   font-family: var(--font-mono);
 }
+
+/* Mobile-first (roadmap Revision 14): small buttons stay small on desktop but
+   get a comfortable tap height on phones. */
+@media (max-width: 600px) {
+  .v-btn.v-btn--size-small,
+  .v-btn.v-btn--size-x-small {
+    min-height: 40px;
+  }
+  .v-btn.v-btn--icon.v-btn--size-small,
+  .v-btn.v-btn--icon.v-btn--size-x-small {
+    min-width: 40px;
+  }
+}
