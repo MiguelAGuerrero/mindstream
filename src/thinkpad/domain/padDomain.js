@@ -75,6 +75,8 @@ export {
   dropSlot,
   withCaveats,
   caveatsFor,
+  openLoopsFor,
+  exportPadMarkdown,
   unstageOutput,
   restreamFromDraftHistory,
   advanceToNextDraft,

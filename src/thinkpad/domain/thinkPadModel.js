@@ -2132,3 +2132,62 @@ export function caveatsFor(pad, padLocator, annotationId) {
   const ann = (doc?.annotations ?? []).find((a) => a.id === annotationId);
   return Array.isArray(ann?.caveats) ? ann.caveats : [];
 }
+
+// ---------------------------------------------------------------------------
+// Open loops (roadmap Phase 4). ThinkPad reports its own unfinished work so a
+// workspace view can list it without reading ThinkPad's data: every thread at
+// any depth that has not been resolved, with one next step and a place.
+// ---------------------------------------------------------------------------
+
+export function openLoopsFor(pad) {
+  if (!pad) return [];
+  const loops = [];
+  function visit(locator) {
+    for (const t of drillThreadsAt(pad, locator)) {
+      if (t.status !== "resolved") {
+        loops.push({
+          tool: "thinkpad",
+          id: `${pad.id}:${t.threadId}`,
+          title: t.title,
+          where: pad.title || "Untitled pad",
+          next: t.status === "converged" ? "Ready to resolve" : t.hasWork ? "Keep working it" : "Start it",
+          at: pad.updatedAt ?? null,
+          place: { pad: pad.id, thread: t.threadId },
+        });
+      }
+      visit(t.threadId);
+    }
+  }
+  visit(null);
+  return loops;
+}
+
+// ---------------------------------------------------------------------------
+// Export (roadmap Phase 4): one pad to Markdown. The current draft on top
+// (links written as Markdown), then every thread nested below with its
+// state, the passage it was opened on, any caveats, and its own text.
+// ---------------------------------------------------------------------------
+
+const STATUS_WORDS = { open: "open", converged: "ready to resolve", resolved: "resolved" };
+
+export function exportPadMarkdown(pad) {
+  if (!pad) return "";
+  const lines = [`# ${pad.title || "Untitled pad"}`, ""];
+  const root = textWithLinks(pad, null).trim();
+  if (root) lines.push(root, "");
+  const threadLines = [];
+  function visit(locator, depth) {
+    for (const t of drillThreadsAt(pad, locator)) {
+      const hashes = "#".repeat(Math.min(6, depth + 2));
+      threadLines.push(`${hashes} ${t.title} · ${STATUS_WORDS[t.status] ?? t.status}`, "");
+      if (t.anchorText) threadLines.push(`> ${t.anchorText.replace(/\n+/g, " ")}`, "");
+      for (const c of caveatsFor(pad, locator, t.annotationId)) threadLines.push(`*Caveat: ${c}*`, "");
+      const body = textWithLinks(pad, t.threadId).trim();
+      if (body) threadLines.push(body, "");
+      visit(t.threadId, depth + 1);
+    }
+  }
+  visit(null, 1);
+  if (threadLines.length) lines.push("---", "", "## Threads", "", ...threadLines);
+  return lines.join("\n");
+}

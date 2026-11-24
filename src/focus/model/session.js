@@ -189,6 +189,7 @@ export function normalizeContextRecord(record) {
   context.stack = stack;
   context.parked = record.parked === true;
   context.waitingOn = typeof record.waitingOn === "string" ? record.waitingOn : "";
+  if (typeof record.parkedAt === "string" && record.parked === true) context.parkedAt = record.parkedAt;
   context.resolved = record.resolved === true;
   context.notes = typeof record.notes === "string" ? record.notes : "";
   context.origin = normalizeOrigin(record.origin);

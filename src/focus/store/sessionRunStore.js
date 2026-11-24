@@ -279,6 +279,7 @@ export const useSessionRunStore = defineStore("sessionRun", {
       const ctx = this.contexts.find((c) => c.id === id);
       if (!ctx) return;
       ctx.parked = false;
+      delete ctx.parkedAt;
       this.activeContextId = id;
     },
 
@@ -432,6 +433,7 @@ export const useSessionRunStore = defineStore("sessionRun", {
       if (!ctx) return;
       ctx.parked = true;
       ctx.waitingOn = typeof reason === "string" ? reason.trim() : "";
+      ctx.parkedAt = new Date().toISOString(); // so a return can say how long it waited
       this.activeContextId = null;
     },
 
