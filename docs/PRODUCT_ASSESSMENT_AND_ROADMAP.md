@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 28)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 29)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,12 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 29 (2026-11-24): four answers from Miguel.** "One tool per screen for now. We can proceed with no pins. We can opt for having a shortcut be declared per tag. And proceed with reasonable defaults on the open questions." He asked for a fast turnaround so he can test, then iterate.
+- **One tool per screen** (question 17). No multi-tool layout for now; Home and the open-loop list connect the tools, and a thin strip shows what asked when one tool opens another.
+- **No pins** (question 16).
+- **Tag shortcuts are declared per tag** (question 3). Each tag (Question, Expand, Flag) can have one workflow as its shortcut.
+- **Defaults on the remaining questions** (chosen as recommended, Miguel's go-ahead): the runner's opt-in Reflect button stays (never prompted, so decision 17 holds); the typed thesis on resolve stays (Synthesize relies on it); a decision step does not branch (choosing an output moves the plan to its next undone step); the library access rule stands as built (receivers never read the library; they ask with choose-steps; only the library page writes).
 
 **Revision 28 (2026-11-24): Phase 4 exit test passed; landed on master.** Taken ahead of Phase 3's remainder because Phase 3's next item (the multi-tool layout) needs a decision under mobile-first, while Phase 4 was settled and is what multi-day research on a phone needs most. Built: each tool reports its own open loops (ThinkPad: unresolved threads at any depth; runner: live and parked contexts, parked ones with how long they have waited; plus requests still waiting on a reply), and Home lists them above the tools as "Pick up", each with one next step; tapping one lands on the exact thread or context through new deep links. Pad cards say which thread you were in. Export writes a pad as Markdown (draft with links on top, threads nested below with state, source passage and caveats). The exit test (a simulated week away; Home lists every unfinished thread and waiting task; one tap lands on the exact node) passed at phone size. Not done: "Home restores the layout you left" depends on the layout decision (question 17).
 
@@ -457,11 +463,11 @@ Open:
 
 1. *(Settled in Revision 11: not deliberate; Phase 1 continues as written.)*
 2. **The layout work.** Phase 3's shell layout, "Send to…" and the shelf are not built. If the multi-tool layout exists on an unpushed branch, pushing it would let it be checked.
-3. **Where tag shortcuts come from:** pinned per tag, recent use, or the library only. Open in the capture-templates proposal.
-4. **The runner's Reflect button vs decision 17.** Revision 7 says reflection is not an app feature. In the session that produced Revision 8, Miguel asked for "reflection [as] an opt-in side button per step". It is built that way: never prompted, never required. Keep it, or replace it with a reflection step you put in a workflow?
-5. **Typed synthesis vs "one block".** Rule 2 says nothing ascends unless it is one block. The ThinkPad work that was uncommitted on `master` added a dialog that lets a thread with several blocks resolve with a typed synthesis. The merge keeps it, after the open-item gate: every open item must be decided first. Keep it, or require convergence?
-6. **Does a call branch?** Today a call (decision step) only gates progress: you choose, and the plan moves to its next undone step. Should an option be able to lead to different next steps?
-7. **Library access rule (capture-templates §10.8).** Built as proposed: the runner never reads the library. It asks with `choose-steps`, the library page answers, and only the library page writes (`keep`). Confirm before it hardens.
+3. *(Settled in Revision 29: declared per tag.)* **Where tag shortcuts come from:** pinned per tag, recent use, or the library only. Open in the capture-templates proposal.
+4. *(Settled in Revision 29: keep, opt-in.)* **The runner's Reflect button vs decision 17.** Revision 7 says reflection is not an app feature. In the session that produced Revision 8, Miguel asked for "reflection [as] an opt-in side button per step". It is built that way: never prompted, never required. Keep it, or replace it with a reflection step you put in a workflow?
+5. *(Settled in Revision 29: keep.)* **Typed synthesis vs "one block".** Rule 2 says nothing ascends unless it is one block. The ThinkPad work that was uncommitted on `master` added a dialog that lets a thread with several blocks resolve with a typed synthesis. The merge keeps it, after the open-item gate: every open item must be decided first. Keep it, or require convergence?
+6. *(Settled in Revision 29: no.)* **Does a call branch?** Today a call (decision step) only gates progress: you choose, and the plan moves to its next undone step. Should an option be able to lead to different next steps?
+7. *(Settled in Revision 29: as built.)* **Library access rule (capture-templates §10.8).** Built as proposed: the runner never reads the library. It asks with `choose-steps`, the library page answers, and only the library page writes (`keep`). Confirm before it hardens.
 8. *(Settled in Revision 11: append-only, for now.)*
 
 9. *(Settled in Revision 15: leaving Reflect applies waiting results first.)*
@@ -486,9 +492,9 @@ Open:
     - **Amendments from the manual run (Revision 20):** replace is gated on open threads anchored inside the passage; quotes point at the draft version they came from and never "follow" (only live anchors and links do); each move keeps its landing as a default you can override; the link action can target a passage in the document; quotes show "still open" and "changed since quoted"; a "Synthesize" action opens a thread on the whole draft; a pad's resolved thesis is marked as its answer and shown first.
     - **Deferred** until a real document shows the need: Arrange (question 14), a Themes view, inline reference marks, multi-select in the stream.
 
-16. **Pins under mobile-first.** The roadmap's pins are "one keystroke in Stream marks the current block", and the lifecycle doc says a pin "lives in the keystream, never the mouse". A phone has no keystrokes, and since Revision 16 Reflect is a state you can enter at any time, where every paragraph already offers its moves. Options: drop pins; make a pin an inline token typed at the end of a paragraph (for example "??"), lifted out and shown as a mark in Reflect; or a pin button in the writing pill. Recommended: drop pins for now. Their job (marking a passage to come back to while writing) is mostly done by switching to Reflect, and a token or button adds a second way to do the same thing.
+16. *(Settled in Revision 29: no pins.)* **Pins under mobile-first.** The roadmap's pins are "one keystroke in Stream marks the current block", and the lifecycle doc says a pin "lives in the keystream, never the mouse". A phone has no keystrokes, and since Revision 16 Reflect is a state you can enter at any time, where every paragraph already offers its moves. Options: drop pins; make a pin an inline token typed at the end of a paragraph (for example "??"), lifted out and shown as a mark in Reflect; or a pin button in the writing pill. Recommended: drop pins for now. Their job (marking a passage to come back to while writing) is mostly done by switching to Reflect, and a token or button adds a second way to do the same thing.
 
-17. **The multi-tool layout under mobile-first.** Phase 3's first item is "several tools on screen at once", and Phase 4's "Home restores the layout you left" builds on it. Mobile-first (Revision 14) means a phone shows one tool at a time. Options: drop the multi-tool layout and keep one tool per screen everywhere, with Home and the open-loop list as the way between them; keep it as a desktop-only extra; or show the asking item as a thin strip when one tool opens another (the "where you are across hops" item). Recommended: one tool per screen everywhere, plus the thin return strip. It is the only option that works on a phone, it is what exists now, and the return strip covers the real need (knowing what asked and how to send back). The shelf and one-way "Send to…" do not depend on this and can be built either way.
+17. *(Settled in Revision 29: one tool per screen, plus a return strip.)* **The multi-tool layout under mobile-first.** Phase 3's first item is "several tools on screen at once", and Phase 4's "Home restores the layout you left" builds on it. Mobile-first (Revision 14) means a phone shows one tool at a time. Options: drop the multi-tool layout and keep one tool per screen everywhere, with Home and the open-loop list as the way between them; keep it as a desktop-only extra; or show the asking item as a thin strip when one tool opens another (the "where you are across hops" item). Recommended: one tool per screen everywhere, plus the thin return strip. It is the only option that works on a phone, it is what exists now, and the return strip covers the real need (knowing what asked and how to send back). The shelf and one-way "Send to…" do not depend on this and can be built either way.
 
 Settled:
 

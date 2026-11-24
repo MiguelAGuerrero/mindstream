@@ -6,7 +6,7 @@ A compact summary of what is settled, for checking proposals quickly. The source
 - `docs/capture-templates-proposal.md`: workflows, the open-item gate, resolution. Read its decisions table first.
 - `reports/`: research on comparable apps.
 
-If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 28 and proposal decisions 1 to 22.
+If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 29 and proposal decisions 1 to 22.
 
 ## Contents
 
@@ -123,6 +123,10 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 - **A whole-draft synthesis resolves by replacing the text** (Revision 21); the raw material is archived in the synthesis thread.
 - **Synthesis over open threads** (Revision 22). Open threads inside the text being replaced must be acknowledged, not resolved ("tooling, not opinionated"). Their work is kept and re-anchored to the thesis, keeping the snapshot of their original passage; their results are added beside the thesis. A thesis may resolve with open threads under it. Links may target passages (as snapshot connections).
 - **Theme and thesis** (Revision 18). A theme is a collection of text representing a recurring pattern (evidence an idea is true); a passage may serve several. A thesis is an argument derived from themes and evidence; it is what resolves upward, carrying its evidence.
+- **One tool per screen** (Revision 29). No multi-tool layout for now; Home's Pick up list and a thin return strip connect the tools.
+- **No pins** (Revision 29).
+- **Tag shortcuts are declared per tag** (Revision 29): each tag can have one workflow as its shortcut.
+- **Defaults settled in Revision 29:** the runner's opt-in Reflect button stays; the typed thesis on resolve stays; a decision step does not branch; receivers never read the library (they ask with choose-steps; only the library page writes).
 - **Reflection is not an app feature.** Nothing prompts it. It is a step or a workflow the person chooses.
 - **Human executes.** No AI agent in this horizon. If revisited, an agent would be one more tool behind the shell.
 - **No shared data model between tools.** Considered and rejected in favour of message passing. The strongest counter-argument (Ink and Switch, "one shared reality") is known; do not re-propose a shared tree without new evidence.
@@ -155,10 +159,7 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 
 Check the documents for the current list. At last sync:
 
-- Revision 8 questions: the runner's opt-in Reflect button vs decision 17; ThinkPad's typed synthesis vs "one block"; whether a call can branch; the library access rule as built.
 - The core model for synthesis (roadmap §6 question 15, revised after an adversarial review, Revision 19): synthesis in a thread with quoted passages; landing decided by anchor count; references follow a resolved passage; moves stay built in; a thesis is a kind of resolution, not a mechanic. Amended by a manual run (Revision 20; `reports/Mindstream synthesis model manual run.md`). Not decided.
-- Where tag shortcuts to workflows come from: pinned per tag, recent use, or the library only.
-- Who may read the workflow library. Built as: the runner never reads it, asks with `choose-steps`; only the library page writes. Not yet confirmed by Miguel.
 - How much of the shell already exists in the undeployed multi-tool layout work.
 - Whether ThinkPad's one-way stamp into Reflect is too formal. Research found a published critique of mandatory drafts ("formality on demand"); the roadmap already calls for a "Write more" escape.
 
