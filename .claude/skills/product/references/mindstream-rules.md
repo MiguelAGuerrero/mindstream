@@ -6,7 +6,7 @@ A compact summary of what is settled, for checking proposals quickly. The source
 - `docs/capture-templates-proposal.md`: workflows, the open-item gate, resolution. Read its decisions table first.
 - `reports/`: research on comparable apps.
 
-If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 7 and proposal decisions 1 to 22.
+If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 8 and proposal decisions 1 to 22.
 
 ## Contents
 
@@ -104,7 +104,7 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 
 ## 6. Settled decisions that are easy to get wrong
 
-- **"Resolve", not "Complete".** A resolution means understanding was reached, even with room for doubt. The Focus runner still says "Complete" in code and needs renaming.
+- **"Resolve", not "Complete".** A resolution means understanding was reached, even with room for doubt. Both tools now say Resolve (runner: `resolveFocus`). The stored ThinkPad field `completedAt` keeps its name on purpose; renaming it would need a migration.
 - **Tags do not start workflows.** Question, Expand and Flag open a plain sub-pad and offer shortcuts to workflows. No workflow is bound to a tag or a type of move.
 - **A level ends in a call or a sharper question.** A sharper question is a legitimate result.
 - **Open-item gate.** A level cannot resolve while moves started there are undecided. Each is addressed, accepted as a stated caveat, lifted to an ancestor, or parked. Built in ThinkPad.
@@ -135,12 +135,13 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 - **Same reference on no-op.** A reducer that changes nothing returns the object it was given. Stores rely on this.
 - **Additive persistence.** New fields are default-filled in `padPersistenceMapper.js`. Old records must load unchanged.
 - **Tests sit beside the code** as `*.test.js`, run in Node without a DOM. Keep domain logic free of Vue so it stays testable that way.
-- **Paths:** `src/thinkpad/` and `src/focus/` are separate modules. `docs/FRONTEND_PATHS.md` may be stale; trust the tree.
+- **Paths:** `src/thinkpad/` and `src/focus/` are separate modules. `docs/FRONTEND_PATHS.md` maps them; if it disagrees with the tree, trust the tree and fix the doc.
 
 ## 9. Known open questions
 
 Check the documents for the current list. At last sync:
 
+- Phase order: the open-item gate (Phase 2) was built before Phase 1. Deliberate reordering, or return to Phase 1 next? Asked in roadmap §6.
 - Where tag shortcuts to workflows come from: pinned per tag, recent use, or the library only.
 - Who may read the workflow library. Proposed, not confirmed: tools that start a run may read it through the shell; receivers never do; only the library page writes.
 - How much of the shell already exists in the undeployed multi-tool layout work.
@@ -148,6 +149,6 @@ Check the documents for the current list. At last sync:
 
 ## 10. Outdated documents
 
-These describe an earlier product ("Rep-it", a workflow-step session app) or removed code. Do not use them as current context: `docs/PRODUCT_AGENT_CONTEXT.md`, `docs/PRODUCT_IDEATION_CONTEXT.md`, `docs/TRIAGE_IDEATION_CONTEXT.md`, `docs/GRAPH_STATUS_AGENT_CONTEXT.md`, section 3 of `docs/feature-science-map.md`, and parts of `docs/FRONTEND_PATHS.md`. `README.md` is still the framework template.
+Everything in `docs/archive/` describes an earlier product ("Rep-it", a workflow-step session app) or removed code. Do not use it as current context. `docs/feature-science-map.md` is also historical as a product description; its research principles still hold. `README.md` and `docs/FRONTEND_PATHS.md` were brought up to date in Phase 0 (Revision 8).
 
 `docs/recursive-resolve-contract.md` and `docs/stream-reflect-lifecycle.md` remain the design basis for ThinkPad, though they use older file paths and names.

@@ -291,7 +291,7 @@ step.resolution        = { text, type: Type | null, caveats: string[] }   // cav
    - workflows you've pinned to that tag yourself;
    - the ones you've used most recently with it;
    - only the library, with no shortcuts until you pin some.
-7. **Renaming "Complete" back to "Resolve" in code.** `master` renamed "Resolve up" to "Complete" in the ThinkPad surface and the Focus runner (decision 21). This rename should land before the gate UI.
+7. ~~**Renaming "Complete" back to "Resolve" in code.**~~ **Done.** ThinkPad says Resolve since the gate (`6cf989f`); the Focus runner since Phase 0 (roadmap Revision 8).
 8. **Library access rule (proposed).** Receivers never read the library; senders read it through the shell; only the library page writes to it (§3.1). The roadmap session is raising this with Miguel.
 
 ---
