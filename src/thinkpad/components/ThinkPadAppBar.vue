@@ -41,10 +41,31 @@ function exportPad() {
 <template>
   <component
     :is="props.compact ? 'div' : VAppBar"
-    v-bind="props.compact ? {} : { flat: true, color: 'background', elevation: 0, height: smAndDown ? 48 : 68 }"
+    v-bind="props.compact ? {} : { flat: true, color: 'background', elevation: 0, height: smAndDown ? 44 : 68 }"
     :class="props.compact ? 'thinkpad-appbar--compact' : undefined"
   >
-    <div class="thinkpad-appbar-content">
+    <!-- Phones: one thin bar. Home, the page's own actions (moved in from the
+         page, see ThinkPadPanel), and New / Open / Export under a menu. -->
+    <div v-if="smAndDown && !props.compact" class="thinkpad-appbar-content thinkpad-appbar-content--thin">
+      <v-btn icon="mdi-brain" variant="text" size="small" title="Home" aria-label="Home" @click="goHome" />
+      <div id="thinkpad-bar-host" class="thinkpad-bar-host" />
+      <v-menu location="bottom end">
+        <template #activator="{ props: menuProps }">
+          <v-btn v-bind="menuProps" icon="mdi-dots-vertical" variant="text" size="small" title="New, open, export" aria-label="More" />
+        </template>
+        <v-list density="compact" min-width="180">
+          <v-list-item prepend-icon="mdi-plus" title="New" @click="padStore.newBlankPad()" />
+          <v-list-item prepend-icon="mdi-folder-open-outline" title="Open…" @click="sessionUi.documentPickerOpen = true" />
+          <v-list-item
+            v-if="padStore.currentPad && padStore.currentPadMarkdown.trim()"
+            prepend-icon="mdi-download-outline"
+            title="Export as Markdown"
+            @click="exportPad"
+          />
+        </v-list>
+      </v-menu>
+    </div>
+    <div v-else class="thinkpad-appbar-content">
       <v-btn
         variant="text"
         prepend-icon="mdi-plus"
@@ -84,6 +105,21 @@ function exportPad() {
   flex: 1;
   min-width: 0;
   padding: 0 12px;
+}
+
+.thinkpad-appbar-content--thin {
+  gap: 2px;
+  padding: 0 2px;
+}
+
+.thinkpad-bar-host {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
 .thinkpad-appbar--compact {

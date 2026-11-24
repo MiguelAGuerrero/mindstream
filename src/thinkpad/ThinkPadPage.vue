@@ -271,8 +271,8 @@ watch(
                     prepend-icon="mdi-timer-outline"
                     :title="focusHandoff.focusSummary.value.reflection || undefined"
                   >{{ focusHandoff.focusSummary.value.label }}</v-chip>
-                  <v-btn v-if="focusHandoff.canFocus.value" size="small" variant="text" prepend-icon="mdi-timer" @click="focusHandoff.focusOnThisMove()">Focus on this</v-btn>
-                  <v-btn size="small" variant="text" prepend-icon="mdi-arrow-up-left" @click="surface.handleAscend()">Back</v-btn>
+                  <v-btn v-if="focusHandoff.canFocus.value" class="drill-bar__btn--squeeze" size="small" variant="text" prepend-icon="mdi-timer" title="Focus on this" aria-label="Focus on this" @click="focusHandoff.focusOnThisMove()">Focus on this</v-btn>
+                  <v-btn class="drill-bar__btn--squeeze" size="small" variant="text" prepend-icon="mdi-arrow-up-left" title="Back" aria-label="Back" @click="surface.handleAscend()">Back</v-btn>
                   <!-- The title sits on a wrapper: a disabled button gets no hover (D2). -->
                   <span :title="surface.canResolve ? undefined : 'Nothing to resolve yet. Write in this thread first.'">
                     <v-btn
@@ -608,12 +608,7 @@ watch(
   }
 }
 
-/* Phones: nothing sits below the page any more, so don't reserve ~100px for it. */
-@media (max-width: 600px) {
-  .thinkpad-canvas {
-    padding-block-end: 12px;
-  }
-}
+
 
 .thinkpad-page {
   display: flex;
@@ -1118,4 +1113,42 @@ watch(
   font-size: 0.7rem;
 }
 
+
+/* Phones: the page fills the screen edge to edge under the one thin bar
+   (Revision 32). A thread's bar keeps a small inset so it reads as a strip. */
+@media (max-width: 600px) {
+  .thinkpad-canvas {
+    padding: 0;
+  }
+  .thinkpad-page-col {
+    gap: 0;
+  }
+  /* A thread's strip is one line: its title, then Focus and Back as icons, then Resolve. */
+  .drill-bar,
+  .drill-bar--expanded {
+    flex-wrap: nowrap;
+    align-items: center;
+    width: auto;
+    margin: 4px 8px;
+    padding: 2px 4px 2px 10px;
+  }
+  .drill-bar__intent {
+    align-items: center;
+  }
+  .drill-bar__intent-text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .drill-bar__actions :deep(.drill-bar__btn--squeeze) {
+    min-width: 40px;
+    padding: 0 8px;
+  }
+  .drill-bar__actions :deep(.drill-bar__btn--squeeze .v-btn__content) {
+    display: none;
+  }
+  .drill-bar__actions :deep(.drill-bar__btn--squeeze .v-btn__prepend) {
+    margin-inline: 0;
+  }
+}
 </style>

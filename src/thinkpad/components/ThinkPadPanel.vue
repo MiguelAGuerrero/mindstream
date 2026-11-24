@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, nextTick, computed, onBeforeUnmount, onMounted } from "vue";
+import { ref, watch, nextTick, computed, onBeforeUnmount, onMounted, inject } from "vue";
 import { onClickOutside } from "@vueuse/core";
 import { EditorContent, useEditor } from "@tiptap/vue-3";
 import Document from "@tiptap/extension-document";
@@ -211,6 +211,10 @@ function scrollSelectionIntoView(view) {
 // a screen at a time, overlapping one line so nothing is lost at the edge.
 // The choice of Pages or Document view is remembered in this browser.
 // ---------------------------------------------------------------------------
+// On phones this bar's contents live in the one thin app bar (Revision 32).
+const barHost = inject("thinkpadBarHost", null);
+const barInAppBar = computed(() => !props.embedded && !!barHost?.value);
+
 const VIEW_KEY = "mindstream.reflectView";
 const reflectView = ref((() => {
   try { return localStorage.getItem(VIEW_KEY) === "document" ? "document" : "pages"; } catch { return "pages"; }
@@ -939,6 +943,7 @@ defineExpose({ flushText, dismissSelection });
     }"
   >
     <div v-if="!embedded" class="thinkpad-panel__bar d-flex align-center flex-shrink-0">
+      <Teleport defer to="#thinkpad-bar-host" :disabled="!barInAppBar">
       <!-- Reflect reads in pages by default; Document is one long scroll (Revision 31). -->
       <button
         v-if="reflectMode"
@@ -995,6 +1000,7 @@ defineExpose({ flushText, dismissSelection });
       </v-menu>
       <v-spacer />
       <slot name="bar-end" />
+      </Teleport>
     </div>
     <div ref="bodyRef" class="thinkpad-panel__body flex-grow-1">
       <!-- Margin frame: inset from the paper edge (card mode). Content scrolls inside
@@ -2017,6 +2023,15 @@ defineExpose({ flushText, dismissSelection });
     flex: none;
     overflow: visible;
     margin-top: 0;
+  }
+}
+
+/* Phones: the page is the screen. No card frame, border or shadow (Revision 32). */
+@media (max-width: 600px) {
+  .thinkpad-panel--card {
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
   }
 }
 </style>

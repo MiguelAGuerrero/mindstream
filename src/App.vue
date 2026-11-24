@@ -20,8 +20,12 @@ const isHomeRoute = computed(() => route.name === "home");
 // icon is the only way back to the launcher, so nothing but the session's own
 // end/pause controls exits (that route's chrome reads the app-level focusUi).
 const { smAndDown } = useDisplay(); // a lower bar on phones (mobile-first)
+// On phones the ThinkPad screen has one thin bar of its own (ThinkPadAppBar),
+// carrying the way home, so the page gets the screen (Revision 32).
 const showAppBar = computed(
-  () => !(route.name === "focus" && (focusUi.expanded || focusUi.sessionActive)),
+  () =>
+    !(route.name === "focus" && (focusUi.expanded || focusUi.sessionActive)) &&
+    !(route.name === "thinkpad" && smAndDown.value),
 );
 const showPreloader = ref(true);
 

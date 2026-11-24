@@ -1,5 +1,6 @@
 <script setup>
-import { onUnmounted } from "vue";
+import { computed, onUnmounted, provide } from "vue";
+import { useDisplay } from "vuetify";
 import ThinkPadAppBar from "./components/ThinkPadAppBar.vue";
 import DecomposeHandoffPanel from "./components/DecomposeHandoffPanel.vue";
 import { provideSessionUi } from "./composables/useSessionUi";
@@ -12,6 +13,11 @@ const THINKPAD_PAGE_MAX_WIDTH = 880;
 const sessionUi = provideSessionUi();
 
 useThinkPadBootstrap();
+
+// Phones: the page's own bar (Pages, threads, Synthesize...) moves into the one
+// thin app bar instead of stacking a second row above the page (Revision 32).
+const { smAndDown } = useDisplay();
+provide("thinkpadBarHost", computed(() => smAndDown.value));
 
 onUnmounted(() => {
   sessionUi.padExpanded = false;

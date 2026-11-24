@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 31)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 32)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 32 (2026-11-24): the page is the phone screen.** Miguel found too much of the phone given to chrome around the document. Settled with him: one thin bar, the text edge to edge on phones (desktop keeps its reading width), and the Writing / Reflect switch stays at the bottom where the thumb is. **Built:** on phones the ThinkPad screen drops the Mindstream bar; one 44px bar holds Home, the page's own actions (Pages, threads, Synthesize, Workflow...) and a ⋯ menu with New, Open and Export. The card frame, its border and the padding around it are gone on phones. A thread's strip is one line: its title, Focus and Back as icons, then Resolve. Measured at iPhone size: the writing area went from 474px to 564px tall, and a long draft in Reflect from 8 pages to 5.
 
 **Revision 31 (2026-11-24): writing scrolls, reflecting is paged.** Settled by Miguel after using the deployed app on his phone: "writing could just be infinite scrolling, but for reflecting, it most certainly should be paginated. Or at the very least, we offer a paginated view versus a document view, much like any word processor might." So: Writing is one continuous scroll; Reflect opens in a Pages view (screen-sized pages, turned by swipe or tap, "page 2 of 5"), with a Document view to switch to. He also found, on the device, that a thread drilled from a long passage left no room to write (fixed: the passage is clamped to three lines) and that Mindstream could not be installed as an app (fixed: it is now an installable, offline-capable app). **Built (same day):** on phones the title and text scroll together while writing; Reflect opens in Pages (swipe, ‹ › or arrow keys; "N / M"; one line repeats at the top of the next page; the title shows on page 1 only; a swipe that starts on a selection never turns the page); a Pages / Document switch sits in the card's top bar while reflecting and is remembered on this device. The empty grey strip above the page while writing is gone.
 
