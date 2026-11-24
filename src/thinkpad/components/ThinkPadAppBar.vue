@@ -54,7 +54,7 @@ function exportPad() {
           <v-btn v-bind="menuProps" icon="mdi-dots-vertical" variant="text" size="small" title="New, open, export" aria-label="More" />
         </template>
         <v-list density="compact" min-width="180">
-          <v-list-item prepend-icon="mdi-plus" title="New" @click="padStore.newBlankPad()" />
+          <v-list-item prepend-icon="mdi-plus" title="New" @click="padStore.newBlankPad(); sessionUi.newPadDialogOpen = true" />
           <v-list-item prepend-icon="mdi-folder-open-outline" title="Open…" @click="sessionUi.documentPickerOpen = true" />
           <v-list-item
             v-if="padStore.currentPad && padStore.currentPadMarkdown.trim()"

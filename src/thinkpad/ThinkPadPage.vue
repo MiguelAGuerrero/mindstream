@@ -1,5 +1,6 @@
 <script setup>
 import { toRef, ref, watch, nextTick } from "vue";
+import { useDisplay } from "vuetify";
 import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
 import ThinkPadPanel from "./components/ThinkPadPanel.vue";
@@ -24,6 +25,9 @@ const THINKPAD_EXPANDED_MAX_WIDTH = 1160;
 
 const surface = useThinkPadSurface();
 const sessionUi = useSessionUi();
+// Phones: the welcome is a document list with a + button; the question is
+// asked in a dialog instead of a full-screen prompt (Revision 33).
+const { smAndDown } = useDisplay();
 const padStore = usePadStore();
 const { currentPad: currentContext, isLoaded: padStoreIsLoaded, isDraftFrozen, currentPadId } = storeToRefs(padStore);
 
@@ -100,6 +104,16 @@ watch(
   },
 );
 
+// New (the + button or the menu) may land on a blank pad you had already
+// started writing in; asking again brings its welcome back, so cancelling the
+// dialog leaves you on the list rather than on an empty page.
+watch(
+  () => sessionUi.newPadDialogOpen,
+  (open) => {
+    if (open && welcome.isBlankPad) welcome.dismissed = false;
+  },
+);
+
 watch(
   () => surface.surfaceHead,
   () => { drillContextExpanded.value = false; },
@@ -116,10 +130,11 @@ watch(
         <div class="thinkpad-canvas flex-grow-1 min-h-0">
           <v-expand-transition mode="out-in">
             <div
-              v-if="welcome.showRecentPanel"
+              v-if="welcome.showRecentPanel || (smAndDown && welcome.showQuestionPrompt)"
               class="thinkpad-welcome"
             >
-              <p class="thinkpad-welcome__heading text-overline text-medium-emphasis">Pick up where you left off</p>
+              <p v-if="welcome.recentItems.length" class="thinkpad-welcome__heading text-overline text-medium-emphasis">Pick up where you left off</p>
+              <p v-else class="thinkpad-welcome__empty text-body-2 text-medium-emphasis">No think-pads yet. Tap + to start one.</p>
               <div class="thinkpad-welcome__grid">
                 <button
                   v-for="item in welcome.recentItems"
@@ -152,7 +167,48 @@ watch(
           </v-expand-transition>
 
           <div v-if="welcome.showQuestionPrompt" class="thinkpad-prompt">
-            <div class="thinkpad-prompt__inner">
+            <template v-if="smAndDown">
+              <!-- Phones: one + where the thumb is; it asks the question in a dialog. -->
+              <v-btn
+                class="thinkpad-new-fab"
+                icon="mdi-plus"
+                color="primary"
+                size="large"
+                elevation="4"
+                aria-label="New think-pad"
+                title="New think-pad"
+                @click="sessionUi.newPadDialogOpen = true"
+              />
+              <v-dialog v-model="sessionUi.newPadDialogOpen" max-width="440">
+                <v-card class="thinkpad-new-dialog">
+                  <v-card-title class="text-subtitle-1 pt-4">New think-pad</v-card-title>
+                  <v-card-text class="pb-1">
+                    <form @submit.prevent="sessionUi.newPadDialogOpen = false; welcome.submitQuestion()">
+                      <v-text-field
+                        v-model="welcome.questionDraft"
+                        label="What question are you trying to answer?"
+                        variant="outlined"
+                        density="comfortable"
+                        autofocus
+                        hide-details
+                        autocomplete="off"
+                      />
+                    </form>
+                  </v-card-text>
+                  <v-card-actions class="px-4 pb-3">
+                    <v-btn variant="text" @click="sessionUi.newPadDialogOpen = false; welcome.handleThinkPadFocus()">Just start writing</v-btn>
+                    <v-spacer />
+                    <v-btn
+                      color="primary"
+                      variant="flat"
+                      :disabled="!welcome.questionDraft.trim()"
+                      @click="sessionUi.newPadDialogOpen = false; welcome.submitQuestion()"
+                    >Create</v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-dialog>
+            </template>
+            <div v-else class="thinkpad-prompt__inner">
               <p class="thinkpad-prompt__eyebrow text-overline text-medium-emphasis">New think-pad</p>
               <h1 class="thinkpad-prompt__heading">What question are you trying to answer?</h1>
               <form class="thinkpad-prompt__form" @submit.prevent="welcome.submitQuestion">
@@ -417,10 +473,11 @@ watch(
         </div>
       </div>
 
+      <!-- On phones it shows at the top: at the bottom it covers Write / Reflect. -->
       <v-snackbar
         :model-value="!!surface.leftOpen"
         timeout="4000"
-        location="bottom"
+        :location="smAndDown ? 'top' : 'bottom'"
         @update:model-value="(v) => { if (!v) surface.leftOpen = null; }"
       >
         <template v-if="surface.leftOpen">
@@ -1141,15 +1198,33 @@ watch(
     padding: 8px 8px 0;
     gap: 4px;
   }
-  .thinkpad-welcome__heading {
+  .thinkpad-welcome__heading,
+  .thinkpad-welcome__empty {
     padding-inline: 8px;
+  }
+  .thinkpad-prompt {
+    flex: 0 0 0;
+  }
+  .thinkpad-welcome__empty {
+    margin: 16px 0 0;
+  }
+  .thinkpad-new-fab {
+    position: fixed;
+    right: 20px;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    z-index: 5;
   }
   .thinkpad-welcome__grid {
     display: flex;
     flex-direction: column;
     gap: 0;
-    max-height: 232px;
+  }
+  /* With no big prompt below, the list can use the screen. */
+  .thinkpad-welcome {
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
+    padding-bottom: 96px; /* the last row clears the + button */
   }
   .thinkpad-welcome__grid .thinkpad-doc-card {
     flex-direction: row;

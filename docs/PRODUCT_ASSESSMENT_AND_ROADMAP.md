@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 32)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 33)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 33 (2026-11-24): on phones, a new think-pad starts from a + button.** Miguel: "even more simple than that, let's just have a quick plus button where a thumb press will be appropriate and that just creates a think-pad. It brings up a dialog instead." Settled with him: phones only (desktop keeps the full-screen question prompt), and the dialog asks the question but can be skipped. **Built:** the phone welcome is the list of recent pads (icon, title, when and where you left off; no preview) with a round + at the bottom right. + opens "New think-pad": one field, "What question are you trying to answer?", Create, and "Just start writing" for an untitled pad. New in the ⋮ menu opens the same dialog, and cancelling it leaves you on the list. With no pads yet the list says "No think-pads yet. Tap + to start one." Found on the way: since Revision 32 the "still open, under Threads" notice covered Write / Reflect at the bottom; on phones it now shows at the top.
 
 **Revision 32 (2026-11-24): the page is the phone screen.** Miguel found too much of the phone given to chrome around the document. Settled with him: one thin bar, the text edge to edge on phones (desktop keeps its reading width), and the Writing / Reflect switch stays at the bottom where the thumb is. **Built:** on phones the ThinkPad screen drops the Mindstream bar; one 44px bar holds Home, the page's own actions (Pages, threads, Synthesize, Workflow...) and a ⋯ menu with New, Open and Export. The card frame, its border and the padding around it are gone on phones. A thread's strip is one line: its title, Focus and Back as icons, then Resolve. Measured at iPhone size: the writing area went from 474px to 564px tall, and a long draft in Reflect from 8 pages to 5.
 

@@ -12,6 +12,8 @@ export function createSessionUi() {
   return reactive({
     padExpanded: false,
     documentPickerOpen: false,
+    // Phones: the new-think-pad dialog (the + button, or New in the menu).
+    newPadDialogOpen: false,
   });
 }
 
