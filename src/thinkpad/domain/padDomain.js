@@ -57,6 +57,10 @@ export {
   stageStepOutput,
   revealReflectPass,
   restreamDraft,
+  beginWriteMore,
+  setWriteMoreText,
+  cancelWriteMore,
+  addWriteMore,
   restreamFromDraftHistory,
   advanceToNextDraft,
   // Block reorder

@@ -32,6 +32,8 @@ import {
   ideaIdForRange,
   docHasMultipleIdeas,
   remapAnnotationsForIdeaReorder,
+  ideasFromText,
+  readFrozenIdeas,
 } from "./ideas";
 
 const DEFAULT_CONFIG = Object.freeze({
@@ -1356,6 +1358,80 @@ export function advanceToNextDraft(pad, { padLocator = null } = {}, { now, makeI
     staged: [],
   };
   return withPad(next, padLocator, restampedDoc, { now });
+}
+
+// ---------------------------------------------------------------------------
+// Write more — the append-only escape hatch from Reflect (G4, roadmap Rev. 11).
+//
+// The frozen draft is never reopened. doc.writeMore holds text being added
+// (null = closed); adding it appends new paragraphs AFTER the frozen draft and
+// records a stream pass in draftHistory. Appending at the end keeps every
+// anchor offset into frozenText valid, so staged results are left untouched.
+// ---------------------------------------------------------------------------
+
+/** Open an empty writing area under a frozen draft. Same ref unless in Reflect and closed. */
+export function beginWriteMore(pad, { padLocator = null } = {}, { now } = {}) {
+  if (!pad) return pad;
+  const doc = padForThread(pad, padLocator);
+  if (!doc || doc.phase !== "cultivate") return pad;
+  if (typeof doc.writeMore === "string") return pad; // already open
+  return withPad(pad, padLocator, { ...doc, writeMore: "" }, { now });
+}
+
+/** Update the text being added. Same ref when the area is closed or the text is unchanged. */
+export function setWriteMoreText(pad, { padLocator = null, text = "" } = {}, { now } = {}) {
+  if (!pad) return pad;
+  const doc = padForThread(pad, padLocator);
+  if (!doc || typeof doc.writeMore !== "string") return pad;
+  const next = typeof text === "string" ? text : "";
+  if (next === doc.writeMore) return pad;
+  return withPad(pad, padLocator, { ...doc, writeMore: next }, { now });
+}
+
+/** Close the writing area and drop its text. The draft is unchanged. */
+export function cancelWriteMore(pad, { padLocator = null } = {}, { now } = {}) {
+  if (!pad) return pad;
+  const doc = padForThread(pad, padLocator);
+  if (!doc || typeof doc.writeMore !== "string") return pad;
+  return withPad(pad, padLocator, { ...doc, writeMore: null }, { now });
+}
+
+/**
+ * Add the written text to the draft: new paragraphs after the frozen draft, a
+ * stream pass in draftHistory (seeding the original draft as entry 0 first, as
+ * advanceToNextDraft does), and the area closed. Blank text just closes it.
+ */
+export function addWriteMore(pad, { padLocator = null } = {}, { now, makeId } = {}) {
+  if (!pad) return pad;
+  const doc = padForThread(pad, padLocator);
+  if (!doc || typeof doc.writeMore !== "string") return pad;
+  const added = ideasFromText(doc.writeMore, { makeId });
+  if (added.length === 0 || doc.phase !== "cultivate") {
+    return withPad(pad, padLocator, { ...doc, writeMore: null }, { now });
+  }
+  const base = ensureDocIdeas(doc, { makeId });
+  const frozenBefore = readFrozenIdeas(base);
+  const ideas = [...(base.ideas ?? []), ...added];
+  const frozenIdeas = [...frozenBefore.map((i) => ({ ...i })), ...added.map((i) => ({ ...i }))];
+  const text = ideasToText(ideas);
+  const frozenText = ideasToText(frozenIdeas);
+  const history = base.draftHistory ?? [];
+  const seeded = history.length > 0
+    ? history
+    : [{ n: 0, text: base.frozenText ?? base.text ?? "", at: now, contributions: [] }];
+  const draftHistory = [
+    ...seeded,
+    { n: seeded.length, text: frozenText, at: now, contributions: [], pass: "stream" },
+  ];
+  return withPad(pad, padLocator, {
+    ...base,
+    ideas,
+    text,
+    frozenIdeas,
+    frozenText,
+    draftHistory,
+    writeMore: null,
+  }, { now });
 }
 
 // ---------------------------------------------------------------------------
