@@ -142,6 +142,41 @@ describe("addWriteMore", () => {
     expect(root(pad).text).toBe("The plan is a set of open questions.\n\nDates slip.");
   });
 
+  it("Next Draft keeps the paragraph list in step with the revealed text, keeping ids", () => {
+    const env = makeTestEnv();
+    let pad = reflectingPad(env, "The plan is a mess.");
+    const idBefore = root(pad).ideas[0].id;
+    const drilled = drillIntoSpan(pad, {
+      parentThreadId: null, title: "the mess", selectionStart: 14, selectionEnd: 18, selectedText: "mess",
+    }, env);
+    pad = stageStepOutput(drilled.pad, {
+      stepId: drilled.frame.steps[0].id, annotationId: drilled.annotationId, text: "set of open questions",
+    }, env);
+    pad = advanceToNextDraft(pad, {}, env);
+    expect(root(pad).ideas.map((i) => i.text)).toEqual(["The plan is a set of open questions."]);
+    expect(root(pad).frozenIdeas.map((i) => i.text)).toEqual(["The plan is a set of open questions."]);
+    expect(root(pad).ideas[0].id).toBe(idBefore);
+  });
+
+  it("builds on the revealed draft after a Next Draft, not the draft before it", () => {
+    const env = makeTestEnv();
+    let pad = reflectingPad(env, "The plan is a mess.");
+    const drilled = drillIntoSpan(pad, {
+      parentThreadId: null, title: "the mess", selectionStart: 14, selectionEnd: 18, selectedText: "mess",
+    }, env);
+    pad = stageStepOutput(drilled.pad, {
+      stepId: drilled.frame.steps[0].id, annotationId: drilled.annotationId, text: "set of open questions",
+    }, env);
+    pad = advanceToNextDraft(pad, {}, env);
+    expect(root(pad).frozenText).toBe("The plan is a set of open questions.");
+
+    pad = setWriteMoreText(beginWriteMore(pad, {}, env), { text: "Dates slip." }, env);
+    pad = addWriteMore(pad, {}, env);
+    expect(root(pad).frozenText).toBe("The plan is a set of open questions.\n\nDates slip.");
+    expect(root(pad).text).toBe(root(pad).frozenText);
+    expect(root(pad).frozenIdeas.map((i) => i.text)).toEqual(["The plan is a set of open questions.", "Dates slip."]);
+  });
+
   it("works in a sub-pad", () => {
     const env = makeTestEnv();
     let pad = reflectingPad(env);

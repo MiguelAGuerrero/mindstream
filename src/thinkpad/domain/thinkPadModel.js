@@ -1413,10 +1413,16 @@ export function advanceToNextDraft(pad, { padLocator = null } = {}, { now, makeI
 
   // Re-stamp with the new text so the next cultivation pass starts from a clean baseline.
   // frozenText must equal text so new annotations have valid offsets for the next reveal.
+  // The reveal splices text only, so bring the paragraph lists (ideas are the source of
+  // truth; text is derived) back in step with it, keeping ids paragraph by paragraph.
   const advancedDoc = padForThread(next, padLocator);
+  const revealedText = advancedDoc.text ?? "";
+  const ideas = reconcileIdeasFromText(advancedDoc.ideas ?? [], revealedText, { makeId });
   const restampedDoc = {
     ...advancedDoc,
-    frozenText: advancedDoc.text ?? "",
+    ideas,
+    frozenIdeas: ideas.map((i) => ({ ...i })),
+    frozenText: revealedText,
     staged: [],
   };
   return withPad(next, padLocator, restampedDoc, { now });
