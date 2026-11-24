@@ -225,16 +225,19 @@ watch(
                   >{{ focusHandoff.focusSummary.value.label }}</v-chip>
                   <v-btn v-if="focusHandoff.canFocus.value" size="small" variant="text" prepend-icon="mdi-timer" @click="focusHandoff.focusOnThisMove()">Focus on this</v-btn>
                   <v-btn size="small" variant="text" prepend-icon="mdi-arrow-up-left" @click="surface.handleAscend()">Back</v-btn>
-                  <v-btn
-                    size="small"
-                    :color="surface.openItems.length ? 'warning' : 'primary'"
-                    :variant="surface.openItems.length ? 'tonal' : 'flat'"
-                    prepend-icon="mdi-arrow-up-bold-box-outline"
-                    :disabled="!surface.canResolve"
-                    @click="surface.handleResolve()"
-                  >
-                    {{ surface.openItems.length ? `Resolve · ${surface.openItems.length} open` : "Resolve" }}
-                  </v-btn>
+                  <!-- The title sits on a wrapper: a disabled button gets no hover (D2). -->
+                  <span :title="surface.canResolve ? undefined : 'Nothing to resolve yet. Write in this thread first.'">
+                    <v-btn
+                      size="small"
+                      :color="surface.openItems.length ? 'warning' : 'primary'"
+                      :variant="surface.openItems.length ? 'tonal' : 'flat'"
+                      prepend-icon="mdi-arrow-up-bold-box-outline"
+                      :disabled="!surface.canResolve"
+                      @click="surface.handleResolve()"
+                    >
+                      {{ surface.openItems.length ? `Resolve · ${surface.openItems.length} open` : "Resolve" }}
+                    </v-btn>
+                  </span>
                 </div>
               </div>
 
