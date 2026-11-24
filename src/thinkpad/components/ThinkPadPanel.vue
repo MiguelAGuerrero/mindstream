@@ -19,7 +19,8 @@ import { emitAudioEvent } from "../../sfx";
 import { titleDisplayMode } from "../editor/thinkPadTitle";
 
 /** Think-pad page gutter only — 0.5in at 96dpi (matches letter sheet constants). */
-const pageMarginInset = "48px";
+// Scales with the screen: 0.5in on a desktop page, down to 16px on a phone.
+const pageMarginInset = "clamp(16px, 5vw, 48px)";
 
 const props = defineProps({
   thinkPad: { type: Object, default: () => ({ text: "", annotations: [] }) },
@@ -1251,12 +1252,12 @@ defineExpose({ flushText, dismissSelection });
 
 /* Short title → a deliberate heading. */
 .thinkpad-title--heading {
-  font-size: 1.75rem;
+  font-size: clamp(1.35rem, 1rem + 2vw, 1.75rem);
   font-weight: 600;
   font-style: normal;
   line-height: 1.25;
   letter-spacing: -0.01em;
-  min-height: calc(1.75rem * 1.25);
+  min-height: calc(clamp(1.35rem, 1rem + 2vw, 1.75rem) * 1.25);
 }
 
 /* Long title → condensed into a pulled quote: smaller, italic, and accented with

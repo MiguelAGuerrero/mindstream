@@ -7,6 +7,7 @@
 
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useDisplay } from "vuetify";
 import { emitAudioEvent } from "./sfx";
 import { provideFocusUi } from "./focus/composables/useFocusUi";
 
@@ -18,6 +19,7 @@ const isHomeRoute = computed(() => route.name === "home");
 // Hidden on /focus in expand mode and while a focus session runs: the brain
 // icon is the only way back to the launcher, so nothing but the session's own
 // end/pause controls exits (that route's chrome reads the app-level focusUi).
+const { smAndDown } = useDisplay(); // a lower bar on phones (mobile-first)
 const showAppBar = computed(
   () => !(route.name === "focus" && (focusUi.expanded || focusUi.sessionActive)),
 );
@@ -33,7 +35,7 @@ function goHome() {
 <template>
   <v-responsive class="border rounded" aspect-ratio="1/1">
     <v-app>
-      <v-app-bar flat color="surface" :elevation="0" height="68" :model-value="showAppBar">
+      <v-app-bar flat color="surface" :elevation="0" :height="smAndDown ? 52 : 68" :model-value="showAppBar">
         <div class="ms-appbar-content">
           <div class="app-icon">
             <v-icon icon="mdi-brain" width="256" height="256" @click="goHome" />

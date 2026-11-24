@@ -23,7 +23,7 @@ onUnmounted(() => {
     <v-container
       fluid
       class="fill-height thinkpad-shell"
-      :class="sessionUi.padExpanded ? 'thinkpad-shell--expanded pa-0' : 'pa-4'"
+      :class="sessionUi.padExpanded ? 'thinkpad-shell--expanded pa-0' : 'pa-0 pa-sm-4'"
     >
     <ThinkPadAppBar />
       <v-row class="fill-height thinkpad-row" align="stretch">

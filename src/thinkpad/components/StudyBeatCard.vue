@@ -106,4 +106,12 @@ const showChanges = ref(true);
 .study-beat__after {
   font-weight: 500;
 }
+
+/* Mobile-first: comfortable tap targets on phones (Revision 14). */
+@media (max-width: 600px) {
+  .study-beat__toggle,
+  .study-beat__head :deep(.v-btn) {
+    min-height: 40px;
+  }
+}
 </style>

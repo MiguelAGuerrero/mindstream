@@ -1,6 +1,7 @@
 <script setup>
 import { useRouter } from "vue-router";
 import { VAppBar } from "vuetify/components";
+import { useDisplay } from "vuetify";
 import { usePadStore } from "../store/padStore";
 import { useSessionUi } from "../composables/useSessionUi";
 
@@ -8,6 +9,9 @@ import { useSessionUi } from "../composables/useSessionUi";
 // v-app-bar — v-app-bar is a Vuetify layout primitive that only makes sense
 // docked directly under a real v-app (the standalone /thinkpad route); a
 // dashboard widget cell needs the row form.
+// Mobile-first (Revision 14): opaque so the page never shows through when it
+// scrolls beneath, and lower on phones to give the page more of the screen.
+const { smAndDown } = useDisplay();
 const props = defineProps({
   compact: { type: Boolean, default: false },
 });
@@ -24,7 +28,7 @@ function goHome() {
 <template>
   <component
     :is="props.compact ? 'div' : VAppBar"
-    v-bind="props.compact ? {} : { flat: true, color: 'transparent', elevation: 0, height: 68 }"
+    v-bind="props.compact ? {} : { flat: true, color: 'background', elevation: 0, height: smAndDown ? 48 : 68 }"
     :class="props.compact ? 'thinkpad-appbar--compact' : undefined"
   >
     <div class="thinkpad-appbar-content">
@@ -69,5 +73,12 @@ function goHome() {
 
 .thinkpad-appbar--compact .thinkpad-appbar-content {
   padding: 0 6px;
+}
+
+/* Mobile-first: comfortable tap targets on phones (Revision 14). */
+@media (max-width: 600px) {
+  .thinkpad-appbar-content :deep(.v-btn) {
+    min-height: 40px;
+  }
 }
 </style>

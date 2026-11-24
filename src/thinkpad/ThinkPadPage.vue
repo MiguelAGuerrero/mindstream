@@ -422,7 +422,7 @@ watch(
   overflow: hidden;
   min-height: 0;
   min-width: 0;
-  padding: clamp(16px, 4vh, 40px) clamp(12px, 4vw, 40px);
+  padding: clamp(12px, 3vh, 40px) clamp(8px, 3vw, 40px);
   padding-block-end: clamp(96px, 12vh, 128px);
   gap: 16px;
 }

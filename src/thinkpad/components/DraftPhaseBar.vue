@@ -368,4 +368,17 @@ function handleNavigateDraft(dir) {
   0%, 100% { box-shadow: 0 0 0 0 rgba(var(--v-theme-primary), 0); }
   50%       { box-shadow: 0 0 0 3px rgba(var(--v-theme-primary), 0.2); }
 }
+
+/* Mobile-first: comfortable tap targets on phones (Revision 14). */
+@media (max-width: 600px) {
+  .phase-pill__stamp-btn,
+  .phase-pill__write-more,
+  .phase-pill__reveal,
+  .phase-pill__nav-arrow {
+    min-height: 40px;
+  }
+  .phase-pill__nav-arrow {
+    min-width: 32px;
+  }
+}
 </style>
