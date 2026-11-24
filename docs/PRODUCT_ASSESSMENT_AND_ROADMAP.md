@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 17)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 18)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,12 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 18 (2026-11-24): theme and thesis.** Settled by Miguel:
+- **A theme** is a collection of text that represents a pattern: a connection shown repeatedly through a text, which is evidence that an idea is true and should be considered. A passage can serve several themes; redundancy is allowed, and themes let ideas persist on the document without blocking resolution.
+- **A thesis** is an argument, made stronger by established themes and other evidence. It is what resolves upward and answers a question or makes a decision, carrying its evidence with it while you work at the higher level.
+
+Miguel then asked whether producing a thesis is the point of the document, and whether the intellectual moves (doubt, challenge, connect, converge, synthesize) should collapse into one general structure, with the differences expressed as explicit, reusable workflows. The proposal is §6 question 15. The Arrange proposal (question 14) is on hold until that is answered.
 
 **Revision 17 (2026-11-24): what a connection is.** Settled by Miguel: "A connection is a thought represented as text that references two or more different spans in the document." Because it connects, it does not replace the passages it references; it adds new content to the document, treated like any other idea or feeling, and like any text it can resolve an open item (for example, a doubt that two paragraphs answer together but neither does alone). This replaces the earlier proposal of Converge as a replacing move and Connect as a typed record; relation words such as "supports" or "contradicts" are dropped, since the sentence says it (capture-templates decision 11: a type exists only if the app treats it differently).
 
@@ -436,17 +442,25 @@ Open:
 11. *(Settled in Revision 15: Write more is removed.)*
 12. *(Settled in Revision 15: citing is both a document action and a "needs a source" move.)*
 13. *(Settled in Revision 17: a connection is a thought written as text that references two or more passages; it adds to the document and never replaces what it references.)*
-14. **Rearranging the document by theme.** Proposed:
+14. *(On hold, Revision 18: depends on question 15.)* **Rearranging the document by theme.** Proposed:
     - **Arrange, inside Reflect.** A view of the draft as one card per paragraph. Tap a card, then move it up, down, or under a theme. Wording stays frozen; only order and grouping change, and leaving Arrange records a version. Arranging is reflective work (seeing the whole), so it belongs to Reflect, and the study beat can offer it.
     - **Themes are headings you write.** A heading is a line of text ("Training variables", "My constraints") that the paragraphs after it sit under; it can be collapsed to see the document's shape. The name of a theme is itself a thought. A heading behaves differently from a paragraph (it groups and collapses), so it passes the behaviour test for a type.
     - **Where a new connection lands:** directly after the last passage it references, showing small marks for each passage it points to. From there you move it in Arrange. Its references survive moving because passages are found by their words (Revision 16).
     - **Not an outliner you browse.** Arrange works on one draft at a time and is temporary; it is not navigation across notes, so the "not an outliner" line holds.
+
+15. **One core, with moves as workflows.** Proposed. The test is capture-templates decision 11, applied to moves: *a move gets its own machinery only if the app must treat it differently; otherwise it is a workflow, an explicit, reusable specification of prompts.* Applied, the app needs four mechanics and nothing else:
+    1. **Passages**: what you write, paste or cite.
+    2. **References**: a thought can point at passages in the document or at sources outside it. A connection, a theme and a citation are all references from text.
+    3. **Investigations**: a thread opened on one or more passages that ends in a written thought. It lands either by replacing the passage it was opened on (a sharper wording) or by adding beside it (a connection or a caveat), chosen when you resolve.
+    4. **The thesis**: the one thought, with its references, that resolves a level, gated by undecided open items as today. Converging a paragraph to one sentence is a small thesis.
+    Doubt, challenge, clarify, compare, find themes and synthesize then have no machinery of their own. Each is a workflow run in an investigation, so it lives in the library where it can be read, edited and reused. The nine moves hard-coded in `moves.js` would become library workflows, and the tags remain shortcuts to them (decision 22). Consequences: rule 2's "one block" becomes "one thesis"; the Themes view is a reading of references, not a new object.
 
 Settled:
 
 - **Mobile-first?** Revision 14: yes, as a design constraint.
 - **The Reflect mechanics and citing?** Revision 15: as recommended.
 - **What is a connection?** Revision 17: a thought as text referencing two or more passages; it adds, never replaces.
+- **Theme and thesis?** Revision 18: a theme is a recurring pattern of text; a thesis is an argument derived from themes and evidence, and is what resolves up.
 - **Is the draft frozen by a stamp?** Revision 14: no; frozen only while in Reflect.
 - **View or import?** Revisions 4 and 5: tools own their state and exchange text through the workspace shell.
 - **The shelf.** Revision 6: yes.
