@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 16)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 17)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,10 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 17 (2026-11-24): what a connection is.** Settled by Miguel: "A connection is a thought represented as text that references two or more different spans in the document." Because it connects, it does not replace the passages it references; it adds new content to the document, treated like any other idea or feeling, and like any text it can resolve an open item (for example, a doubt that two paragraphs answer together but neither does alone). This replaces the earlier proposal of Converge as a replacing move and Connect as a typed record; relation words such as "supports" or "contradicts" are dropped, since the sentence says it (capture-templates decision 11: a type exists only if the app treats it differently).
+
+Miguel also named the cost: a connection has to sit somewhere in the sequence of a document that follows the order you dumped your thoughts, so it reads as a fragment. Supporting connections therefore needs a way to reorganize the document so understanding becomes thematic rather than scattered. Today moving text exists in the domain (`reorderBlock`) but is reachable only by selecting exactly one whole paragraph in Reflect, one step at a time. The proposal is §6 question 14.
 
 **Revision 16 (2026-11-24): Reflect is a state, built.** The pill switches between Writing and Reflect. Entering Reflect freezes the draft and records a version when the text changed; going back to Write applies waiting results first, opens the study beat, and asks to settle overlapping results before it can. Write more is gone. Because the document is living again, drilled and hidden passages are re-found by their words on every edit; a passage whose words are gone is marked lost and is no longer painted. A thread resolving into a parent that is being written splices straight in. Verified in the browser (versions, applied results, edits in front of a drilled passage, overlap blocking Write, a hidden passage staying on its words after an edit). Still to do from the mobile list: the phone layout pass, then citations, then converging (question 13, awaiting Miguel).
 
@@ -431,16 +435,18 @@ Open:
 10. *(Settled in Revision 15: a version is recorded on entering Reflect.)*
 11. *(Settled in Revision 15: Write more is removed.)*
 12. *(Settled in Revision 15: citing is both a document action and a "needs a source" move.)*
-13. **Converging, comparing and connecting passages.** Proposed, in two parts, mirroring citing:
-    - **Converge (a move):** collect two or more passages, then open one thread on all of them. The sub-pad shows the passages quoted at the top, side by side, which is the comparison. Resolving it produces one result that replaces the first passage; the other passages are folded into it and leave the next draft. The study beat shows "A + B → result". Comparing is not a separate move: it is what you do inside a converge thread.
-    - **Connect (a document action):** mark that one passage bears on another, optionally with a word ("supports", "contradicts", "depends on"). A connection is a record, not an open item, like a citation. A "contradicts" connection offers "Converge these" as a shortcut.
-    - **On a phone**, collecting passages works by tapping each passage's chip to add it to a small tray ("2 selected → Converge / Connect"), not by multi-dragging.
-    - Open points: what happens to the other passages (folded away, or kept with a note); whether a connection is visible in the text or only from a passage's menu.
+13. *(Settled in Revision 17: a connection is a thought written as text that references two or more passages; it adds to the document and never replaces what it references.)*
+14. **Rearranging the document by theme.** Proposed:
+    - **Arrange, inside Reflect.** A view of the draft as one card per paragraph. Tap a card, then move it up, down, or under a theme. Wording stays frozen; only order and grouping change, and leaving Arrange records a version. Arranging is reflective work (seeing the whole), so it belongs to Reflect, and the study beat can offer it.
+    - **Themes are headings you write.** A heading is a line of text ("Training variables", "My constraints") that the paragraphs after it sit under; it can be collapsed to see the document's shape. The name of a theme is itself a thought. A heading behaves differently from a paragraph (it groups and collapses), so it passes the behaviour test for a type.
+    - **Where a new connection lands:** directly after the last passage it references, showing small marks for each passage it points to. From there you move it in Arrange. Its references survive moving because passages are found by their words (Revision 16).
+    - **Not an outliner you browse.** Arrange works on one draft at a time and is temporary; it is not navigation across notes, so the "not an outliner" line holds.
 
 Settled:
 
 - **Mobile-first?** Revision 14: yes, as a design constraint.
 - **The Reflect mechanics and citing?** Revision 15: as recommended.
+- **What is a connection?** Revision 17: a thought as text referencing two or more passages; it adds, never replaces.
 - **Is the draft frozen by a stamp?** Revision 14: no; frozen only while in Reflect.
 - **View or import?** Revisions 4 and 5: tools own their state and exchange text through the workspace shell.
 - **The shelf.** Revision 6: yes.
