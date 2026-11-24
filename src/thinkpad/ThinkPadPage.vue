@@ -86,6 +86,9 @@ const resolveFieldRef = ref(null);
 const linkPending = ref(null);
 const quoteOpen = ref(false);
 const sendText = ref("");
+// The thread's source passage starts shortened each time a thread opens.
+const quoteExpanded = ref(false);
+watch(() => surface.surfaceHead, () => { quoteExpanded.value = false; });
 const workflowSlot = useWorkflowSlot();
 const tagLabel = (tag) => ({ question: "Question", expand: "Expand", converge: "Flag" })[tag] ?? tag;
 const viewingLinkId = ref(null);
@@ -326,7 +329,18 @@ watch(
                     @send-span="({ selectedText }) => { sendText = selectedText; }"
                   >
                     <template v-if="!surface.isAtRoot" #title>
-                      <blockquote class="thinkpad-quote">{{ surface.surfaceTitle }}</blockquote>
+                      <!-- The passage this thread was opened on. Clamped to three lines so a
+                           long passage leaves room to write; tap to read it all. -->
+                      <blockquote
+                        class="thinkpad-quote"
+                        :class="{ 'thinkpad-quote--clamped': !quoteExpanded }"
+                        role="button"
+                        tabindex="0"
+                        :aria-expanded="quoteExpanded"
+                        :title="quoteExpanded ? 'Tap to shorten' : 'Tap to read the whole passage'"
+                        @click="quoteExpanded = !quoteExpanded"
+                        @keydown.enter.prevent="quoteExpanded = !quoteExpanded"
+                      >{{ surface.surfaceTitle }}</blockquote>
                     </template>
                     <template #footer>
                       <DraftPhaseBar />
@@ -653,6 +667,15 @@ watch(
   white-space: normal;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.thinkpad-quote--clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+  cursor: pointer;
 }
 
 .drill-bar {

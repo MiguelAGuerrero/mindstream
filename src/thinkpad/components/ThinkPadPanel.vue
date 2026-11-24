@@ -1228,6 +1228,15 @@ defineExpose({ flushText, dismissSelection });
   white-space: normal;
 }
 
+/* A long source passage is shortened to three lines (tap to expand). */
+.thinkpad-panel--card .thinkpad-panel__header :deep(.thinkpad-quote--clamped) {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
+}
+
 .thinkpad-panel__scroll {
   flex: 1 1 auto;
   min-height: 0;
