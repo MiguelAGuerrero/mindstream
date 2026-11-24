@@ -404,7 +404,7 @@ With the broker in place, the workspace home can answer "what is my next small s
 - Keyboard for the whole loop: descend, complete, back, peek, stamp, next draft, pin.
 - The atmospheric contrast between Stream and Reflect from the lifecycle doc §8, including the transition.
 - A tree overview of a pad (read-only map of what was resolved into what), shown on demand.
-- Code-split the routes and trim the icon fonts.
+- Code-split the routes and trim the icon fonts. *(Routes split in Revision 28: first download about 832 kB → 292 kB. Icon fonts not yet trimmed.)*
 
 ### Phase status after Revision 8
 
