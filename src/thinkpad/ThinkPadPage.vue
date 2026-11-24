@@ -4,6 +4,7 @@ import { storeToRefs } from "pinia";
 import ThinkPadPanel from "./components/ThinkPadPanel.vue";
 import DraftPhaseBar from "./components/DraftPhaseBar.vue";
 import StudyBeatCard from "./components/StudyBeatCard.vue";
+import LinkDialogs from "./dialogs/LinkDialogs.vue";
 import DocumentPickerDialog from "./dialogs/DocumentPickerDialog.vue";
 import OpenItemsDialog from "./dialogs/OpenItemsDialog.vue";
 import { usePadStore } from "./store/padStore";
@@ -60,6 +61,9 @@ const expandedMaxWidth = `${THINKPAD_EXPANDED_MAX_WIDTH}px`;
 
 const drillContextExpanded = ref(false);
 const resolveFieldRef = ref(null);
+// Links: the selection being linked, and the link whose sheet is open.
+const linkPending = ref(null);
+const viewingLinkId = ref(null);
 
 watch(
   () => surface.resolveDialog.open,
@@ -288,6 +292,9 @@ watch(
                     @reopen-drill="({ threadId }) => surface.navigateToThread(threadId)"
                     @reorder-block="({ fromIdx, toIdx, padLocator }) => padStore.reorderBlock({ padLocator, fromIdx, toIdx })"
                     @idea-peek="reflect.setPeekedStepId"
+                    @link-span="(span) => { linkPending = span; }"
+                    @source-span="(span) => padStore.markNeedsSource({ padLocator: surface.surfaceHead, ...span })"
+                    @open-link="({ annotationId }) => { viewingLinkId = annotationId; }"
                   >
                     <template v-if="!surface.isAtRoot" #title>
                       <blockquote class="thinkpad-quote">{{ surface.surfaceTitle }}</blockquote>
@@ -319,6 +326,12 @@ watch(
           It is under Threads here when you want it.
         </template>
       </v-snackbar>
+
+      <LinkDialogs
+        :pending="linkPending"
+        :viewing-id="viewingLinkId"
+        @close="linkPending = null; viewingLinkId = null"
+      />
 
       <DocumentPickerDialog
         v-model="sessionUi.documentPickerOpen"

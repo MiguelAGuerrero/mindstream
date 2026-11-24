@@ -18,7 +18,7 @@
 import { Extension } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 import { Decoration, DecorationSet } from "@tiptap/pm/view";
-import { computeHighlightSegments } from "./thinkPadHighlights";
+import { computeHighlightSegments, findBareUrls } from "./thinkPadHighlights";
 import { charToPos, docJSONToText } from "./thinkPadDoc";
 
 export const thinkPadHighlightKey = new PluginKey("thinkPadHighlights");
@@ -42,7 +42,11 @@ function buildDecorations(doc, annotations, candidateSpans, focusedBlockIndex) {
           ? "thinkpad-hl thinkpad-hl--resolved"
           : seg.kind === "hidden"
             ? "thinkpad-hl thinkpad-hl--hidden"
-            : `thinkpad-hl thinkpad-hl--anchored${tagCls}`;
+            : seg.kind === "link"
+              ? "thinkpad-hl thinkpad-hl--link"
+              : seg.kind === "source"
+                ? "thinkpad-hl thinkpad-hl--source"
+                : `thinkpad-hl thinkpad-hl--anchored${tagCls}`;
       // Annotated (non-plain) spans carry their id + char range as data attributes
       // so the panel's click/hover handlers can route to the right annotation without
       // a ProseMirror position-to-char round-trip.
@@ -51,8 +55,17 @@ function buildDecorations(doc, annotations, candidateSpans, focusedBlockIndex) {
         attrs["data-annotation-id"] = seg.annotationId;
         attrs["data-annotation-start"] = String(seg.start);
         attrs["data-annotation-end"] = String(seg.end);
+        attrs["data-annotation-kind"] = seg.kind;
       }
       decos.push(Decoration.inline(charToPos(seg.start), charToPos(seg.end), attrs));
+    }
+
+    // Bare URLs read as links (Revision 15); the text itself is unchanged.
+    for (const u of findBareUrls(text)) {
+      decos.push(Decoration.inline(charToPos(u.start), charToPos(u.end), {
+        class: "thinkpad-url",
+        "data-href": u.href,
+      }));
     }
 
     // Candidate spans — rendered after annotations so committed work wins on overlap.

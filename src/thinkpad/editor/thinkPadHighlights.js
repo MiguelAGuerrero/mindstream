@@ -16,7 +16,10 @@ export function computeHighlightSegments(text, annotations = []) {
     .map((a) => ({
       start: Math.max(0, Math.min(len, Number(a.selectionStart))),
       end: Math.max(0, Math.min(len, Number(a.selectionEnd))),
-      kind: a.hidden === true ? "hidden" : a.resolved === true ? "resolved" : "anchored",
+      kind: a.hidden === true ? "hidden"
+        : a.link ? "link"
+        : a.needsSource === true ? "source"
+        : a.resolved === true ? "resolved" : "anchored",
       // Preserved for decoration data-attributes and gutter icon rendering.
       annotationId: a.id ?? null,
       tag: a.tag ?? null,
@@ -55,4 +58,13 @@ export function computeGutterMarkers(text, annotations = []) {
       };
     })
     .sort((x, y) => x.lineIndex - y.lineIndex);
+}
+
+/** Bare URLs in the text, shown as links without changing the text: [{ start, end, href }]. */
+export function findBareUrls(text) {
+  const out = [];
+  const re = /https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"]/gi;
+  let m;
+  while ((m = re.exec(text ?? "")) !== null) out.push({ start: m.index, end: m.index + m[0].length, href: m[0] });
+  return out;
 }

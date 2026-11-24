@@ -62,6 +62,7 @@ function dispose(item, kind, target = null) {
             <div class="d-flex align-center ga-2 flex-wrap">
               <strong class="gate-item__text">{{ item.text || "Untitled move" }}</strong>
               <v-chip v-if="item.kind === 'lifted'" size="x-small" variant="tonal" color="info">lifted from below</v-chip>
+              <v-chip v-if="item.kind === 'source'" size="x-small" variant="tonal" color="warning">needs a source</v-chip>
             </div>
             <p v-if="item.source && item.source !== item.text" class="gate-item__source">“{{ item.source }}”</p>
             <p class="gate-item__check">

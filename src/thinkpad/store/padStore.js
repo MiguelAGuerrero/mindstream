@@ -33,6 +33,11 @@ import {
   leaveReflect as leaveReflectOnPad,
   resolveThreadIntoParent as resolveThreadIntoParentOnPad,
   stagedConflicts as stagedConflictsOnPad,
+  addLink as addLinkOnPad,
+  addPassageLink as addPassageLinkOnPad,
+  removeLink as removeLinkOnPad,
+  markNeedsSource as markNeedsSourceOnPad,
+  linksAt as linksAtOnPad,
   unstageOutput as unstageOutputOnPad,
   openItems as openItemsOnPad,
   disposeOpenItem as disposeOpenItemOnPad,
@@ -146,6 +151,11 @@ export const usePadStore = defineStore("pad", {
 
     stagedOutputs() {
       return this.viewPad?.staged ?? [];
+    },
+
+    /** Links on the surface (URLs and passage snapshots), in document order. */
+    linksOnSurface() {
+      return linksAtOnPad(this.currentPad, this.surfaceHead);
     },
 
     /** Groups of staged results that overlap on the surface; Next Draft waits on them (D6). */
@@ -351,6 +361,23 @@ export const usePadStore = defineStore("pad", {
         this.studyTarget = { padId: this.currentPadId, padLocator, n: history.length - 1 };
       }
       this.viewingDraftN = null;
+    },
+
+    /** Links and "needs a source" (Revisions 15 and 22), on one level. */
+    addLink({ padLocator = null, selectionStart, selectionEnd, selectedText, href } = {}) {
+      this._applyOnPad((pad, now) => addLinkOnPad(pad, { padLocator, selectionStart, selectionEnd, selectedText, href }, { now, makeId }));
+    },
+
+    addPassageLink({ padLocator = null, selectionStart, selectionEnd, selectedText, targetIdeaId } = {}) {
+      this._applyOnPad((pad, now) => addPassageLinkOnPad(pad, { padLocator, selectionStart, selectionEnd, selectedText, targetIdeaId }, { now, makeId }));
+    },
+
+    removeLink({ padLocator = null, annotationId } = {}) {
+      this._applyOnPad((pad, now) => removeLinkOnPad(pad, { padLocator, annotationId }, { now }));
+    },
+
+    markNeedsSource({ padLocator = null, selectionStart, selectionEnd, selectedText } = {}) {
+      this._applyOnPad((pad, now) => markNeedsSourceOnPad(pad, { padLocator, selectionStart, selectionEnd, selectedText }, { now, makeId }));
     },
 
     /** Settle one overlap by keeping one staged result and unstaging the rest of its group. */

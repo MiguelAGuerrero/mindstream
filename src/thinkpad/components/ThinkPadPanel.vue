@@ -60,7 +60,7 @@ const props = defineProps({
   stagedIdeas: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(["update:text", "update:nodes", "update:title", "extract-step", "drill-span", "hide-span", "reveal-hidden", "focus", "reopen-drill", "tag-span", "reorder-block", "idea-peek"]);
+const emit = defineEmits(["update:text", "update:nodes", "update:title", "extract-step", "drill-span", "hide-span", "reveal-hidden", "focus", "reopen-drill", "tag-span", "reorder-block", "idea-peek", "link-span", "source-span", "open-link"]);
 
 const bodyRef = ref(null);
 const marginsRef = ref(null);
@@ -147,7 +147,11 @@ const hiddenAnnotations = computed(() =>
   // A passage whose words are gone is `lost`; painting it would mark the wrong text.
   (props.thinkPad?.annotations ?? []).filter((a) => a.hidden === true && !a.lost),
 );
-const paintedAnnotations = computed(() => [...hiddenAnnotations.value, ...cuedAnnotations.value]);
+// Links and "needs a source" marks are always painted, so you can see and tap them.
+const markedAnnotations = computed(() =>
+  (props.thinkPad?.annotations ?? []).filter((a) => (a.link || a.needsSource === true) && !a.lost && a.hidden !== true),
+);
+const paintedAnnotations = computed(() => [...hiddenAnnotations.value, ...markedAnnotations.value, ...cuedAnnotations.value]);
 const hiddenCount = computed(() => hiddenAnnotations.value.length);
 
 const blockStates = computed(() => {
@@ -343,6 +347,19 @@ const editor = useEditor({
         // selection already opened the picker (handleDocMouseUp); treating this
         // click as a block click would widen it to the whole block (D11).
         if (!view.state.selection.empty) return false;
+
+        // A link: open its sheet (URL or the linked paragraph as it was).
+        const linkTarget = event.target?.closest?.('[data-annotation-kind="link"]');
+        if (linkTarget) {
+          emit("open-link", { annotationId: linkTarget.dataset.annotationId });
+          return true;
+        }
+        // A bare URL in the text opens in a new tab.
+        const urlTarget = event.target?.closest?.("[data-href]");
+        if (urlTarget) {
+          window.open(urlTarget.dataset.href, "_blank", "noopener");
+          return true;
+        }
 
         // Annotated span click: focus into the thought (drill / re-open).
         const annTarget = event.target?.closest?.("[data-annotation-id]");
@@ -614,6 +631,30 @@ function scheduleHoverHide() {
 
 function clearHoverTimer() {
   clearTimeout(hoverHideTimer);
+}
+
+/** Link the selected text to a URL or another paragraph (the page asks which). */
+function linkSelection() {
+  if (!selectionState.value) return;
+  flushText();
+  emit("link-span", {
+    selectionStart: selectionState.value.start,
+    selectionEnd: selectionState.value.end,
+    selectedText: selectionState.value.text,
+  });
+  dismissSelection();
+}
+
+/** Mark the selected text as needing a source: an open item until a link covers it. */
+function sourceSelection() {
+  if (!selectionState.value) return;
+  flushText();
+  emit("source-span", {
+    selectionStart: selectionState.value.start,
+    selectionEnd: selectionState.value.end,
+    selectedText: selectionState.value.text,
+  });
+  dismissSelection();
 }
 
 /** Hide the selected text from view — a pure visibility toggle, not a move. The
@@ -973,6 +1014,14 @@ defineExpose({ flushText, dismissSelection });
         </div>
 
         <div v-if="!overlappingDrills.length" class="thinkpad-mini-picker__hide-row">
+          <button type="button" class="thinkpad-mini-picker__hide-link" @click="linkSelection">
+            <v-icon icon="mdi-link-variant" size="12" />
+            <span>Link</span>
+          </button>
+          <button type="button" class="thinkpad-mini-picker__hide-link" @click="sourceSelection">
+            <v-icon icon="mdi-book-search-outline" size="12" />
+            <span>Needs source</span>
+          </button>
           <button type="button" class="thinkpad-mini-picker__hide-link" @click="hideSelection">
             <v-icon icon="mdi-eye-off-outline" size="12" />
             <span>Hide from view</span>
@@ -1340,6 +1389,21 @@ defineExpose({ flushText, dismissSelection });
 
 /* Hidden span: a pure visibility toggle — collapse it out of the document flow.
    The text stays in the model; revealing drops the marker and it reappears. */
+.thinkpad-editor :deep(.thinkpad-hl--link),
+.thinkpad-editor :deep(.thinkpad-url) {
+  color: rgb(var(--v-theme-primary));
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.thinkpad-editor :deep(.thinkpad-hl--source) {
+  text-decoration: underline wavy rgba(var(--v-theme-warning), 0.8);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
 .thinkpad-editor :deep(.thinkpad-hl--hidden) {
   display: none;
 }
@@ -1464,6 +1528,8 @@ defineExpose({ flushText, dismissSelection });
 
 .thinkpad-mini-picker__hide-row {
   display: flex;
+  flex-wrap: wrap;
+  gap: 2px 14px;
   padding-top: 1px;
 }
 
