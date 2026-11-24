@@ -6,7 +6,7 @@ A compact summary of what is settled, for checking proposals quickly. The source
 - `docs/capture-templates-proposal.md`: workflows, the open-item gate, resolution. Read its decisions table first.
 - `reports/`: research on comparable apps.
 
-If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 21 and proposal decisions 1 to 22.
+If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 22 and proposal decisions 1 to 22.
 
 ## Contents
 
@@ -121,6 +121,7 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 - **A connection is a thought written as text that references two or more passages** (Revision 17). It adds content and never replaces what it references; it can resolve an open item like any text. No relation types ("supports", "contradicts"): the sentence says it.
 - **Connections and quotes are snapshots** (Revision 21). They keep the text and draft version they drew on and do not change when the source changes; a connection is "a product of its context and time". The app may note "drawn from text that was later refined" as a prompt for reflection, never as an error. A connection need not argue; it can be an insight such as a proposed generalization.
 - **A whole-draft synthesis resolves by replacing the text** (Revision 21); the raw material is archived in the synthesis thread.
+- **Synthesis over open threads** (Revision 22). Open threads inside the text being replaced must be acknowledged, not resolved ("tooling, not opinionated"). Their work is kept and re-anchored to the thesis, keeping the snapshot of their original passage; their results are added beside the thesis. A thesis may resolve with open threads under it. Links may target passages (as snapshot connections).
 - **Theme and thesis** (Revision 18). A theme is a collection of text representing a recurring pattern (evidence an idea is true); a passage may serve several. A thesis is an argument derived from themes and evidence; it is what resolves upward, carrying its evidence.
 - **Reflection is not an app feature.** Nothing prompts it. It is a step or a workflow the person chooses.
 - **Human executes.** No AI agent in this horizon. If revisited, an agent would be one more tool behind the shell.

@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 21)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 22)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,11 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 22 (2026-11-24): synthesis over open threads.** Settled by Miguel ("I agree", then in his words):
+- **Open threads must be acknowledged before a synthesis replaces the text, not resolved.** "It's tooling and not supposed to be opinionated." The app surfaces them ("you previously doubted or challenged these; converge anyway?") and accepts "this doesn't change my overall view" as an answer.
+- **The work in those threads is kept and re-anchored to the thesis.** "When you perform a convergence, you're saying all of this text is related under one idea, and because of that, so too would the subthreads be related to that one idea as well." Nothing is lost, and the document is honest about what happened. A re-anchored thread keeps the snapshot of the passage it was opened on (Revision 21). Since its anchor is now the whole thesis, its result is added beside the thesis, never replacing it.
+- Approved with it: a thesis may resolve while threads under it are still open (they stay visible as open, now under the thesis), and the link action may target a passage in the document, which makes it a connection with snapshot semantics.
 
 **Revision 21 (2026-11-24): connections are snapshots; whole-draft synthesis replaces.** Settled by Miguel after the manual run:
 - **A whole-draft synthesis resolves by replacing the text.** The root ends as its thesis; the raw material is archived in the synthesis thread.
@@ -465,6 +470,7 @@ Open:
     - **The moves stay built in** (one prompt each, ThinkPad stands alone); library workflows are for multi-step methods; tags stay shortcuts.
     - **A thesis is a name for a resolution that argues**, not a new mechanic; rule 2 reads "one resolution". Evidence travels as pointers ("3 sources"), opening the archived working-out, so rule 3 holds.
     - **Settled in Revision 21:** whole-draft synthesis replaces; quotes and connections are snapshots of their source text and draft version, with a non-blocking "later refined" notice. Still open: whether replacing requires deciding open threads anchored inside the replaced text (the run's first break, now certain to occur, since a whole-draft replace contains every open thread at the root); whether a thesis may resolve with sources that still have open threads; whether the link action may target a passage (which would make it a connection, with snapshot semantics).
+    - **Settled in Revision 22:** before a synthesis replaces the text, open threads inside it are acknowledged (not necessarily resolved), then kept and re-anchored to the thesis; their results are added beside it. A thesis may resolve with open threads under it. Links may target passages, as snapshot connections. The synthesis model is now complete enough to build.
     - **Amendments from the manual run (Revision 20):** replace is gated on open threads anchored inside the passage; quotes point at the draft version they came from and never "follow" (only live anchors and links do); each move keeps its landing as a default you can override; the link action can target a passage in the document; quotes show "still open" and "changed since quoted"; a "Synthesize" action opens a thread on the whole draft; a pad's resolved thesis is marked as its answer and shown first.
     - **Deferred** until a real document shows the need: Arrange (question 14), a Themes view, inline reference marks, multi-select in the stream.
 
