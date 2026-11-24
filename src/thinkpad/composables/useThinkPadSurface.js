@@ -39,6 +39,36 @@ export function useThinkPadSurface() {
   const completeDialog = reactive({ open: false, value: "" });
   const resolveMove = getMoveById("resolve");
 
+  // Converged: the surface thread's sub-pad holds one non-empty block — the
+  // precondition for resolving up, before the open-item gate is consulted.
+  const converged = computed(() => {
+    const path = threadPath.value;
+    const thread = path.length > 0 ? path[path.length - 1] : null;
+    return !!thread && (thread.doc?.text ?? "").trim() !== "" && !threadIsOpen(thread);
+  });
+
+  // The open-item gate (capture-templates-proposal §8): moves started on this
+  // surface that haven't resolved, and items lifted up from below.
+  const openItems = computed(() => padStore.openItemsAt(surfaceHead.value));
+  const decidedItems = computed(() => padStore.decidedItemsAt(surfaceHead.value));
+  const gateOpen = ref(false);
+
+  // Levels an item on this surface can be lifted to: the root document, then each
+  // ancestor thread — never the surface itself.
+  const liftTargets = computed(() => {
+    if (isAtRoot.value) return [];
+    const ancestors = threadPath.value.slice(0, -1);
+    return [
+      { locator: null, label: currentContext.value?.title || "Document" },
+      ...ancestors.map((f) => ({ locator: f.id, label: f.steps?.[0]?.title || "Untitled" })),
+    ];
+  });
+
+  /** Open-item count for a breadcrumb level (null = root document). */
+  function openCountAt(padLocator = null) {
+    return padStore.openCountAt(padLocator);
+  }
+
   const viewFrame = computed(() => {
     const path = threadPath.value;
     return path.length ? path[path.length - 1] : null;
@@ -197,6 +227,13 @@ export function useThinkPadSurface() {
   function handleComplete() {
     const head = padStore.surfaceHead;
     if (typeof head !== "string" || !head || !canComplete.value) return;
+    // The open-item gate first: every move started here must be decided.
+    if (openItems.value.length) {
+      gateOpen.value = true;
+      return;
+    }
+    gateOpen.value = false;
+    // Not converged to one block: ask for the synthesized result.
     if (needsSynthesis.value) {
       completeDialog.value = "";
       completeDialog.open = true;
@@ -212,6 +249,19 @@ export function useThinkPadSurface() {
     if (typeof head !== "string" || !head) return;
     padStore.resolveThreadIntoParent({ threadId: head, result: text });
     completeDialog.open = false;
+  }
+
+  function handleDisposeOpenItem({ id, kind, note = "", target = null } = {}) {
+    padStore.disposeOpenItem({ padLocator: padStore.surfaceHead, id, kind, note, target });
+  }
+
+  function handleClearDisposition({ id } = {}) {
+    padStore.clearDisposition({ padLocator: padStore.surfaceHead, id });
+  }
+
+  function handleGoToOpenItem(threadId) {
+    gateOpen.value = false;
+    if (threadId) padStore.navigateToThread(threadId);
   }
 
   function handleSurfaceTitleUpdate(title) {
@@ -251,6 +301,12 @@ export function useThinkPadSurface() {
     completeDialog,
     resolveMove,
     confirmComplete,
+    converged,
+    openItems,
+    decidedItems,
+    gateOpen,
+    liftTargets,
+    openCountAt,
     viewFrame,
     surfaceTitle,
     currentGoal,
@@ -272,6 +328,9 @@ export function useThinkPadSurface() {
     navigateToThread,
     handleAscend,
     handleComplete,
+    handleDisposeOpenItem,
+    handleClearDisposition,
+    handleGoToOpenItem,
     restoreResumableContext,
     handleDeleteDocument,
   });

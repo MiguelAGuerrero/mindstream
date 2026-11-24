@@ -453,7 +453,7 @@ describe("sessionRunStore plans (queued steps)", () => {
   it("planSteps keeps the whole plan on the frame and starts step 1", () => {
     const store = started();
     expect(store.activeStack.map((f) => f.title)).toEqual(["Ship it", "A"]);
-    expect(store.activeStack[0]).toMatchObject({ steps: [{ title: "A" }, { title: "B" }, { title: "C" }], stepIndex: 0 });
+    expect(store.activeStack[0]).toMatchObject({ steps: [{ prompt: "A" }, { prompt: "B" }, { prompt: "C" }], stepIndex: 0 });
     expect(store.activeFrame.fromStep).toBe(0);
     expect(store.activePlan).toMatchObject({ index: 0, running: true, done: [false, false, false] });
   });
@@ -475,7 +475,7 @@ describe("sessionRunStore plans (queued steps)", () => {
     const store = started();
     store.abandonFocus();
     expect(store.activeStack.map((f) => f.title)).toEqual(["Ship it"]);
-    expect(store.activeFrame.steps.map((s) => s.title)).toEqual(["A", "B", "C"]);
+    expect(store.activeFrame.steps.map((s) => s.prompt)).toEqual(["A", "B", "C"]);
     store.startStep({ index: 2 });
     expect(store.activeFrame).toMatchObject({ title: "C", fromStep: 2 });
     expect(store.activeStack[0].stepIndex).toBe(2);

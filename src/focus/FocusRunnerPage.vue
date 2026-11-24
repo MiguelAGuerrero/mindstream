@@ -139,7 +139,7 @@ function confirmComposer() {
   restartTimer();
 }
 
-/** Complete the current focus right away. Any reflection was recorded separately. */
+/** Resolve the current focus right away. Any reflection was recorded separately. */
 function handleComplete() {
   bankElapsed();
   const takeaway = runStore.currentResult ?? "";
@@ -150,7 +150,7 @@ function handleComplete() {
     closure.open = true;
     const ctx = runStore.activeContext;
     runStore.completeFocus({ result: takeaway });
-    handoff.reportEnd(ctx, { status: "completed", reflection: takeaway });
+    handoff.reportEnd(ctx, { outcome: "resolved", text: takeaway });
   } else {
     runStore.completeFocus({ result: takeaway });
   }
@@ -193,7 +193,7 @@ function handleCancelAwaiting() {
 }
 function handleStartPlan(steps) {
   bankElapsed();
-  runStore.planSteps({ steps });
+  runStore.planSteps({ steps, tag: awaiting.value?.tag ?? null });
   clearAwaiting();
   restartTimer();
 }
@@ -216,13 +216,13 @@ function handleStartHandoff() {
   const seed = handoff.accept();
   if (!seed) return;
   runStore.newContext({
-    title: seed.task.title,
-    notes: seed.task.notes,
+    title: seed.request.text,
+    notes: seed.request.context.join(" › "),
     origin: seed.origin,
     handoffId: seed.handoffId,
   });
   // Started from a workflow (a routine): its steps become the plan, on step 1.
-  if (seed.task.steps?.length) runStore.planSteps({ steps: seed.task.steps });
+  if (seed.request.steps?.length) runStore.planSteps({ steps: seed.request.steps, tag: seed.request.tag });
   restartTimer();
 }
 
@@ -267,7 +267,7 @@ function handleStopAside() {
 }
 function handleCloseContext() {
   bankElapsed();
-  handoff.reportEnd(runStore.activeContext, { status: "abandoned" });
+  handoff.reportEnd(runStore.activeContext, { outcome: "abandoned" });
   runStore.endActiveContext();
 }
 function handleUpdateWaitingOn({ id, reason }) {
@@ -360,9 +360,9 @@ watch(
         <!-- Waits for load: loadContexts replaces `contexts`, which would drop a context started earlier. -->
         <HandoffReadyCard
           v-if="runStore.isLoaded && handoff.pending.value"
-          :title="handoff.pending.value.task.title"
-          :notes="handoff.pending.value.task.notes ?? ''"
-          :step-count="handoff.pending.value.task.steps?.length ?? 0"
+          :title="handoff.pending.value.text"
+          :notes="handoff.pending.value.context.join(' › ')"
+          :step-count="handoff.pending.value.steps?.length ?? 0"
           @start="handleStartHandoff"
           @dismiss="handoff.dismiss"
         />
@@ -433,7 +433,7 @@ watch(
     >
       <div class="closure-line">
         <v-icon icon="mdi-check-circle" size="18" class="me-2" />
-        <span>Completed: {{ closure.title }}<span class="closure-elapsed"> · {{ closure.elapsed }}</span></span>
+        <span>Resolved: {{ closure.title }}<span class="closure-elapsed"> · {{ closure.elapsed }}</span></span>
       </div>
       <div v-if="closure.takeaway" class="closure-takeaway">
         <v-icon icon="mdi-subdirectory-arrow-right" size="14" class="me-1" />{{ closure.takeaway }}
@@ -444,7 +444,7 @@ watch(
       :open="returnOpen"
       :source-name="awaiting?.sourceName ?? ''"
       :parent-focus="runStore.currentFocus"
-      :sub-focuses="awaiting?.subFocuses ?? []"
+      :sub-focuses="awaiting?.steps ?? []"
       @start="handleStartPlan"
       @dismiss="clearAwaiting"
     />

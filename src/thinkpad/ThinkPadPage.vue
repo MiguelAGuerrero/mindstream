@@ -4,6 +4,7 @@ import { storeToRefs } from "pinia";
 import ThinkPadPanel from "./components/ThinkPadPanel.vue";
 import DraftPhaseBar from "./components/DraftPhaseBar.vue";
 import DocumentPickerDialog from "./dialogs/DocumentPickerDialog.vue";
+import OpenItemsDialog from "./dialogs/OpenItemsDialog.vue";
 import { usePadStore } from "./store/padStore";
 import { useSessionUi } from "./composables/useSessionUi";
 import { useThinkPadSurface } from "./composables/useThinkPadSurface";
@@ -187,6 +188,7 @@ watch(
                     <button type="button" class="drill-crumb" @click="surface.jumpToSurface(0)">
                       <v-icon icon="mdi-home-outline" size="14" />
                       <span class="drill-crumb__label">{{ currentContext.title || 'Document' }}</span>
+                        <span v-if="surface.openCountAt(null)" class="drill-crumb__open">· {{ surface.openCountAt(null) }} open</span>
                     </button>
                     <template v-for="(frame, i) in surface.threadPath" :key="frame.id">
                       <v-icon icon="mdi-chevron-right" size="13" class="drill-crumb__sep" />
@@ -198,6 +200,7 @@ watch(
                         @click="surface.jumpToSurface(i + 1)"
                       >
                         <span class="drill-crumb__label">{{ frame.steps?.[0]?.title || 'Untitled' }}</span>
+                        <span v-if="surface.openCountAt(frame.id)" class="drill-crumb__open">· {{ surface.openCountAt(frame.id) }} open</span>
                       </button>
                     </template>
                     <button
@@ -219,8 +222,18 @@ watch(
                     prepend-icon="mdi-timer-outline"
                     :title="focusHandoff.focusSummary.value.reflection || undefined"
                   >{{ focusHandoff.focusSummary.value.label }}</v-chip>
-                  <v-btn v-if="focusHandoff.canFocus.value" size="small" variant="text" prepend-icon="mdi-timer" @click="focusHandoff.focusOnThisMove()">Focus on this</v-btn>                  <v-btn size="small" variant="text" prepend-icon="mdi-arrow-up-left" @click="surface.handleAscend()">Back</v-btn>
-                  <v-btn size="small" color="primary" variant="flat" prepend-icon="mdi-arrow-up-bold-box-outline" :disabled="!surface.canComplete" @click="surface.handleComplete()">Complete</v-btn>
+                  <v-btn v-if="focusHandoff.canFocus.value" size="small" variant="text" prepend-icon="mdi-timer" @click="focusHandoff.focusOnThisMove()">Focus on this</v-btn>
+                  <v-btn size="small" variant="text" prepend-icon="mdi-arrow-up-left" @click="surface.handleAscend()">Back</v-btn>
+                  <v-btn
+                    size="small"
+                    :color="surface.openItems.length ? 'warning' : 'primary'"
+                    :variant="surface.openItems.length ? 'tonal' : 'flat'"
+                    prepend-icon="mdi-arrow-up-bold-box-outline"
+                    :disabled="!surface.canComplete"
+                    @click="surface.handleComplete()"
+                  >
+                    {{ surface.openItems.length ? `Resolve · ${surface.openItems.length} open` : "Resolve" }}
+                  </v-btn>
                 </div>
               </div>
 
@@ -314,6 +327,19 @@ watch(
           </v-card-actions>
         </v-card>
       </v-dialog>
+
+      <OpenItemsDialog
+        v-model="surface.gateOpen"
+        :goal="surface.currentGoal"
+        :items="surface.openItems"
+        :decided="surface.decidedItems"
+        :lift-targets="surface.liftTargets"
+        :can-resolve="surface.canComplete"
+        @dispose="surface.handleDisposeOpenItem"
+        @clear="surface.handleClearDisposition"
+        @go-to="surface.handleGoToOpenItem"
+        @resolve="surface.handleComplete()"
+      />
 
       <v-dialog v-model="surface.peekOpen" max-width="760">
         <v-card class="peek-card">
@@ -565,6 +591,12 @@ watch(
 .drill-crumb__label {
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drill-crumb__open {
+  margin-left: 4px;
+  color: rgb(var(--v-theme-warning));
   white-space: nowrap;
 }
 

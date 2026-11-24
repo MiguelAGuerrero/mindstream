@@ -29,6 +29,11 @@ import {
   stampDraft as stampDraftOnPad,
   stageStepOutput as stageStepOutputOnPad,
   advanceToNextDraft as advanceToNextDraftOnPad,
+  openItems as openItemsOnPad,
+  disposeOpenItem as disposeOpenItemOnPad,
+  clearDisposition as clearDispositionOnPad,
+  canResolve as canResolveOnPad,
+  decidedItems as decidedItemsOnPad,
   threadIsOpen as threadIsOpenCheck,
 } from "../domain/padDomain";
 import { buildPadSnapshot, normalizePadRecord } from "../domain/padPersistenceMapper";
@@ -105,6 +110,26 @@ export const usePadStore = defineStore("pad", {
 
     threadPath() {
       return surfaceThreadPathOnPad(this.currentPad);
+    },
+
+    /** Undecided open items of a level (null = root document). Open-item gate. */
+    openItemsAt() {
+      return (padLocator = null) => openItemsOnPad(this.currentPad, padLocator);
+    },
+
+    /** Items of a level that already carry a decision (for undo in the gate). */
+    decidedItemsAt() {
+      return (padLocator = null) => decidedItemsOnPad(this.currentPad, padLocator);
+    },
+
+    /** How many undecided open items a level has — for the breadcrumb counts. */
+    openCountAt() {
+      return (padLocator = null) => openItemsOnPad(this.currentPad, padLocator).length;
+    },
+
+    /** Whether the thread on the surface may resolve up: converged and no open items. */
+    canResolveSurface() {
+      return canResolveOnPad(this.currentPad, this.surfaceHead);
     },
 
     isDraftFrozen() {
@@ -351,6 +376,9 @@ export const usePadStore = defineStore("pad", {
       const frame = path.length > 0 && path[path.length - 1].id === threadId
         ? path[path.length - 1] : null;
       if (!frame) return null;
+      // The open-item gate: every open item at this level must be decided first.
+      // Convergence is checked below; a typed synthesis can stand in for it.
+      if (openItemsOnPad(this.currentPad, threadId).length) return null;
 
       const anchor = frame.parentAnchor;
       if (!anchor) return null;
@@ -383,6 +411,22 @@ export const usePadStore = defineStore("pad", {
       const ascended = popSurfaceOnPad(pad, { now });
       this._replaceCurrent(ascended);
       return { resolved: true, delta: null };
+    },
+
+    /** Decide an open item: accepted / lifted (to `target`) / parked. */
+    disposeOpenItem({ padLocator = null, id, kind, note = "", target = null } = {}) {
+      if (!this.currentPad) return;
+      const next = disposeOpenItemOnPad(this.currentPad, { padLocator, id, kind, note, target }, { now: nowIso(), makeId });
+      if (next === this.currentPad) return;
+      this._replaceCurrent(next);
+    },
+
+    /** Undo a decision so the item is open again. */
+    clearDisposition({ padLocator = null, id } = {}) {
+      if (!this.currentPad) return;
+      const next = clearDispositionOnPad(this.currentPad, { padLocator, id }, { now: nowIso() });
+      if (next === this.currentPad) return;
+      this._replaceCurrent(next);
     },
 
     setPadText({ padLocator = null, text, nodes = null } = {}) {

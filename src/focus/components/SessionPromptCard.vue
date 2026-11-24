@@ -135,7 +135,7 @@ const trail = computed(() => props.breadcrumb.slice(0, -1).join("  ›  "));
             Waiting on {{ awaitingTool }} for steps · open
           </v-chip>
         </div>
-        <p class="srun-eyebrow">{{ resolved ? "COMPLETED" : "FOCUSING ON" }}</p>
+        <p class="srun-eyebrow">{{ resolved ? "RESOLVED" : "FOCUSING ON" }}</p>
         <h2 class="srun-focus">{{ focus }}</h2>
         <p v-if="notes && !resolved" class="srun-notes text-medium-emphasis text-truncate" :title="notes">{{ notes }}</p>
         <p v-if="result" class="srun-result">
@@ -209,7 +209,7 @@ const trail = computed(() => props.breadcrumb.slice(0, -1).join("  ›  "));
             prepend-icon="mdi-arrow-up-bold"
             @click="emit('complete')"
           >
-            Complete
+            Resolve
           </v-btn>
           <v-btn
             class="srun-reflect"

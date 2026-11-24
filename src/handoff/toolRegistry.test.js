@@ -1,37 +1,31 @@
 import { describe, expect, it } from "vitest";
-import {
-  HANDOFF_QUERY_PARAM,
-  INTENTS,
-  TOOLS,
-  acceptsIntent,
-  getTool,
-  routeForTool,
-  toolsAccepting,
-} from "./toolRegistry.js";
+import { HANDOFF_QUERY_PARAM, TOOLS, WANTS, getTool, routeForTool, serves, toolsFor } from "./toolRegistry.js";
 
 describe("toolRegistry", () => {
-  it("describes every tool with name, job, route and icon", () => {
+  it("describes every tool with name, job, route, icon and what it receives", () => {
     for (const t of TOOLS) {
       expect(t.name && t.job && t.route.name && t.icon).toBeTruthy();
-      expect(Array.isArray(t.accepts)).toBe(true);
+      expect(Array.isArray(t.receives.wants)).toBe(true);
+      expect(["any", "text", "none"]).toContain(t.receives.steps);
     }
   });
 
-  it("focus accepts start-session; thinkpad accepts decompose", () => {
-    expect(acceptsIntent("focus", INTENTS.START_SESSION)).toBe(true);
-    expect(acceptsIntent("focus", "other")).toBe(false);
-    expect(acceptsIntent("focus", INTENTS.DECOMPOSE)).toBe(false);
-    expect(acceptsIntent("thinkpad", INTENTS.DECOMPOSE)).toBe(true);
-    expect(acceptsIntent("thinkpad", INTENTS.START_SESSION)).toBe(false);
-    expect(acceptsIntent("nope", INTENTS.START_SESSION)).toBe(false);
+  it("routes each verb to the tool that serves it", () => {
+    expect(toolsFor(WANTS.STEP_THROUGH).map((t) => t.id)).toEqual(["focus"]);
+    expect(toolsFor(WANTS.THINK).map((t) => t.id)).toEqual(["thinkpad"]);
+    expect(toolsFor(WANTS.CHOOSE_STEPS).map((t) => t.id)).toEqual(["workflows"]);
+    expect(toolsFor(WANTS.KEEP).map((t) => t.id)).toEqual(["workflows"]);
+    expect(toolsFor("unknown")).toEqual([]);
   });
 
-  it("lists tools accepting an intent", () => {
-    expect(toolsAccepting(INTENTS.START_SESSION).map((t) => t.id)).toEqual(["focus"]);
-    expect(toolsAccepting(INTENTS.DECOMPOSE).map((t) => t.id)).toEqual(["thinkpad"]);
-    expect(toolsAccepting(INTENTS.PICK_STEPS).map((t) => t.id)).toEqual(["workflows"]);
-    expect(toolsAccepting(INTENTS.SAVE_STEPS).map((t) => t.id)).toEqual(["workflows"]);
-    expect(toolsAccepting("unknown")).toEqual([]);
+  it("checks whether a tool can take the steps a request carries", () => {
+    const text = [{ prompt: "a", produces: "text" }];
+    const action = [{ prompt: "a", produces: "action" }];
+    expect(serves("focus", WANTS.STEP_THROUGH, action)).toBe(true);
+    expect(serves("thinkpad", WANTS.THINK)).toBe(true);
+    expect(serves("thinkpad", WANTS.THINK, text)).toBe(false); // ThinkPad takes no steps yet
+    expect(serves("focus", WANTS.THINK)).toBe(false);
+    expect(serves("nope", WANTS.THINK)).toBe(false);
   });
 
   it("builds routes, carrying only the query it is given", () => {

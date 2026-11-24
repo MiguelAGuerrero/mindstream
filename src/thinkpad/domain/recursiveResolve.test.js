@@ -141,7 +141,7 @@ describe("persistence — additive round-trip (no schema bump)", () => {
     expect(surfaceThreadId(restored)).toBeNull();
     expect(restored.threads[0].doc).toEqual({
       text: "", ideas: [], annotations: [], phase: "stream",
-      frozenText: null, frozenIdeas: null, staged: [], draftHistory: [],
+      frozenText: null, frozenIdeas: null, staged: [], draftHistory: [], lifted: [],
     });
     expect(restored.threads[0].parentAnchor).toBeNull();
   });

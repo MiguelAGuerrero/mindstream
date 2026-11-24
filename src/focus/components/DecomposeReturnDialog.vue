@@ -8,7 +8,7 @@ defineProps({
   /** Which tool the steps came from, e.g. "ThinkPad" or "Workflows". */
   sourceName: { type: String, default: "" },
   parentFocus: { type: String, default: "" },
-  /** Steps: { title, decision? }. */
+  /** Steps: { prompt, produces, expects?, options? } (handoff/steps.js). */
   subFocuses: { type: Array, default: () => [] },
 });
 const emit = defineEmits(["start", "dismiss"]);
@@ -22,10 +22,10 @@ const emit = defineEmits(["start", "dismiss"]);
       <v-card-text class="px-6 py-3">
         <ol class="return-steps">
           <li v-for="(step, i) in subFocuses" :key="i">
-            {{ step.title }}
-            <span v-if="step.decision" class="return-steps__decision">
+            {{ step.prompt }}
+            <span v-if="step.expects === 'call'" class="return-steps__decision">
               <v-icon size="13" icon="mdi-call-split" />
-              {{ step.decision.options.length ? step.decision.options.join(" / ") : "decide" }}
+              {{ step.options?.length ? step.options.join(" / ") : "decide" }}
             </span>
           </li>
         </ol>

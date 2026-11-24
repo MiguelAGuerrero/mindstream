@@ -1,7 +1,7 @@
 <script setup>
-// Edit one workflow. Saves as you type. Any step can be marked as a decision:
-// running it then finishes by choosing an output (one of its options, or a
-// short answer when it has none) instead of a plain Complete.
+// Edit one workflow. Saves as you type. Any step can be marked as a call (a
+// decision): running it then finishes by choosing an output (one of its
+// options, or a short answer when it has none) instead of a plain Resolve.
 import { ref, watch } from "vue";
 import { MAX_OPTIONS, MAX_STEPS } from "../../handoff/steps.js";
 import { workflowLabel } from "../model/workflow.js";
@@ -16,40 +16,43 @@ let key = 0;
 function toRow(step) {
   return {
     key: key++,
-    title: step.title,
-    isDecision: !!step.decision,
-    options: step.decision ? [...step.decision.options] : [],
+    prompt: step.prompt ?? "",
+    // Kept as-is; the editor does not offer "action" steps yet.
+    produces: step.produces ?? "text",
+    isDecision: step.expects === "call",
+    options: [...(step.options ?? [])],
   };
 }
 
 // A local draft, so a blank row you just added does not vanish when the saved
 // (cleaned) version comes back. Reset only when another workflow is opened,
 // which remounts this component (keyed in the page).
-const name = ref(props.workflow.name);
+const label = ref(props.workflow.label);
 const gap = ref(props.workflow.gap);
 const rows = ref(props.workflow.steps.map(toRow));
-if (!rows.value.length) rows.value.push(toRow({ title: "" }));
+if (!rows.value.length) rows.value.push(toRow({ prompt: "" }));
 
 function toSteps() {
   return rows.value.map((r) => ({
-    title: r.title,
-    ...(r.isDecision ? { decision: { options: r.options } } : {}),
+    prompt: r.prompt,
+    produces: r.produces,
+    ...(r.isDecision ? { expects: "call", options: r.options } : {}),
   }));
 }
 
 let timer = null;
 watch(
-  [name, gap, rows],
+  [label, gap, rows],
   () => {
     clearTimeout(timer);
-    timer = setTimeout(() => emit("update", { name: name.value, gap: gap.value, steps: toSteps() }), 300);
+    timer = setTimeout(() => emit("update", { label: label.value, gap: gap.value, steps: toSteps() }), 300);
   },
   { deep: true },
 );
 
 function addStep(at = rows.value.length) {
   if (rows.value.length >= MAX_STEPS) return;
-  rows.value.splice(at, 0, toRow({ title: "" }));
+  rows.value.splice(at, 0, toRow({ prompt: "" }));
 }
 function removeStep(i) {
   rows.value.splice(i, 1);
@@ -72,19 +75,19 @@ function onPaste(i, event) {
   event.preventDefault();
   const room = MAX_STEPS - rows.value.length + 1;
   const [first, ...rest] = lines.slice(0, Math.max(room, 1));
-  rows.value[i].title = rows.value[i].title ? `${rows.value[i].title} ${first}` : first;
-  rows.value.splice(i + 1, 0, ...rest.map((title) => toRow({ title })));
+  rows.value[i].prompt = rows.value[i].prompt ? `${rows.value[i].prompt} ${first}` : first;
+  rows.value.splice(i + 1, 0, ...rest.map((prompt) => toRow({ prompt })));
 }
 
 const confirmDelete = ref(false);
-const hasSteps = () => rows.value.some((r) => r.title.trim());
+const hasSteps = () => rows.value.some((r) => r.prompt.trim());
 </script>
 
 <template>
   <section class="wf-edit">
     <v-btn variant="text" prepend-icon="mdi-arrow-left" class="mb-4 px-1" @click="emit('back')">Workflows</v-btn>
 
-    <v-text-field v-model="name" label="Name" placeholder="Untitled workflow" variant="outlined" class="mb-2" />
+    <v-text-field v-model="label" label="Name" placeholder="Untitled workflow" variant="outlined" class="mb-2" />
     <v-text-field
       v-model="gap"
       label="Closes the gap when… (optional)"
@@ -99,7 +102,7 @@ const hasSteps = () => rows.value.some((r) => r.title.trim());
         <div class="wf-edit__line">
           <span class="wf-edit__num">{{ i + 1 }}</span>
           <v-text-field
-            v-model="row.title"
+            v-model="row.prompt"
             :placeholder="i === 0 ? 'First step (paste a list to add several)' : 'Step'"
             variant="outlined"
             density="compact"

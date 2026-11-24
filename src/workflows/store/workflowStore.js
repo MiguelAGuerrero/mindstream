@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Workflow library store. Holds the templates; never holds a run. Persists to
+// Workflow library store. Holds workflows; never holds a run. Persists to
 // its own IndexedDB with write-through on each change, and seeds the starter
 // library once into an empty, never-seeded library.
 // ---------------------------------------------------------------------------
@@ -78,15 +78,15 @@ export const useWorkflowStore = defineStore("workflows", {
     },
 
     /** Create a workflow and return it. */
-    create({ name = "", gap = "", steps = [] } = {}) {
+    create({ label = "", gap = "", steps = [] } = {}) {
       const now = nowIso();
-      const wf = createWorkflow({ id: makeId(), name, gap, steps, createdAt: now, updatedAt: now });
+      const wf = createWorkflow({ id: makeId(), label, gap, steps, createdAt: now, updatedAt: now });
       this.workflows.push(wf);
       persist(wf);
       return wf;
     },
 
-    /** Apply editor changes (name, gap, steps). */
+    /** Apply editor changes (label, gap, steps). Changing the steps bumps the version. */
     update(id, patch = {}) {
       const i = this.workflows.findIndex((w) => w.id === id);
       if (i < 0) return null;

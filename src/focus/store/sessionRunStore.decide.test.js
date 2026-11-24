@@ -12,8 +12,8 @@ describe("decision steps", () => {
     store.planSteps({
       steps: [
         "Sketch two fixes",
-        { title: "Pick a fix", decision: { options: ["Pulse", "Soft colour"] } },
-        { title: "Name the main risk", decision: {} },
+        { prompt: "Pick a fix", expects: "call", options: ["Pulse", "Soft colour"] },
+        { prompt: "Name the main risk", expects: "call" },
         "Write it",
       ],
     });
@@ -71,11 +71,11 @@ describe("decision steps", () => {
     const root = createFocusFrame({
       id: 1,
       title: "R",
-      steps: [{ title: "Pick", decision: { options: ["a", "b"] } }],
+      steps: [{ prompt: "Pick", expects: "call", options: ["a", "b"] }],
       stepChoices: ["a"],
     });
     const revived = normalizeContextRecord(JSON.parse(JSON.stringify(createContext({ id: 2, rootFrame: root }))));
-    expect(revived.stack[0].steps).toEqual([{ title: "Pick", decision: { options: ["a", "b"] } }]);
+    expect(revived.stack[0].steps).toEqual([{ prompt: "Pick", produces: "text", expects: "call", options: ["a", "b"] }]);
     expect(revived.stack[0].stepChoices).toEqual(["a"]);
   });
 });

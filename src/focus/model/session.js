@@ -39,6 +39,7 @@ export function createFocusFrame({
   stepResults,
   stepDone,
   stepChoices,
+  planTag,
 } = {}) {
   const frame = {
     id,
@@ -71,6 +72,8 @@ export function createFocusFrame({
   if (results) frame.stepResults = results;
   const choices = byStep(stepChoices);
   if (choices) frame.stepChoices = choices;
+  // Opaque tag the plan's steps arrived with (roadmap §4.2), kept for comparing runs.
+  if (plan.length && typeof planTag === "string" && planTag) frame.planTag = planTag;
   return frame;
 }
 
@@ -172,6 +175,7 @@ export function normalizeContextRecord(record) {
         stepResults: frame.stepResults,
         stepDone: frame.stepDone,
         stepChoices: frame.stepChoices,
+        planTag: frame.planTag,
       }),
     );
   }

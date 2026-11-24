@@ -22,6 +22,7 @@ import {
   nextUndoneStep,
   normalizeContextRecord,
 } from "../model/session.js";
+import { isDecision, stepOptions } from "../../handoff/steps.js";
 import {
   getAllContexts as getAllContextsFromDb,
   upsertContext as upsertContextInDb,
@@ -177,8 +178,10 @@ export const useSessionRunStore = defineStore("sessionRun", {
           allDone: done.every(Boolean),
           results: Array.isArray(f.stepResults) ? f.stepResults : [],
           choices: Array.isArray(f.stepChoices) ? f.stepChoices : [],
-          // The decision the current step asks for, when it is running and is one.
-          decision: running ? f.steps[f.stepIndex]?.decision ?? null : null,
+          // The call the current step asks for, when it is running and is one.
+          decision: running && isDecision(f.steps[f.stepIndex]) ? { options: stepOptions(f.steps[f.stepIndex]) } : null,
+          // Opaque tag the steps arrived with (e.g. which workflow, which version).
+          tag: f.planTag ?? null,
         };
       };
       if (frame.steps?.length) return view(frame, false);
@@ -234,7 +237,7 @@ export const useSessionRunStore = defineStore("sessionRun", {
     _stepFrame(parent, index) {
       return createFocusFrame({
         id: this.nextId++,
-        title: parent.steps[index].title,
+        title: parent.steps[index].prompt,
         createdAt: new Date().toISOString(),
         fromStep: index,
       });
@@ -345,10 +348,11 @@ export const useSessionRunStore = defineStore("sessionRun", {
       const step = st[st.length - 1];
       const holder = st[st.length - 2];
       if (!step || !holder?.steps || step.fromStep == null || step.fromStep !== holder.stepIndex) return;
-      const decision = holder.steps[step.fromStep]?.decision;
+      const planned = holder.steps[step.fromStep];
       const value = typeof choice === "string" ? choice.replace(/\s+/g, " ").trim() : "";
-      if (!decision || !value) return;
-      if (decision.options.length && !decision.options.includes(value)) return;
+      if (!isDecision(planned) || !value) return;
+      const options = stepOptions(planned);
+      if (options.length && !options.includes(value)) return;
       const choices = holder.steps.map((_, i) => holder.stepChoices?.[i] ?? "");
       choices[step.fromStep] = value;
       holder.stepChoices = choices;
@@ -365,7 +369,7 @@ export const useSessionRunStore = defineStore("sessionRun", {
 
     /** Decompose the active focus into an ordered plan and start on step 1. The
      *  plan lives on the frame, so no step is lost while you work on another. */
-    planSteps({ steps } = {}) {
+    planSteps({ steps, tag = null } = {}) {
       const ctx = this.activeContext;
       const frame = this.activeFrame;
       const plan = cleanSteps(steps);
@@ -375,6 +379,9 @@ export const useSessionRunStore = defineStore("sessionRun", {
       frame.stepDone = plan.map(() => false);
       delete frame.stepResults;
       delete frame.stepChoices;
+      // Opaque: Focus keeps it and never reads it (roadmap §4.2 `tag`).
+      if (typeof tag === "string" && tag) frame.planTag = tag;
+      else delete frame.planTag;
       ctx.stack.push(this._stepFrame(frame, 0));
     },
 

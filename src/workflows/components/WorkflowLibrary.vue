@@ -1,5 +1,5 @@
 <script setup>
-// The library: every saved workflow as a card. A template only, never a run.
+// The library: every saved workflow as a card. Workflows only, never runs.
 import { workflowLabel } from "../model/workflow.js";
 
 defineProps({
@@ -14,7 +14,7 @@ const emit = defineEmits(["open", "new"]);
       <div>
         <h1 class="wf-lib__title">Workflows</h1>
         <p class="wf-lib__sub text-medium-emphasis">
-          Templates of steps. Using one copies its steps, so editing it later never changes work already started.
+          Saved steps you can reuse. Using a workflow copies its steps, so editing it later never changes a run already started.
         </p>
       </div>
       <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="emit('new')">New workflow</v-btn>
@@ -36,8 +36,8 @@ const emit = defineEmits(["open", "new"]);
             <p v-if="wf.gap" class="wf-lib__gap">{{ wf.gap }}</p>
             <ol class="wf-lib__steps">
               <li v-for="(step, i) in wf.steps.slice(0, 3)" :key="i">
-                {{ step.title }}
-                <v-icon v-if="step.decision" size="12" icon="mdi-call-split" />
+                {{ step.prompt }}
+                <v-icon v-if="step.expects === 'call'" size="12" icon="mdi-call-split" />
               </li>
             </ol>
             <p v-if="wf.steps.length > 3" class="wf-lib__more">+ {{ wf.steps.length - 3 }} more</p>

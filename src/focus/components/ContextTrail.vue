@@ -86,7 +86,7 @@ watch(() => props.cards.at(-1)?.id, pinToCurrent, { flush: "post" });
           <button
             type="button"
             class="ctx-steps__step"
-            :title="props.plan.running && i === props.plan.index ? step.title : `Switch to: ${step.title}`"
+            :title="props.plan.running && i === props.plan.index ? step.prompt : `Switch to: ${step.prompt}`"
             :disabled="props.plan.running && i === props.plan.index"
             :aria-current="props.plan.running && i === props.plan.index ? 'step' : undefined"
             @click="emit('jump', i)"
@@ -96,7 +96,8 @@ watch(() => props.cards.at(-1)?.id, pinToCurrent, { flush: "post" });
               class="ctx-steps__icon"
               :icon="props.plan.done[i] ? 'mdi-check' : props.plan.running && i === props.plan.index ? 'mdi-circle-medium' : 'mdi-circle-outline'"
             />
-            <span class="ctx-steps__title">{{ step.title }}</span>
+            <span class="ctx-steps__title">{{ step.prompt }}</span>
+            <v-icon v-if="step.expects === 'call'" size="13" icon="mdi-call-split" class="ctx-steps__decision" title="Decision" />
           </button>
           <p v-if="props.plan.choices?.[i]" class="ctx-steps__choice" :title="props.plan.choices[i]">
             → {{ props.plan.choices[i] }}

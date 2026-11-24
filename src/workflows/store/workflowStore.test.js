@@ -32,7 +32,7 @@ describe("workflowStore", () => {
     const s = useWorkflowStore();
     await s.load();
     expect(s.workflows).toHaveLength(DEFAULT_WORKFLOWS.length);
-    expect(s.library[0].name).toBe(DEFAULT_WORKFLOWS[0].name);
+    expect(s.library[0].label).toBe(DEFAULT_WORKFLOWS[0].label);
 
     // The user later deletes them all; the next load (same storage) must not re-seed.
     db.records = [];
@@ -43,15 +43,15 @@ describe("workflowStore", () => {
   });
 
   it("creates, edits, counts uses, and removes", async () => {
-    db.records = [{ id: "wf:old", name: "Kept", steps: ["a"] }];
+    db.records = [{ id: "wf:old", label: "Kept", version: 1, gap: "", steps: [{ prompt: "a", produces: "text" }], uses: 0 }];
     const s = useWorkflowStore();
     await s.load();
-    expect(s.workflows.map((w) => w.name)).toEqual(["Kept"]);
+    expect(s.workflows.map((w) => w.label)).toEqual(["Kept"]);
 
-    const wf = s.create({ name: "Debug", steps: ["Reproduce", { title: "Pick", decision: { options: ["A"] } }] });
+    const wf = s.create({ label: "Debug", steps: ["Reproduce", { prompt: "Pick", expects: "call", options: ["A"] }] });
     expect(s.byId(wf.id).steps).toHaveLength(2);
-    s.update(wf.id, { name: "Debug a UI bug", steps: ["Only one"] });
-    expect(s.byId(wf.id)).toMatchObject({ name: "Debug a UI bug", steps: [{ title: "Only one" }] });
+    s.update(wf.id, { label: "Debug a UI bug", steps: ["Only one"] });
+    expect(s.byId(wf.id)).toMatchObject({ label: "Debug a UI bug", version: 2, steps: [{ prompt: "Only one" }] });
     s.markUsed(wf.id);
     s.markUsed(wf.id);
     expect(s.byId(wf.id).uses).toBe(2);

@@ -1,13 +1,13 @@
 // ---------------------------------------------------------------------------
 // The starter library, from docs/GENERIC_PROBLEM_SOLVING_WORKFLOWS.md. Seeded
 // once into an empty library; after that they are ordinary workflows the user
-// can edit or delete. Steps that produce a required output are decision steps.
+// can edit or delete. Steps that produce a required output are calls (decisions).
 // ---------------------------------------------------------------------------
-const decide = (title, options = []) => ({ title, decision: { options } });
+const decide = (prompt, options = []) => ({ prompt, expects: "call", options });
 
 export const DEFAULT_WORKFLOWS = Object.freeze([
   {
-    name: "Clarify the problem",
+    label: "Clarify the problem",
     gap: "The task is vague, overloaded, or emotionally noisy.",
     steps: [
       "State the problem in one sentence.",
@@ -20,7 +20,7 @@ export const DEFAULT_WORKFLOWS = Object.freeze([
     ],
   },
   {
-    name: "Research and synthesize",
+    label: "Research and synthesize",
     gap: "You need to learn, compare sources, or build context fast.",
     steps: [
       "Define the research question and the decision it informs.",
@@ -34,7 +34,7 @@ export const DEFAULT_WORKFLOWS = Object.freeze([
     ],
   },
   {
-    name: "Disambiguate options",
+    label: "Disambiguate options",
     gap: "There are several plausible paths and no clear pick yet.",
     steps: [
       "List all candidate options without judging.",
@@ -47,7 +47,7 @@ export const DEFAULT_WORKFLOWS = Object.freeze([
     ],
   },
   {
-    name: "Make a decision",
+    label: "Make a decision",
     gap: "There is enough context and you need to commit.",
     steps: [
       "State the decision to be made.",
@@ -60,7 +60,7 @@ export const DEFAULT_WORKFLOWS = Object.freeze([
     ],
   },
   {
-    name: "Plan execution",
+    label: "Plan execution",
     gap: "A decision exists but the path to carry it out is unclear.",
     steps: [
       "Define the target outcome and deadline window.",

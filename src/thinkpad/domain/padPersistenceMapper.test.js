@@ -53,7 +53,7 @@ describe("normalizePad", () => {
     const result = normalizePad({ id: "ctx:1" }, { now: NOW });
     expect(result.doc).toEqual({
       text: "", ideas: [], annotations: [], phase: "stream",
-      frozenText: null, frozenIdeas: null, staged: [], draftHistory: [],
+      frozenText: null, frozenIdeas: null, staged: [], draftHistory: [], lifted: [],
     });
   });
 

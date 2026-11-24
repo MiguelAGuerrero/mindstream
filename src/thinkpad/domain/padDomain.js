@@ -61,6 +61,13 @@ export {
   advanceToNextDraft,
   // Block reorder
   reorderBlock,
+  // Open-item gate (capture-templates-proposal §8)
+  DISPOSITION_KINDS,
+  openItems,
+  disposeOpenItem,
+  clearDisposition,
+  canResolve,
+  decidedItems,
 } from "./thinkPadModel";
 
 export {

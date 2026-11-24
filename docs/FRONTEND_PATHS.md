@@ -25,12 +25,12 @@ App bar, route chrome, `router-view`. Provides Focus UI state (`provideFocusUi`)
 | Path | Role |
 |------|------|
 | `ThinkPadPage.vue` | Page orchestrator |
-| `ThinkPadLayout.vue` | Route layout; hosts DecomposeHandoffPanel as a side column while a decompose request is open |
+| `ThinkPadLayout.vue` | Route layout; hosts DecomposeHandoffPanel as a side column while a `think` request is open |
 | `components/` | ThinkPadPanel, IdeaGutter, DraftPhaseBar, DecomposeHandoffPanel |
 | `composables/` | useThinkPadPage, useThinkPadWelcome, useThinkPadDrill, useThinkPadReflect, useSessionUi |
-| `dialogs/` | DocumentPickerDialog |
+| `dialogs/` | DocumentPickerDialog, OpenItemsDialog (the open-item gate) |
 | `editor/` | TipTap editor internals |
-| `domain/` | thinkPadModel, padDomain, padPersistenceMapper, blockActions, ideaParser |
+| `domain/` | thinkPadModel (incl. the open-item gate), padDomain, padPersistenceMapper, blockActions, ideas, moveHandoff, decomposeReturn |
 | `store/` | padStore, idClock |
 | `persistence/` | padsDb |
 | `moves.js` | Move vocabulary (domain data + helpers) |
@@ -47,12 +47,12 @@ App bar, route chrome, `router-view`. Provides Focus UI state (`provideFocusUi`)
 | `composables/` | useTimer, useFocusUi, useFocusBootstrap, useFocusHandoff |
 | `persistence/` | focusDb (own IndexedDB `mindstream_focus`) |
 
-## `src/handoff/` — tool registry and handoffs
-Shared channel between tools; tools never read each other's state.
-- `toolRegistry.js`: tools (name, job, route, icon, accepted intents) and `INTENTS` (`start-session`, `decompose`, `pick-steps`, `save-steps`). The launcher lists it.
-- `steps.js`: the shared step type `{ title, decision?: { options } }` every tool exchanges.
-- `handoffModel.js`: pure create/normalize/summarize; `task.steps` and `result.output: { text?, items? }`. `handoffStorage.js`: localStorage blob. `handoffStore.js`: Pinia store (`create`, `peek`, `consume`, `writeResult`, `get`, `resultFor`, `bindTarget`, `openFor`, `cancel`, `summaryFor`, `routeFor`).
-- The URL carries only the handoff id.
+## `src/handoff/` — tool registry and messages
+Shared channel between tools (the message in `PRODUCT_ASSESSMENT_AND_ROADMAP.md` §4.2); tools never read each other's state.
+- `toolRegistry.js`: tools (name, job, route, icon, what each `receives`: `wants` verbs and whether it takes `steps`) and the shell's verb list `WANTS` (`step-through`, `think`, `choose-steps`, `keep`). `toolsFor(want, steps)` is the broker's match. The launcher lists the tools.
+- `steps.js`: the step every tool exchanges, `{ prompt, produces: "text" | "action", expects?: "call", options? }`.
+- `handoffModel.js`: pure `createRequest` / `normalizeReply` / `normalizeHandoffRecord` (also reads the earlier `{ from, task, result }` records) / `summarizeReplies`. `handoffStorage.js`: localStorage blob. `handoffStore.js`: Pinia store (`create`, `peek`, `consume`, `reply`, `get`, `replyFor`, `bindTarget`, `openFor`, `cancel`, `summaryFor`, `routeFor`).
+- The URL carries only the request id.
 
 ## `src/workflows/` — `/workflows`
 
@@ -60,8 +60,8 @@ Shared channel between tools; tools never read each other's state.
 |------|------|
 | `WorkflowsPage.vue` | Page: library, editor, or picker |
 | `components/` | WorkflowLibrary, WorkflowEditor (decision steps), WorkflowPicker |
-| `composables/` | useWorkflowsHandoff (answers `pick-steps`, handles `save-steps`, "Run as new context") |
-| `store/` | workflowStore (templates only; seeds the starter library once) |
+| `composables/` | useWorkflowsHandoff (answers `choose-steps`, handles `keep`, "Run as new context" asks for `step-through`) |
+| `store/` | workflowStore (workflows only, never runs; bumps `version` when steps change; seeds the starter library once) |
 | `model/` | workflow.js, defaultWorkflows.js |
 | `persistence/` | workflowsDb (own IndexedDB `mindstream_workflows`) |
 

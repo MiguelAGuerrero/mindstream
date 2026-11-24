@@ -1,33 +1,26 @@
 // ---------------------------------------------------------------------------
-// Decompose handoff, Focus's side. Focus owns the translation in both
-// directions: it turns the focus you are on into the neutral task other tools
-// understand ({title, notes}), and it reads what comes back ({items, text}) as
-// candidate sub-focuses. Pure: no Vue, no store, no imports from other tools.
+// Focus's side of the message (roadmap §4.2). Focus owns the translation both
+// ways: the focus you're on becomes `text` plus `context` (its ancestors,
+// outermost first), and a reply's `steps` (or, failing that, the lines of its
+// `text`) become candidate steps. Pure: no Vue, no store, no imports from other tools.
 // ---------------------------------------------------------------------------
 import { cleanSteps } from "../../handoff/steps.js";
-
-const MAX_NOTES = 280;
 
 function oneLine(value) {
   return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
 }
 
 /**
+ * The request body for asking about a focus.
  * @param {{focus: string, breadcrumb?: string[]}} args
  *   focus: the current focus title; breadcrumb: root → current titles.
- * @returns {{title: string, notes?: string}|null} null when there is no focus text.
+ * @returns {{text: string, context: string[]}|null} null when there is no focus text.
  */
-export function focusToDecomposeTask({ focus, breadcrumb = [] } = {}) {
-  const title = oneLine(focus);
-  if (!title) return null;
-  const task = { title };
-  const chain = (Array.isArray(breadcrumb) ? breadcrumb : [])
-    .slice(0, -1)
-    .map(oneLine)
-    .filter(Boolean)
-    .join(" › ");
-  if (chain) task.notes = chain.length > MAX_NOTES ? `${chain.slice(0, MAX_NOTES - 1).trimEnd()}…` : chain;
-  return task;
+export function focusToRequest({ focus, breadcrumb = [] } = {}) {
+  const text = oneLine(focus);
+  if (!text) return null;
+  const context = (Array.isArray(breadcrumb) ? breadcrumb : []).slice(0, -1).map(oneLine).filter(Boolean);
+  return { text, context };
 }
 
 // A leading list marker: "1." "2)" "-" "*" "•".
@@ -36,7 +29,7 @@ const LIST_MARKER = /^\s*(?:\d+[.)]|[-*•])\s+/;
 /**
  * Steps typed as text: one per non-empty line, list markers optional.
  * @param {string} text
- * @returns {Array<{title: string}>}
+ * @returns {Array<{prompt: string, produces: string}>}
  */
 export function stepsFromText(text) {
   if (typeof text !== "string") return [];
@@ -44,14 +37,12 @@ export function stepsFromText(text) {
 }
 
 /**
- * The steps a handoff result offers: its `items` (which may carry decisions),
- * or, when it only carries `text`, each non-empty line as a plain step.
- * @param {{output?: {items?: Array, text?: string}}|null} result
- * @returns {Array<{title: string, decision?: {options: string[]}}>}
+ * The steps a reply offers: its `steps` (which may carry calls), or, when it
+ * only carries `text`, each non-empty line as a plain step.
+ * @param {{steps?: Array, text?: string}|null} reply
  */
-export function subFocusesFromResult(result) {
-  const output = result?.output;
-  if (!output) return [];
-  if (Array.isArray(output.items)) return cleanSteps(output.items);
-  return stepsFromText(output.text);
+export function stepsFromReply(reply) {
+  if (!reply) return [];
+  if (Array.isArray(reply.steps) && reply.steps.length) return cleanSteps(reply.steps);
+  return stepsFromText(reply.text);
 }

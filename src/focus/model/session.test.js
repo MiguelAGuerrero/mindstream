@@ -172,7 +172,7 @@ describe("plan fields on a frame", () => {
   it("are absent on a plain frame and kept when set", () => {
     expect(createFocusFrame({ id: 1, title: "T" })).toEqual({ id: 1, title: "T", result: null, createdAt: null });
     expect(createFocusFrame({ id: 1, title: "T", steps: [" a ", "", "b"], stepIndex: 1 })).toMatchObject({
-      steps: [{ title: "a" }, { title: "b" }],
+      steps: [{ prompt: "a" }, { prompt: "b" }],
       stepIndex: 1,
     });
     expect(createFocusFrame({ id: 2, title: "S", fromStep: 0 }).fromStep).toBe(0);
@@ -188,11 +188,11 @@ describe("plan fields on a frame", () => {
   it("round-trip through a persisted context", () => {
     const ctx = createContext({
       id: 1,
-      rootFrame: createFocusFrame({ id: 2, title: "Root", steps: [{ title: "a" }, { title: "b" }], stepIndex: 1 }),
+      rootFrame: createFocusFrame({ id: 2, title: "Root", steps: [{ prompt: "a" }, { prompt: "b" }], stepIndex: 1 }),
     });
     ctx.stack.push(createFocusFrame({ id: 3, title: "b", fromStep: 1 }));
     const revived = normalizeContextRecord(JSON.parse(JSON.stringify(ctx)));
-    expect(revived.stack[0]).toMatchObject({ steps: [{ title: "a" }, { title: "b" }], stepIndex: 1 });
+    expect(revived.stack[0]).toMatchObject({ steps: [{ prompt: "a" }, { prompt: "b" }], stepIndex: 1 });
     expect(revived.stack[1].fromStep).toBe(1);
   });
 });

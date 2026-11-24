@@ -21,8 +21,8 @@ const selected = computed(() => usable.value.find((w) => w.id === picked.value) 
     <header class="wf-pick__head">
       <div class="wf-pick__for">
         <p class="wf-pick__eyebrow">PICK STEPS{{ requesterName ? ` FOR ${requesterName.toUpperCase()}` : "" }}</p>
-        <h1 class="wf-pick__title">{{ request.task.title }}</h1>
-        <p v-if="request.task.notes" class="wf-pick__notes text-medium-emphasis">{{ request.task.notes }}</p>
+        <h1 class="wf-pick__title">{{ request.text }}</h1>
+        <p v-if="request.context.length" class="wf-pick__notes text-medium-emphasis">{{ request.context.join(' › ') }}</p>
       </div>
       <v-btn variant="text" prepend-icon="mdi-close" @click="emit('cancel')">Cancel</v-btn>
     </header>
@@ -40,10 +40,10 @@ const selected = computed(() => usable.value.find((w) => w.id === picked.value) 
         <p v-if="wf.gap && wf.id === picked" class="wf-pick__gap">{{ wf.gap }}</p>
         <ol v-if="wf.id === picked" class="wf-pick__steps">
           <li v-for="(step, i) in wf.steps" :key="i">
-            {{ step.title }}
-            <span v-if="step.decision" class="wf-pick__decision">
+            {{ step.prompt }}
+            <span v-if="step.expects === 'call'" class="wf-pick__decision">
               <v-icon size="12" icon="mdi-call-split" />
-              {{ step.decision.options.length ? step.decision.options.join(" / ") : "decide" }}
+              {{ step.options?.length ? step.options.join(" / ") : "decide" }}
             </span>
           </li>
         </ol>

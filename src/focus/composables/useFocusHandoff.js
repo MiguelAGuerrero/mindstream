@@ -1,16 +1,20 @@
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useHandoffStore } from "../../handoff/handoffStore.js";
-import { HANDOFF_QUERY_PARAM, INTENTS, getTool, toolsAccepting } from "../../handoff/toolRegistry.js";
-import { focusToDecomposeTask, subFocusesFromResult } from "../model/decomposeHandoff.js";
+import { HANDOFF_QUERY_PARAM, WANTS, getTool, toolsFor } from "../../handoff/toolRegistry.js";
+import { focusToRequest, stepsFromReply } from "../model/decomposeHandoff.js";
 
 /**
- * Focus's side of the handoff channel. Reads `/focus?handoff=<id>`, exposes
- * the pending task for the "ready to start" screen, consumes it once on
- * accept/dismiss, and reports the session result back through the store.
- * A missing, consumed, malformed or not-accepted handoff yields `pending ===
- * null` (a plain session) and never an error. Imports only the shared
- * handoff channel — never another tool.
+ * Focus's side of the channel (roadmap §4.2).
+ *
+ * Receiving: reads `/focus?handoff=<id>`, exposes the pending request for the
+ * "ready to start" screen, consumes it once on accept/dismiss, and replies when
+ * the context resolves or is closed. A missing, consumed or malformed request
+ * yields `pending === null` (a plain session), never an error.
+ *
+ * Sending: asks for steps for the current focus by verb ("think", "choose-steps")
+ * and hands a plan over to be kept ("keep"). Focus never names the tool that
+ * serves a verb; the registry finds it. Imports only the shared channel.
  */
 export function useFocusHandoff() {
   const route = useRoute();
@@ -24,7 +28,7 @@ export function useFocusHandoff() {
     return typeof id === "string" && id ? id : null;
   });
 
-  /** The handoff waiting for the user to begin, or null. Peeking never consumes. */
+  /** The request waiting for the user to begin, or null. Peeking never consumes. */
   const pending = computed(() => (handoffId.value ? store.peek(handoffId.value, "focus") : null));
 
   function stripQuery() {
@@ -32,13 +36,13 @@ export function useFocusHandoff() {
     return router.replace({ name: "focus", query: rest });
   }
 
-  /** Consume the pending handoff; returns the session seed, or null if it is gone. */
+  /** Consume the pending request; returns the session seed, or null if it is gone. */
   function accept() {
     const id = handoffId.value;
     const h = id ? store.consume(id, "focus") : null;
     stripQuery();
     if (!h) return null;
-    return { task: h.task, origin: h.from, handoffId: h.id };
+    return { request: h, origin: h.replyTo, handoffId: h.id };
   }
 
   /** "Not now": consume without starting, so reload/back cannot bring it back. */
@@ -48,90 +52,94 @@ export function useFocusHandoff() {
     stripQuery();
   }
 
-  /** Write the session outcome back to the handoff the context started from. No-op for plain sessions. */
-  function reportEnd(ctx, { status, reflection } = {}) {
+  /** Reply to the request the context started from. No-op for plain sessions. */
+  function reportEnd(ctx, { outcome, text } = {}) {
     if (!ctx?.handoffId) return;
-    store.writeResult(ctx.handoffId, {
-      status,
+    store.reply(ctx.handoffId, {
+      outcome,
+      text,
       minutes: Math.round((ctx.spentSeconds || 0) / 60),
-      reflection,
     });
   }
 
-  // --- Outbound: ask another tool to decompose the current focus -------------
+  // --- Sending --------------------------------------------------------------
 
-  const decomposeTarget = computed(() => toolsAccepting(INTENTS.DECOMPOSE)[0] ?? null);
-  const pickTarget = computed(() => toolsAccepting(INTENTS.PICK_STEPS)[0] ?? null);
-  const saveTarget = computed(() => toolsAccepting(INTENTS.SAVE_STEPS)[0] ?? null);
-  /** True when some tool can take a decompose request. Gates the button. */
-  const canDecomposeElsewhere = computed(() => decomposeTarget.value != null);
-  /** True when some tool can supply saved steps (a workflow library). */
-  const canPickSteps = computed(() => pickTarget.value != null);
-  /** True when some tool can keep steps as a template. */
-  const canSaveSteps = computed(() => saveTarget.value != null);
+  const thinker = computed(() => toolsFor(WANTS.THINK)[0] ?? null);
+  const chooser = computed(() => toolsFor(WANTS.CHOOSE_STEPS)[0] ?? null);
+  const keeper = computed(() => toolsFor(WANTS.KEEP)[0] ?? null);
+  /** Something can think a focus through and send steps back. */
+  const canDecomposeElsewhere = computed(() => thinker.value != null);
+  /** Something can supply saved steps. */
+  const canPickSteps = computed(() => chooser.value != null);
+  /** Something can keep a plan's steps. */
+  const canSaveSteps = computed(() => keeper.value != null);
 
-  // Ask `target` for steps for the current focus. Returns `{ id, route }` for
-  // the caller to remember and navigate to, or null when nothing can take it.
-  function askForSteps(target, intent, { focus, frameId, breadcrumb } = {}) {
-    const task = focusToDecomposeTask({ focus, breadcrumb });
-    if (!target || !task || frameId == null) return null;
+  // Ask for steps for the current focus. Returns `{ id, route }` for the caller
+  // to remember and navigate to, or null when nothing can take it.
+  function askForSteps(target, want, { focus, frameId, breadcrumb } = {}) {
+    const body = focusToRequest({ focus, breadcrumb });
+    if (!target || !body || frameId == null) return null;
     const handoff = store.create({
-      from: { tool: "focus", ref: String(frameId) },
-      to: { tool: target.id, intent },
-      task,
+      replyTo: { tool: "focus", ref: String(frameId) },
+      to: { tool: target.id },
+      want,
+      ...body,
     });
     return handoff ? { id: handoff.id, route: store.routeFor(handoff) } : null;
   }
 
-  /** Send the focus out to be thought through and decomposed (ThinkPad). */
+  /** Ask for the focus to be thought through, with steps sent back. */
   function sendDecompose(args) {
-    return askForSteps(decomposeTarget.value, INTENTS.DECOMPOSE, args);
+    return askForSteps(thinker.value, WANTS.THINK, args);
   }
 
-  /** Ask for saved steps for the focus (Workflows). */
+  /** Ask for saved steps for the focus. */
   function sendPickSteps(args) {
-    return askForSteps(pickTarget.value, INTENTS.PICK_STEPS, args);
+    return askForSteps(chooser.value, WANTS.CHOOSE_STEPS, args);
   }
 
-  /** Hand a plan's steps over to be kept as a template. Returns the route to go to, or null. */
+  /** Hand a plan's steps over to be kept as a workflow. Returns the route to go to, or null. */
   function sendSaveSteps({ title, steps, frameId } = {}) {
-    const target = saveTarget.value;
+    const target = keeper.value;
     if (!target || frameId == null) return null;
     const handoff = store.create({
-      from: { tool: "focus", ref: String(frameId) },
-      to: { tool: target.id, intent: INTENTS.SAVE_STEPS },
-      task: { title, steps },
+      replyTo: { tool: "focus", ref: String(frameId) },
+      to: { tool: target.id },
+      want: WANTS.KEEP,
+      text: title,
+      steps,
     });
     return handoff ? store.routeFor(handoff) : null;
   }
 
   /**
-   * Where a handoff this context sent stands:
-   *   null                       nothing awaited
-   *   {status:"waiting"}         the target has not returned yet
-   *   {status:"ready", subFocuses}  it returned usable sub-focuses
-   *   {status:"dropped"}         it came back empty or abandoned
+   * Where a request this context sent stands:
+   *   null                         nothing awaited
+   *   { status: "waiting" }        no reply yet
+   *   { status: "ready", steps }   the reply carries steps to work through
+   *   { status: "dropped" }        it came back empty or abandoned
+   * plus `sourceName` (the receiving tool, for wording) and `tag` (opaque; kept
+   * with the plan so runs of the same workflow can be compared later).
    * @param {string|null|undefined} handoffId
    */
   function awaitingState(handoffId) {
     if (!handoffId) return null;
-    // Which tool it went to, for wording ("Waiting on ThinkPad").
     const sourceName = getTool(store.get(handoffId, "focus")?.to.tool)?.name ?? "";
-    const result = store.resultFor(handoffId, "focus");
-    if (!result) return { status: "waiting", subFocuses: [], sourceName };
-    const subFocuses = result.status === "completed" ? subFocusesFromResult(result) : [];
-    return subFocuses.length
-      ? { status: "ready", subFocuses, sourceName }
-      : { status: "dropped", subFocuses: [], sourceName };
+    const reply = store.replyFor(handoffId, "focus");
+    if (!reply) return { status: "waiting", steps: [], sourceName, tag: null };
+    const steps = reply.outcome === "abandoned" ? [] : stepsFromReply(reply);
+    return steps.length
+      ? { status: "ready", steps, sourceName, tag: reply.tag ?? null }
+      : { status: "dropped", steps: [], sourceName, tag: null };
   }
 
-  /** Route back to the target tool for a handoff still being worked on. */
+  /** Route back to the receiver of a request still being worked on. */
   function routeForAwaiting(handoffId) {
     const h = handoffId ? store.get(handoffId, "focus") : null;
     return h ? store.routeFor(h) : null;
   }
 
-  /** Stop waiting: the target can no longer accept it, and it records as abandoned. */
+  /** Stop waiting: the receiver can no longer accept it, and it ends as abandoned. */
   function cancelAwaiting(handoffId) {
     if (handoffId) store.cancel(handoffId, "focus");
   }

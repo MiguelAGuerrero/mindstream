@@ -1,12 +1,13 @@
 <script setup>
-// A column beside the pad, shown while another tool is waiting on a
-// decomposition. Think on the pad as usual; list the steps here (list lines on
+// A column beside the pad, shown while another tool is waiting on a reply
+// (a "think" request). Think on the pad as usual; list the steps here (list lines on
 // the pad are suggested for you) and send them back. It is its own column so it
 // never takes height from the pad, and renders nothing when no one is waiting.
 import { computed, ref, watch } from "vue";
 import { usePadStore } from "../store/padStore";
 import { useDecomposeHandoff } from "../composables/useDecomposeHandoff";
 import { itemsFromDraft, itemsFromPadText } from "../domain/decomposeReturn.js";
+import { getTool } from "../../handoff/toolRegistry.js";
 
 const padStore = usePadStore();
 const decompose = useDecomposeHandoff();
@@ -30,6 +31,9 @@ watch(padText, (text) => {
 
 const count = computed(() => itemsFromDraft(draft.value).length);
 const handoff = computed(() => decompose.open.value);
+// What asked, named through the shell's registry (never hard-coded here).
+const askerName = computed(() => getTool(handoff.value?.replyTo.tool)?.name ?? "the tool that asked");
+const contextLine = computed(() => (handoff.value?.context ?? []).join(" › "));
 
 function onInput(event) {
   touched.value = true;
@@ -42,13 +46,11 @@ function send() {
 
 <template>
   <v-col v-if="handoff" cols="12" md="auto" class="decompose-col">
-    <aside class="decompose-panel" aria-label="Steps to send back to Focus">
+    <aside class="decompose-panel" :aria-label="`Steps to send back to ${askerName}`">
       <header class="decompose-panel__head">
-        <span class="decompose-panel__eyebrow">STEPS FOR FOCUS</span>
-        <span class="decompose-panel__task" :title="handoff.task.title">{{ handoff.task.title }}</span>
-        <span v-if="handoff.task.notes" class="decompose-panel__notes" :title="handoff.task.notes">
-          {{ handoff.task.notes }}
-        </span>
+        <span class="decompose-panel__eyebrow">ASKED BY {{ askerName.toUpperCase() }}</span>
+        <span class="decompose-panel__task" :title="handoff.text">{{ handoff.text }}</span>
+        <span v-if="contextLine" class="decompose-panel__notes" :title="contextLine">{{ contextLine }}</span>
       </header>
 
       <label class="decompose-panel__label" for="decompose-steps">One step per line, in order</label>
@@ -62,7 +64,7 @@ function send() {
 
       <footer class="decompose-panel__actions">
         <v-btn color="primary" variant="flat" block :disabled="!count" @click="send">
-          Send {{ count || "" }} {{ count === 1 ? "step" : "steps" }} back to Focus
+          Send {{ count || "" }} {{ count === 1 ? "step" : "steps" }} back to {{ askerName }}
         </v-btn>
         <v-btn variant="text" block size="small" @click="decompose.drop()">Drop and go back</v-btn>
       </footer>

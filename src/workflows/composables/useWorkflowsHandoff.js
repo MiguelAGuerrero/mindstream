@@ -2,19 +2,19 @@ import { computed, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
 import { useHandoffStore } from "../../handoff/handoffStore.js";
-import { HANDOFF_QUERY_PARAM, INTENTS, getTool, routeForTool, toolsAccepting } from "../../handoff/toolRegistry.js";
+import { HANDOFF_QUERY_PARAM, WANTS, getTool, routeForTool, toolsFor } from "../../handoff/toolRegistry.js";
 import { useWorkflowStore } from "../store/workflowStore.js";
-import { workflowLabel } from "../model/workflow.js";
+import { workflowLabel, workflowTag } from "../model/workflow.js";
 
 /**
- * Workflows' side of the handoff channel. It is a SUPPLIER of steps:
- *   pick-steps  another tool asks for steps; you choose a workflow here and its
- *               steps go back as the result (copied, so the template can change
- *               later without touching that work).
- *   save-steps  another tool hands over steps to keep; a new workflow is made
- *               from them and opened for editing.
- * And it can start work elsewhere: "Run as new context" sends the steps to the
- * tool that runs sessions. Imports only the shared channel, never another tool.
+ * The library page's side of the channel (roadmap §4.2, §4.3). It supplies steps:
+ *   choose-steps  a tool asks for steps; you choose a workflow here and its steps
+ *                 go back in the reply as content (copied, so the workflow can
+ *                 change later without touching that run), with its tag.
+ *   keep          a tool hands over steps to keep; a new workflow is made from
+ *                 them and opened for editing. Only this page writes the library.
+ * And it can start a run elsewhere: "Run as new context" asks for the steps to be
+ * stepped through. It never names the tool that serves a verb.
  */
 export function useWorkflowsHandoff() {
   const route = useRoute();
@@ -34,23 +34,23 @@ export function useWorkflowsHandoff() {
   const pending = computed(() => (queryId.value ? store.peek(queryId.value, "workflows") : null));
 
   /** A request for steps waiting on your choice, or null. */
-  const pickRequest = computed(() => (pending.value?.to.intent === INTENTS.PICK_STEPS ? pending.value : null));
-  const requesterName = computed(() => getTool(pickRequest.value?.from.tool)?.name ?? "");
+  const pickRequest = computed(() => (pending.value?.want === WANTS.CHOOSE_STEPS ? pending.value : null));
+  const requesterName = computed(() => getTool(pickRequest.value?.replyTo.tool)?.name ?? "");
 
-  function back(handoff) {
-    router.push(routeForTool(handoff.from.tool));
+  function back(request) {
+    router.push(routeForTool(request.replyTo.tool));
   }
 
-  // Save: as soon as the library is loaded, turn the handed-over steps into a
+  // Keep: as soon as the library is loaded, turn the handed-over steps into a
   // new workflow and open it in the editor.
   watch(
     [pending, isLoaded],
     ([h, loaded]) => {
-      if (!h || !loaded || h.to.intent !== INTENTS.SAVE_STEPS) return;
+      if (!h || !loaded || h.want !== WANTS.KEEP) return;
       const taken = store.consume(h.id, "workflows");
       if (!taken) return;
-      const wf = workflows.create({ name: taken.task.title, steps: taken.task.steps ?? [] });
-      store.writeResult(taken.id, { status: "completed", minutes: 0, output: { text: wf.id } });
+      const wf = workflows.create({ label: taken.text, steps: taken.steps ?? [] });
+      store.reply(taken.id, { outcome: "resolved", text: workflowLabel(wf), tag: workflowTag(wf) });
       router.replace({ name: "workflows", query: { id: wf.id } });
     },
     { immediate: true },
@@ -63,32 +63,37 @@ export function useWorkflowsHandoff() {
     if (!wf || !wf.steps.length || !request) return false;
     const taken = store.consume(request.id, "workflows");
     if (!taken) return false;
-    store.writeResult(taken.id, { status: "completed", minutes: 0, output: { items: wf.steps } });
+    store.reply(taken.id, { outcome: "resolved", text: workflowLabel(wf), steps: wf.steps, tag: workflowTag(wf) });
     workflows.markUsed(wf.id);
     back(taken);
     return true;
   }
 
-  /** Decline the pending request and go back. */
+  /** Decline the pending request (an `abandoned` reply) and go back. */
   function cancelPick() {
     const request = pickRequest.value;
     if (!request) return;
     const taken = store.consume(request.id, "workflows");
-    if (taken) store.writeResult(taken.id, { status: "abandoned", minutes: 0 });
+    if (taken) store.reply(taken.id, { outcome: "abandoned" });
     back(request);
   }
 
-  const runner = computed(() => toolsAccepting(INTENTS.START_SESSION)[0] ?? null);
+  function runnerFor(wf) {
+    return wf ? toolsFor(WANTS.STEP_THROUGH, wf.steps)[0] ?? null : null;
+  }
 
-  /** Start a new context somewhere that runs sessions, with this workflow's steps as its plan. */
+  /** Ask for this workflow's steps to be stepped through, as a new context there. */
   function runAsContext(workflowId) {
     const wf = workflows.byId(workflowId);
-    const target = runner.value;
+    const target = runnerFor(wf);
     if (!wf || !wf.steps.length || !target) return false;
     const handoff = store.create({
-      from: { tool: "workflows", ref: wf.id },
-      to: { tool: target.id, intent: INTENTS.START_SESSION },
-      task: { title: workflowLabel(wf), steps: wf.steps },
+      replyTo: { tool: "workflows", ref: wf.id },
+      to: { tool: target.id },
+      want: WANTS.STEP_THROUGH,
+      text: workflowLabel(wf),
+      steps: wf.steps,
+      tag: workflowTag(wf),
     });
     if (!handoff) return false;
     workflows.markUsed(wf.id);
@@ -96,5 +101,12 @@ export function useWorkflowsHandoff() {
     return true;
   }
 
-  return { pickRequest, requesterName, choose, cancelPick, runAsContext, canRun: computed(() => !!runner.value) };
+  return {
+    pickRequest,
+    requesterName,
+    choose,
+    cancelPick,
+    runAsContext,
+    canRun: computed(() => toolsFor(WANTS.STEP_THROUGH).length > 0),
+  };
 }
