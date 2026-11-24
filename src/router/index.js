@@ -1,10 +1,11 @@
 import { createRouter, createWebHistory } from "vue-router";
 import DashboardPage from "../dashboard/DashboardPage.vue";
-import ThinkPadLayout from "../thinkpad/ThinkPadLayout.vue";
-import ThinkPadPage from "../thinkpad/ThinkPadPage.vue";
-import FocusLayout from "../focus/FocusLayout.vue";
-import FocusRunnerPage from "../focus/FocusRunnerPage.vue";
-import WorkflowsPage from "../workflows/WorkflowsPage.vue";
+// Each tool loads only when opened (Phase 5: code-split the routes).
+const ThinkPadLayout = () => import("../thinkpad/ThinkPadLayout.vue");
+const ThinkPadPage = () => import("../thinkpad/ThinkPadPage.vue");
+const FocusLayout = () => import("../focus/FocusLayout.vue");
+const FocusRunnerPage = () => import("../focus/FocusRunnerPage.vue");
+const WorkflowsPage = () => import("../workflows/WorkflowsPage.vue");
 
 const routes = [
   {
