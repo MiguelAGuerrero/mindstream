@@ -6,7 +6,7 @@ A compact summary of what is settled, for checking proposals quickly. The source
 - `docs/capture-templates-proposal.md`: workflows, the open-item gate, resolution. Read its decisions table first.
 - `reports/`: research on comparable apps.
 
-If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 30 and proposal decisions 1 to 22.
+If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 31 and proposal decisions 1 to 22.
 
 ## Contents
 
@@ -125,6 +125,7 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 - **Theme and thesis** (Revision 18). A theme is a collection of text representing a recurring pattern (evidence an idea is true); a passage may serve several. A thesis is an argument derived from themes and evidence; it is what resolves upward, carrying its evidence.
 - **One tool per screen** (Revision 29). No multi-tool layout for now; Home's Pick up list and a thin return strip connect the tools.
 - **No pins** (Revision 29).
+- **Writing scrolls, Reflect is paged** (Revision 31). Writing is one continuous scroll; Reflect opens in a Pages view (swipe or tap to turn, "page N of M") with a Document view to switch to, as in a word processor.
 - **Tag shortcuts are declared per tag** (Revision 29): each tag can have one workflow as its shortcut.
 - **Defaults settled in Revision 29:** the runner's opt-in Reflect button stays; the typed thesis on resolve stays; a decision step does not branch; receivers never read the library (they ask with choose-steps; only the library page writes).
 - **Reflection is not an app feature.** Nothing prompts it. It is a step or a workflow the person chooses.

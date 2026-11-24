@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 30)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 31)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 31 (2026-11-24): writing scrolls, reflecting is paged.** Settled by Miguel after using the deployed app on his phone: "writing could just be infinite scrolling, but for reflecting, it most certainly should be paginated. Or at the very least, we offer a paginated view versus a document view, much like any word processor might." So: Writing is one continuous scroll; Reflect opens in a Pages view (screen-sized pages, turned by swipe or tap, "page 2 of 5"), with a Document view to switch to. He also found, on the device, that a thread drilled from a long passage left no room to write (fixed: the passage is clamped to three lines) and that Mindstream could not be installed as an app (fixed: it is now an installable, offline-capable app).
 
 **Revision 30 (2026-11-24): per-tag shortcuts, shelf, Send, return strip; deployed to master.** Built on Revision 29's answers, verified at phone size and on desktop (549 tests, build, console clean, every earlier browser flow re-run):
 - **Tag shortcuts declared per tag.** After a workflow is brought into a tagged thread, a chip offers to make it that tag's shortcut; any thread with the tag then shows it as a one-tap button that writes its steps in. ThinkPad keeps its own copy (label and steps), so it never reads the library.
