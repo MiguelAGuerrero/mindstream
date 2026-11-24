@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 34)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 35)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 35 (2026-11-24): Reflect's Pages view is a real page viewer.** Miguel, on the phone: Pages was "just a fancy scroller"; he expected "a page viewer where you only ever see the page itself", with the rest on the next page. **Built:** each page shows only the lines that fit whole, and the first line that doesn't fit starts the next page, so nothing is cut at the edges and nothing repeats. The text area never scrolls in Pages: the text is moved up to the page's first line and clipped below its last. Page 1 is shorter because the title sits above it. Switching to Reflect opens on page 1; coming back from a thread returns to the page you were reading. Also landed from the journey audit (reports/ThinkPad journey audit.md), the five high findings: notices no longer cover the thread strip, deleting a pad asks first, thumb-size selection controls that never cover the selection, painted thread passages, and Escape in a dialog no longer enters Reflect.
 
 **Revision 34 (2026-11-24): revision history replaces the study card.** Miguel, on his phone: "the draft comparison is really cumbersome and doesn't provide any useful information. I think instead there should just be a revision history, maybe like a drawer to indicate a series of moves that were made per iteration, so that way I can at least preview that." Settled with him: the "read it as a whole / did the gap narrow" card and its before → after list are removed; tapping "Draft N / M" in the pill opens the history; it lists what each draft already records. **Built:** a bottom sheet on phones, a side drawer on desktop, newest draft first. Each draft shows when it was made and how: "First draft", "Writing pass · +7 words", or "N results brought in" with each thread's title and a one-line result (caveats and syntheses marked). Tap a draft to read it (read-only); tap the current one to come back. After Next Draft or Write, a short notice says "Draft N is ready" with a History button. Not yet recorded, so not listed: hides, links, needs-a-source, tags, and threads opened but not resolved (a move log would be a later change). The G7 study beat is retired; the question "did the gap narrow?" is no longer asked by the app.
 

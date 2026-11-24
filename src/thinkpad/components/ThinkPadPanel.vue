@@ -1,5 +1,11 @@
+<script>
+// Shared by every panel instance: the last page read at each level (Revision 35).
+const lastPageByLevel = new Map();
+</script>
+
 <script setup>
 import { ref, watch, nextTick, computed, onBeforeUnmount, onMounted, inject } from "vue";
+import { linesFromRects, pageBreaks } from "../utils/pageBreaks";
 import { onClickOutside } from "@vueuse/core";
 import { EditorContent, useEditor } from "@tiptap/vue-3";
 import Document from "@tiptap/extension-document";
@@ -233,47 +239,96 @@ function toggleReflectView() {
   nextTick(measurePages);
 }
 
-const page = ref(1);
+// The page you were on at each level, so coming back from a thread returns you
+// to where you were reading (the panel is rebuilt when the level changes).
+const pageKey = computed(() => `${props.padLocator ?? "root"}|${props.thinkPad?.title ?? ""}`);
+const page = ref(lastPageByLevel.get(pageKey.value) ?? 1);
+// The page you want to be on; the displayed page is clamped to what exists, so
+// an early measurement (before the text is laid out) can't lose your place.
+let wantPage = page.value;
 const pageCount = ref(1);
-const PAGE_OVERLAP = 28; // about one line, repeated at the top of the next page
 const headerRef = ref(null);
+// Real pages (Revision 35): each page shows only the lines that fit whole; the
+// first line that doesn't fit starts the next page. Below the page's last line
+// the text is masked, so you only ever see the page itself.
+let pages = [{ start: 0, end: 0 }];
 let titleHeight = 0; // the title shows on page 1 only; later pages are taller by this much
-function pageGeometry(el) {
-  const head = headerRef.value;
-  const titleShown = head && getComputedStyle(head).display !== "none";
-  if (titleShown) titleHeight = Math.max(0, el.getBoundingClientRect().top - head.getBoundingClientRect().top);
-  const later = titleShown ? el.clientHeight + titleHeight : el.clientHeight; // a page after the first
-  const first = later - titleHeight;
-  return { first: Math.max(80, first - PAGE_OVERLAP), step: Math.max(80, later - PAGE_OVERLAP), later };
+const pageVisible = ref(null); // px of the current page that show (null = all)
+const pageShift = ref(0); // the text is moved up by this much to show the current page
+
+function measureLines(el) {
+  const root = el.querySelector(".ProseMirror");
+  if (!root) return [];
+  // Content coordinates: undo the page shift (pages never scroll the text area).
+  const base = el.getBoundingClientRect().top - pageShift.value - el.scrollTop;
+  const rects = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    // Skip widgets inside the text (chips, buttons); the editor itself is
+    // non-editable while reflecting, so only widgets below it count.
+    acceptNode: (n) => {
+      if (!n.textContent.trim()) return NodeFilter.FILTER_REJECT;
+      const widget = n.parentElement?.closest('[contenteditable="false"], button');
+      return widget && widget !== root && root.contains(widget) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+    },
+  });
+  const range = document.createRange();
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    range.selectNodeContents(n);
+    for (const r of range.getClientRects()) rects.push({ top: r.top - base, bottom: r.bottom - base });
+  }
+  return linesFromRects(rects);
 }
-function pageTop(el, k) {
-  const g = pageGeometry(el);
-  return k <= 1 ? 0 : g.first + (k - 2) * g.step;
-}
+
 function measurePages() {
   const el = scrollRef.value;
-  if (!el || !paged.value) { page.value = 1; pageCount.value = 1; return; }
-  const g = pageGeometry(el);
-  const firstView = g.later - titleHeight;
-  pageCount.value = el.scrollHeight <= firstView + 2
-    ? 1
-    : 2 + Math.ceil(Math.max(0, el.scrollHeight - g.later - g.first) / g.step);
-  const top = el.scrollTop;
-  const k = top < g.first / 2 ? 1 : 2 + Math.round((top - g.first) / g.step);
-  const max = el.scrollHeight - el.clientHeight;
-  page.value = top >= max - 2 && page.value > 1 ? Math.max(page.value, Math.min(pageCount.value, k)) : Math.min(pageCount.value, k);
+  if (!el || !paged.value) {
+    pages = [{ start: 0, end: 0 }]; page.value = 1; pageCount.value = 1;
+    pageVisible.value = null; pageShift.value = 0;
+    return;
+  }
+  const head = headerRef.value;
+  const titleShown = !!head && getComputedStyle(head).display !== "none";
+  if (titleShown) titleHeight = Math.max(0, el.getBoundingClientRect().top - head.getBoundingClientRect().top);
+  const later = titleShown ? el.clientHeight + titleHeight : el.clientHeight;
+  const first = later - titleHeight;
+  const lines = measureLines(el);
+  pages = pageBreaks(lines, first, later);
+  if (import.meta.env.DEV) window.__thinkpadPages = { lines, pages, first, later, titleShown, titleHeight };
+  pageCount.value = pages.length;
+  const k = Math.min(pages.length - 1, Math.max(0, wantPage - 1));
+  showPage(k);
 }
-function turnPage(delta) {
+
+const pagedStyle = computed(() => (paged.value && pageVisible.value != null
+  ? { "--page-visible": `${pageVisible.value}px`, "--page-shift": `${pageShift.value}px` }
+  : {}));
+
+function showPage(k) {
   const el = scrollRef.value;
   if (!el) return;
+  const p = pages[k] ?? pages[0];
+  page.value = k + 1;
+  if (k + 1 === wantPage) lastPageByLevel.set(pageKey.value, wantPage);
+  el.scrollTop = 0;
+  pageShift.value = p.start;
+  pageVisible.value = Math.max(0, Math.ceil(p.end - p.start) + 2);
+}
+
+function turnPage(delta) {
   const target = Math.min(pageCount.value, Math.max(1, page.value + delta));
   if (target === page.value) return;
   page.value = target;
-  // The title shows on page 1 only, so the page height can change: align after render.
-  nextTick(() => {
-    const max = el.scrollHeight - el.clientHeight;
-    el.scrollTop = Math.min(max, pageTop(el, target));
-  });
+  wantPage = target;
+  // The title shows on page 1 only, so the text area changes height: re-measure after render.
+  nextTick(measurePages);
+}
+
+// Pages never scroll the text area; if something does (scroll anchoring, the
+// editor bringing a selection into view), undo it. Pages turn only by swipe,
+// the page turner or the keys.
+function onPagedScroll() {
+  const el = scrollRef.value;
+  if (paged.value && el && el.scrollTop !== 0) el.scrollTop = 0;
 }
 
 // Swipes turn pages; a long press (selecting words) never does.
@@ -302,7 +357,13 @@ function onPageKey(e) {
   if (["ArrowRight", "PageDown"].includes(e.key)) { e.preventDefault(); turnPage(1); }
   else if (["ArrowLeft", "PageUp"].includes(e.key)) { e.preventDefault(); turnPage(-1); }
 }
-watch(paged, () => nextTick(measurePages));
+// Switching to Reflect opens on page 1. (A panel that mounts already in Reflect,
+// like coming back from a thread, keeps the page you were on.)
+const mountedAt = Date.now();
+watch(paged, (on) => {
+  if (on && Date.now() - mountedAt > 400) { page.value = 1; wantPage = 1; lastPageByLevel.delete(pageKey.value); }
+  nextTick(measurePages);
+});
 watch(() => props.thinkPad?.text, () => nextTick(measurePages));
 let pageResize = null;
 onMounted(() => {
@@ -310,7 +371,7 @@ onMounted(() => {
   if (el) {
     el.addEventListener("touchstart", onTouchStart, { passive: true });
     el.addEventListener("touchend", onTouchEnd, { passive: true });
-    el.addEventListener("scroll", () => { if (paged.value) measurePages(); }, { passive: true });
+    el.addEventListener("scroll", onPagedScroll, { passive: true });
     pageResize = new ResizeObserver(() => measurePages());
     pageResize.observe(el);
   }
@@ -1044,7 +1105,7 @@ defineExpose({ flushText, dismissSelection });
             {{ currentStepTitle }}
           </p>
         </header>
-        <div ref="scrollRef" class="thinkpad-panel__scroll">
+        <div ref="scrollRef" class="thinkpad-panel__scroll" :style="pagedStyle">
           <div
             ref="editorWrapRef"
             class="thinkpad-editor-wrap"
@@ -1976,6 +2037,16 @@ defineExpose({ flushText, dismissSelection });
 
 /* Reflect, Pages view: the text area turns a page at a time instead of scrolling.
    The page turner gets its own strip under the text so it never covers a line. */
+/* Only the current page shows: the text is moved up to the page's first line
+   and clipped below its last whole line. The text area itself never scrolls. */
+.thinkpad-panel--paged .thinkpad-panel__scroll {
+  clip-path: inset(0 0 calc(100% - var(--page-visible, 100%)) 0);
+}
+
+.thinkpad-panel--paged .thinkpad-panel__scroll > * {
+  transform: translateY(calc(-1 * var(--page-shift, 0px)));
+}
+
 .thinkpad-panel--paged .thinkpad-panel__scroll {
   overflow-y: hidden;
   margin-bottom: 44px;
