@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 33)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 34)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 34 (2026-11-24): revision history replaces the study card.** Miguel, on his phone: "the draft comparison is really cumbersome and doesn't provide any useful information. I think instead there should just be a revision history, maybe like a drawer to indicate a series of moves that were made per iteration, so that way I can at least preview that." Settled with him: the "read it as a whole / did the gap narrow" card and its before → after list are removed; tapping "Draft N / M" in the pill opens the history; it lists what each draft already records. **Built:** a bottom sheet on phones, a side drawer on desktop, newest draft first. Each draft shows when it was made and how: "First draft", "Writing pass · +7 words", or "N results brought in" with each thread's title and a one-line result (caveats and syntheses marked). Tap a draft to read it (read-only); tap the current one to come back. After Next Draft or Write, a short notice says "Draft N is ready" with a History button. Not yet recorded, so not listed: hides, links, needs-a-source, tags, and threads opened but not resolved (a move log would be a later change). The G7 study beat is retired; the question "did the gap narrow?" is no longer asked by the app.
 
 **Revision 33 (2026-11-24): on phones, a new think-pad starts from a + button.** Miguel: "even more simple than that, let's just have a quick plus button where a thumb press will be appropriate and that just creates a think-pad. It brings up a dialog instead." Settled with him: phones only (desktop keeps the full-screen question prompt), and the dialog asks the question but can be skipped. **Built:** the phone welcome is the list of recent pads (icon, title, when and where you left off; no preview) with a round + at the bottom right. + opens "New think-pad": one field, "What question are you trying to answer?", Create, and "Just start writing" for an untitled pad. New in the ⋮ menu opens the same dialog, and cancelling it leaves you on the list. With no pads yet the list says "No think-pads yet. Tap + to start one." Found on the way: since Revision 32 the "still open, under Threads" notice covered Write / Reflect at the bottom; on phones it now shows at the top.
 

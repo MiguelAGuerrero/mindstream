@@ -100,3 +100,5 @@ export {
   ensureDocIdeas,
   syncIdeasFromNodes,
 } from "./ideas";
+
+export { revisionHistory } from "./revisionHistory";

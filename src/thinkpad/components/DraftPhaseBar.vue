@@ -1,8 +1,10 @@
 <script setup>
 import { computed, ref } from "vue";
 import { usePadStore } from "../store/padStore";
+import { useSessionUi } from "../composables/useSessionUi";
 
 const padStore = usePadStore();
+const sessionUi = useSessionUi();
 
 const isDraftFrozen      = computed(() => padStore.isDraftFrozen);
 const stagedCount        = computed(() => padStore.stagedOutputs.length);
@@ -94,10 +96,16 @@ function handleNavigateDraft(dir) {
           >
             <v-icon icon="mdi-chevron-left" size="14" />
           </button>
-          <span class="phase-pill__nav-label">
+          <button
+            type="button"
+            class="phase-pill__nav-label phase-pill__nav-label--button"
+            title="Revision history"
+            aria-label="Open revision history"
+            @click="sessionUi.historyOpen = true"
+          >
             {{ isDraftHistoryView ? `Draft ${viewingDraftN + 1}` : `Draft ${draftCount}` }}
             <span class="phase-pill__nav-of">/ {{ draftCount }}</span>
-          </span>
+          </button>
           <button
             type="button"
             class="phase-pill__nav-arrow"
@@ -380,5 +388,21 @@ function handleNavigateDraft(dir) {
   .phase-pill__nav-arrow {
     min-width: 32px;
   }
+}
+
+.phase-pill__nav-label--button {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: underline dotted rgba(var(--v-theme-on-surface), 0.35);
+  text-underline-offset: 3px;
+}
+
+.phase-pill__nav-label--button:hover {
+  background: rgba(var(--v-theme-on-surface), 0.06);
 }
 </style>

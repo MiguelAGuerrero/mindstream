@@ -58,6 +58,7 @@ import {
 } from "../domain/padDomain";
 import { buildPadSnapshot, normalizePadRecord } from "../domain/padPersistenceMapper";
 import { normalizeTagShortcuts, setTagShortcut } from "../domain/tagShortcuts";
+import { revisionHistory } from "../domain/revisionHistory";
 
 // ThinkPad's own copy of the per-tag shortcuts (Revision 29), in this browser.
 const SHORTCUTS_KEY = "mindstream.thinkpad.tagShortcuts";
@@ -236,6 +237,11 @@ export const usePadStore = defineStore("pad", {
 
     draftHistory() {
       return this.viewPad?.draftHistory ?? [];
+    },
+
+    /** The drafts of the surface, newest first, with the moves that made each. */
+    revisionHistory() {
+      return this.currentPad ? revisionHistory(this.currentPad, this.surfaceHead) : [];
     },
 
     isDraftHistoryView() {

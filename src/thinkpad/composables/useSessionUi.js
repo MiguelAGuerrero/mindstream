@@ -14,6 +14,8 @@ export function createSessionUi() {
     documentPickerOpen: false,
     // Phones: the new-think-pad dialog (the + button, or New in the menu).
     newPadDialogOpen: false,
+    // The revision history drawer (tap "Draft N / M").
+    historyOpen: false,
   });
 }
 

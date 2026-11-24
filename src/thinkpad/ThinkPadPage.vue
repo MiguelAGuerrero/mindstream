@@ -5,7 +5,7 @@ import { storeToRefs } from "pinia";
 import { useRoute, useRouter } from "vue-router";
 import ThinkPadPanel from "./components/ThinkPadPanel.vue";
 import DraftPhaseBar from "./components/DraftPhaseBar.vue";
-import StudyBeatCard from "./components/StudyBeatCard.vue";
+import RevisionHistoryDrawer from "./components/RevisionHistoryDrawer.vue";
 import LinkDialogs from "./dialogs/LinkDialogs.vue";
 import SendSheet from "../shelf/SendSheet.vue";
 import { useWorkflowSlot } from "./composables/useWorkflowSlot";
@@ -462,16 +462,28 @@ watch(
                       </button>
                     </template>
                   </ThinkPadPanel>
-                  <StudyBeatCard
-                    v-if="!padStore.isDraftHistoryView"
-                    :goal="surface.isAtRoot ? (currentContext.title ?? '').trim() : (surface.currentGoal ?? '')"
-                  />
                 </div>
               </div>
               </div>
           </div>
         </div>
       </div>
+
+      <RevisionHistoryDrawer />
+
+      <!-- A new draft just landed (Revision 34): say so briefly and point at the
+           history, instead of the old before / after card. -->
+      <v-snackbar
+        :model-value="!!padStore.studyBeat && !padStore.isDraftHistoryView"
+        timeout="5000"
+        :location="smAndDown ? 'top' : 'bottom'"
+        @update:model-value="(v) => { if (!v) padStore.dismissStudyBeat(); }"
+      >
+        <template v-if="padStore.studyBeat">Draft {{ padStore.studyBeat.n + 1 }} is ready.</template>
+        <template #actions>
+          <v-btn variant="text" color="primary" @click="padStore.dismissStudyBeat(); sessionUi.historyOpen = true">History</v-btn>
+        </template>
+      </v-snackbar>
 
       <!-- On phones it shows at the top: at the bottom it covers Write / Reflect. -->
       <v-snackbar
