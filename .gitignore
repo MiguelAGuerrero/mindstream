@@ -26,3 +26,7 @@ dist-ssr
 # Local agent/session config and scratch files
 .claude/
 _elbow_extract.txt
+
+# Sound packs (audio engine disabled; see src/sfx/index.js)
+src/sfx/packs/
+.tmp-sfx-pack/

@@ -40,6 +40,13 @@ export function useThinkPadWelcome({ thinkPad, sessionUi, isDraftFrozen }) {
     () => isBlankPad.value && !dismissed.value && recentItems.value.length > 0,
   );
 
+  // A fresh, blank pad opens by asking what the user is trying to answer instead
+  // of presenting an empty, untitled page. The draft is the in-progress answer.
+  const questionDraft = ref("");
+  const showQuestionPrompt = computed(
+    () => isBlankPad.value && !dismissed.value,
+  );
+
   function handleSelectRecent(contextId) {
     thinkPad.restoreResumableContext({ id: contextId });
   }
@@ -50,11 +57,26 @@ export function useThinkPadWelcome({ thinkPad, sessionUi, isDraftFrozen }) {
     if (wasWelcome) sessionUi.padExpanded = !isDraftFrozen.value;
   }
 
+  /** Commit the framing question as the pad title. Setting the title flips the
+   *  pad out of its blank state, so the prompt yields to the writing surface
+   *  (which mounts focused), expanded for working — mirroring handleThinkPadFocus. */
+  function submitQuestion() {
+    const question = questionDraft.value.replace(/\s*[\r\n]+\s*/g, " ").trim();
+    if (!question) return;
+    thinkPad.handleSurfaceTitleUpdate(question);
+    questionDraft.value = "";
+    dismissed.value = true;
+    sessionUi.padExpanded = !isDraftFrozen.value;
+  }
+
   return reactive({
     dismissed,
     isBlankPad,
     recentItems,
     showRecentPanel,
+    questionDraft,
+    showQuestionPrompt,
+    submitQuestion,
     handleSelectRecent,
     handleThinkPadFocus,
     formatRelativeTime,

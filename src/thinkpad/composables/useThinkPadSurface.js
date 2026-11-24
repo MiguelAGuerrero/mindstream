@@ -3,6 +3,7 @@ import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { usePadStore } from "../store/padStore";
 import { padForThread, threadIsOpen } from "../domain/padDomain";
+import { getMoveById, getStanceDisplay } from "../moves";
 
 /**
  * ThinkPad surface — navigation stack head, drill UI, and pad mutations.
@@ -19,11 +20,24 @@ export function useThinkPadSurface() {
   const threadPath = computed(() => padStore.threadPath);
   const viewPad = computed(() => padStore.viewPad);
 
-  const canComplete = computed(() => {
+  const activeThread = computed(() => {
     const path = threadPath.value;
-    const thread = path.length > 0 ? path[path.length - 1] : null;
-    return !!thread && !threadIsOpen(thread);
+    return path.length > 0 ? path[path.length - 1] : null;
   });
+
+  const needsSynthesis = computed(() => {
+    const thread = activeThread.value;
+    return !!thread && threadIsOpen(thread);
+  });
+
+  const canComplete = computed(() => {
+    const thread = activeThread.value;
+    if (!thread) return false;
+    return (thread.doc?.text ?? "").trim().length > 0;
+  });
+
+  const completeDialog = reactive({ open: false, value: "" });
+  const resolveMove = getMoveById("resolve");
 
   const viewFrame = computed(() => {
     const path = threadPath.value;
@@ -35,6 +49,25 @@ export function useThinkPadSurface() {
   );
 
   const currentGoal = computed(() => viewFrame.value?.steps?.[0]?.title || "Untitled thread");
+
+  const currentStance = computed(() => {
+    const frame = viewFrame.value;
+    const pad = currentContext.value;
+    if (!frame || !pad) return getStanceDisplay();
+
+    let moveId = frame.move || "";
+    let tag = null;
+    const anchor = frame.parentAnchor;
+    if (anchor?.annotationId) {
+      const parentDoc = padForThread(pad, anchor.parentFrameId ?? null);
+      const ann = (parentDoc?.annotations ?? []).find((a) => a.id === anchor.annotationId);
+      if (ann) {
+        if (!moveId && ann.move) moveId = ann.move;
+        tag = ann.tag ?? null;
+      }
+    }
+    return getStanceDisplay({ moveId, tag });
+  });
 
   const drillThreads = computed(() => {
     if (!currentContext.value || !isAtRoot.value) return [];
@@ -107,9 +140,9 @@ export function useThinkPadSurface() {
     });
   });
 
-  function handleThinkPadTextUpdate(text, padLocator) {
+  function handleThinkPadTextUpdate(text, padLocator, nodes) {
     const target = padLocator === undefined ? padStore.surfaceHead : padLocator;
-    padStore.setPadText({ padLocator: target, text });
+    padStore.setPadText({ padLocator: target, text, nodes });
   }
 
   function handleExtractStep({ title, selectionStart, selectionEnd, selectedText, move = "", writeBack = "replace" }) {
@@ -163,8 +196,22 @@ export function useThinkPadSurface() {
 
   function handleComplete() {
     const head = padStore.surfaceHead;
-    if (typeof head !== "string" || !head) return;
+    if (typeof head !== "string" || !head || !canComplete.value) return;
+    if (needsSynthesis.value) {
+      completeDialog.value = "";
+      completeDialog.open = true;
+      return;
+    }
     padStore.resolveThreadIntoParent({ threadId: head });
+  }
+
+  function confirmComplete() {
+    const text = completeDialog.value.trim();
+    if (!text) return;
+    const head = padStore.surfaceHead;
+    if (typeof head !== "string" || !head) return;
+    padStore.resolveThreadIntoParent({ threadId: head, result: text });
+    completeDialog.open = false;
   }
 
   function handleSurfaceTitleUpdate(title) {
@@ -200,9 +247,14 @@ export function useThinkPadSurface() {
     threadPath,
     viewPad,
     canComplete,
+    needsSynthesis,
+    completeDialog,
+    resolveMove,
+    confirmComplete,
     viewFrame,
     surfaceTitle,
     currentGoal,
+    currentStance,
     drillThreads,
     peekOpen,
     peekPad,

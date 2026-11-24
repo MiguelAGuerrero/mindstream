@@ -57,6 +57,19 @@ describe("textToDocJSON", () => {
     });
   });
 
+  it("seeds paragraph ids from ideas when provided", () => {
+    expect(textToDocJSON("first\n\nsecond", [
+      { id: "idea-a", text: "first" },
+      { id: "idea-b", text: "second" },
+    ])).toEqual({
+      type: "doc",
+      content: [
+        { type: "paragraph", attrs: { id: "idea-a" }, content: [{ type: "text", text: "first" }] },
+        { type: "paragraph", attrs: { id: "idea-b" }, content: [{ type: "text", text: "second" }] },
+      ],
+    });
+  });
+
   it("three or more consecutive newlines also split paragraphs", () => {
     const result = textToDocJSON("a\n\n\nb");
     expect(result.content).toHaveLength(2);

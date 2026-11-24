@@ -130,6 +130,19 @@ describe("padStore", () => {
       expect(store.viewPad.text).toBe("inner done");
     });
 
+    it("open thread requires an explicit synthesized result; then resolves up", () => {
+      const store = usePadStore();
+      withDoc(store, "the mess here");
+      const frame = store.drillIntoSpan({ parentThreadId: null, title: "work it", selectionStart: 4, selectionEnd: 8, selectedText: "mess" });
+      store.setPadText({ padLocator: frame.id, text: "idea one\n\nidea two" });
+      expect(store.resolveThreadIntoParent({ threadId: frame.id })).toBeNull();
+      const res = store.resolveThreadIntoParent({ threadId: frame.id, result: "synthesized call" });
+      expect(res.resolved).toBe(true);
+      expect(store.viewThreadId).toBeNull();
+      expect(store.stagedOutputs).toHaveLength(1);
+      expect(store.stagedOutputs[0].text).toBe("synthesized call");
+    });
+
     it("ascendThread discards an untouched drill (and its anchor) but keeps a worked one", () => {
       const store = usePadStore();
       withDoc(store, "alpha beta gamma");

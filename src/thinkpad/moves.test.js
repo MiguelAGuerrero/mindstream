@@ -5,6 +5,7 @@ import {
   INTENT_CLASSES,
   WRITE_BACK,
   getMoveById,
+  getStanceDisplay,
   movesForIntent,
   movesByFamily,
 } from "./moves";
@@ -100,5 +101,21 @@ describe("movesByFamily", () => {
     expect(grouped.map((g) => g.family.id)).toEqual(MOVE_FAMILIES.map((f) => f.id));
     const total = grouped.reduce((n, g) => n + g.moves.length, 0);
     expect(total).toBe(MOVES.length);
+  });
+});
+
+describe("getStanceDisplay", () => {
+  it("prefers a specific move id over the annotation tag", () => {
+    expect(getStanceDisplay({ moveId: "doubt", tag: "expand" }).label).toBe("Doubt");
+  });
+
+  it("falls back to tag labels when no move is set", () => {
+    expect(getStanceDisplay({ tag: "expand" }).label).toBe("Expand");
+    expect(getStanceDisplay({ tag: "converge" }).label).toBe("Resolve");
+    expect(getStanceDisplay({ tag: "question" }).label).toBe("Question");
+  });
+
+  it("defaults to Focus when neither move nor tag is known", () => {
+    expect(getStanceDisplay().label).toBe("Focus");
   });
 });

@@ -139,7 +139,10 @@ describe("persistence — additive round-trip (no schema bump)", () => {
       { now: env.now },
     );
     expect(surfaceThreadId(restored)).toBeNull();
-    expect(restored.threads[0].doc).toEqual({ text: "", annotations: [], phase: "stream", frozenText: null, staged: [], draftHistory: [] });
+    expect(restored.threads[0].doc).toEqual({
+      text: "", ideas: [], annotations: [], phase: "stream",
+      frozenText: null, frozenIdeas: null, staged: [], draftHistory: [],
+    });
     expect(restored.threads[0].parentAnchor).toBeNull();
   });
 
@@ -390,6 +393,20 @@ describe("resolveThreadIntoParent — the roll-up", () => {
     const moved = { ...afterFocus, doc: { ...afterFocus.doc, text: "PREFIX " + afterFocus.doc.text } };
     const { pad } = resolveThreadIntoParent(moved, { threadId: frame.id, result: "FIXED" }, env);
     expect(pad.doc.text).toBe("PREFIX the FIXED here");
+  });
+
+  it("open thread (multiple blocks) resolves when an explicit synthesized result is provided", () => {
+    const env = makeTestEnv();
+    const { pad: afterFocus, frame } = focusedFromRoot(env);
+    const openPad = setPadText(afterFocus, { padLocator: frame.id, text: "first idea\n\nsecond idea" }, env);
+    expect(resolveThreadIntoParent(openPad, { threadId: frame.id }, env).resolved).toBe(false);
+    const { pad, resolved } = resolveThreadIntoParent(
+      openPad,
+      { threadId: frame.id, result: "one synthesized takeaway" },
+      env,
+    );
+    expect(resolved).toBe(true);
+    expect(pad.doc.text).toBe("the one synthesized takeaway here");
   });
 });
 

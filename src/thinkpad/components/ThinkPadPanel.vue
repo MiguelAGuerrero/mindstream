@@ -12,7 +12,10 @@ import UniqueID from "@tiptap/extension-unique-id";
 import { textToDocJSON, docJSONToText, docJSONToNodes, posToChar, charToPos, textToInlineJSON } from "../editor/thinkPadDoc";
 import { ThinkPadHighlights } from "../editor/thinkPadHighlightExtension";
 import { ThinkPadBlockActions } from "../editor/thinkPadBlockActionsExtension";
-import { computeBlockActionStates } from "../domain/blockActions";
+import { computeBlockActionStates, computeGutterRows } from "../domain/blockActions";
+import { readDocIdeas } from "../domain/ideas";
+import IdeaGutter from "./IdeaGutter.vue";
+import { emitAudioEvent } from "../../sfx";
 import { titleDisplayMode } from "../editor/thinkPadTitle";
 
 /** Think-pad page gutter only — 0.5in at 96dpi (matches letter sheet constants). */
@@ -52,13 +55,16 @@ const props = defineProps({
   /** Candidate spans from parseBlocks — painted as clickable suggestion handles in
    *  cultivate mode. Each entry: { id, start, end, text }. Empty outside cultivate. */
   candidateSpans: { type: Array, default: () => [] },
+  /** Staged move outputs shown as inline markers beside their anchor blocks. */
+  stagedIdeas: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(["update:text", "update:nodes", "update:title", "extract-step", "drill-span", "hide-span", "reveal-hidden", "focus", "reopen-drill", "tag-span", "reorder-block"]);
+const emit = defineEmits(["update:text", "update:nodes", "update:title", "extract-step", "drill-span", "hide-span", "reveal-hidden", "focus", "reopen-drill", "tag-span", "reorder-block", "idea-peek"]);
 
 const bodyRef = ref(null);
 const marginsRef = ref(null);
 const scrollRef = ref(null);
+const editorWrapRef = ref(null);
 const popoverRef = ref(null);
 const hoverPickerRef = ref(null);
 const editorHostRef = ref(null);
@@ -97,6 +103,16 @@ let programmaticFocus = false;
 // onSelectionUpdate without a preceding mousedown, so they show immediately.
 let isMouseDown = false;
 let selectionPending = false;
+const currentNodes = ref([]);
+
+const storedIdeas = computed(() => readDocIdeas(props.thinkPad));
+
+/** Live editor nodes win for block widgets — they carry the UniqueID attrs PM matches on. */
+const docIdeas = computed(() => {
+  const live = currentNodes.value.filter((n) => n?.id);
+  if (live.length > 0) return live;
+  return storedIdeas.value;
+});
 
 const popoverStyle = computed(() => ({
   top: `${popoverPos.value.top}px`,
@@ -132,18 +148,30 @@ const hiddenAnnotations = computed(() =>
 const paintedAnnotations = computed(() => [...hiddenAnnotations.value, ...cuedAnnotations.value]);
 const hiddenCount = computed(() => hiddenAnnotations.value.length);
 
-// Current paragraph nodes (UniqueID-stamped) — kept in sync with the editor
-// so blockStates can be computed reactively without a parent round-trip.
-const currentNodes = ref([]);
-
 const blockStates = computed(() => {
   if (!props.reflectMode) return [];
   return computeBlockActionStates(
-    currentNodes.value,
+    docIdeas.value,
     props.thinkPad?.annotations ?? [],
     props.drillThreads ?? [],
   );
 });
+
+const gutterRows = computed(() => {
+  if (!props.reflectMode) return [];
+  return computeGutterRows(docIdeas.value, props.stagedIdeas ?? []);
+});
+
+function handleIdeaPeek(stepId) {
+  emit("idea-peek", stepId);
+}
+
+function setHoveredBlockIdx(idx) {
+  const next = typeof idx === "number" && idx >= 0 ? idx : null;
+  if (next === hoveredBlockIdx.value) return;
+  hoveredBlockIdx.value = next;
+  if (next !== null) emitAudioEvent("thinkpad", "idea", "hover");
+}
 
 
 /** Scroll the writing column so the caret stays visible. ProseMirror's default
@@ -165,7 +193,7 @@ function scrollSelectionIntoView(view) {
 }
 
 const editor = useEditor({
-  content: textToDocJSON(props.thinkPad?.text ?? ""),
+  content: textToDocJSON(props.thinkPad?.text ?? "", storedIdeas.value),
   editable: !props.readOnly,
   extensions: [
     Document,
@@ -194,12 +222,13 @@ const editor = useEditor({
     // stay in sync — including in readOnly/reflect mode where UniqueID stamps
     // IDs after mount via appendTransaction.
     currentNodes.value = nodes;
+    syncNodeIdsToStore(nodes);
     if (props.readOnly) return;
     const text = docJSONToText(json);
     clearTimeout(textDebounceTimer);
     textDebounceTimer = setTimeout(() => {
       textDebounceTimer = null;
-      emit("update:text", text, props.padLocator);
+      emit("update:text", text, props.padLocator, nodes);
       emit("update:nodes", nodes, props.padLocator);
     }, 600);
   },
@@ -287,15 +316,15 @@ const editor = useEditor({
         const target = event.target?.closest?.("[data-candidate-index]");
         if (target) {
           const idx = parseInt(target.dataset.candidateIndex, 10);
-          hoveredBlockIdx.value = isNaN(idx) ? null : idx;
+          setHoveredBlockIdx(isNaN(idx) ? null : idx);
           return false;
         }
         const coords = view.posAtCoords({ left: event.clientX, top: event.clientY });
-        if (!coords) { hoveredBlockIdx.value = null; return false; }
+        if (!coords) { setHoveredBlockIdx(null); return false; }
         const charPos = posToChar(coords.pos);
         const spans = props.candidateSpans ?? [];
         const idx = spans.findIndex((s) => charPos >= s.start && charPos < s.end);
-        hoveredBlockIdx.value = idx >= 0 ? idx : null;
+        setHoveredBlockIdx(idx >= 0 ? idx : null);
         return false;
       },
       mouseleave: () => {
@@ -364,7 +393,7 @@ watch(
   () => props.active,
   (isActive) => {
     if (isActive) {
-      setEditorContent(props.thinkPad?.text ?? "");
+      setEditorContent(props.thinkPad?.text ?? "", storedIdeas.value);
       localTitle.value = props.title ?? "";
       dismissSelection();
       nextTick(autoGrowTitle);
@@ -402,7 +431,12 @@ watch(() => props.readOnly, (ro) => {
 
 // Seed currentNodes once the editor is ready (useEditor resolves asynchronously).
 watch(editor, (ed) => {
-  if (ed) currentNodes.value = docJSONToNodes(ed.getJSON());
+  if (!ed) return;
+  nextTick(() => {
+    const nodes = docJSONToNodes(ed.getJSON());
+    currentNodes.value = nodes;
+    syncNodeIdsToStore(nodes);
+  });
 }, { immediate: true });
 
 // Push block state changes into the extension whenever reflect mode, annotations,
@@ -421,19 +455,36 @@ watch(() => props.thinkPad?.text, (newText) => {
   if (!ed) return;
   const currentText = docJSONToText(ed.getJSON());
   if (currentText !== (newText ?? "")) {
-    setEditorContent(newText ?? "");
+    setEditorContent(newText ?? "", storedIdeas.value);
   }
 });
 
 /** Replace the editor's content without emitting an update (avoids a feedback loop). */
-function setEditorContent(text) {
+function setEditorContent(text, ideas = storedIdeas.value) {
   const ed = editor.value;
   if (!ed) return;
   programmaticContent = true;
-  ed.commands.setContent(textToDocJSON(text), { emitUpdate: false });
+  ed.commands.setContent(textToDocJSON(text, ideas), { emitUpdate: false });
   programmaticContent = false;
   // Sync nodes after a programmatic content swap so blockStates stays current.
-  nextTick(() => { currentNodes.value = docJSONToNodes(ed.getJSON()); });
+  nextTick(() => {
+    const nodes = docJSONToNodes(ed.getJSON());
+    currentNodes.value = nodes;
+    syncNodeIdsToStore(nodes);
+  });
+}
+
+/** Align doc.ideas in the store with editor UniqueID attrs (same text, stable ids). */
+function syncNodeIdsToStore(nodes) {
+  if (!nodes.length) return;
+  const stored = storedIdeas.value;
+  const same =
+    stored.length === nodes.length
+    && stored.every((idea, i) => idea.id === nodes[i]?.id && idea.text === nodes[i]?.text);
+  if (same) return;
+  const ed = editor.value;
+  if (!ed) return;
+  emit("update:text", docJSONToText(ed.getJSON()), props.padLocator, nodes);
 }
 
 function openSelectionPopover(view, from, to) {
@@ -652,7 +703,7 @@ function flushText() {
     const json = ed.getJSON();
     const text = docJSONToText(json);
     const nodes = docJSONToNodes(json);
-    if (text !== (props.thinkPad?.text ?? "")) emit("update:text", text, props.padLocator);
+    if (text !== (props.thinkPad?.text ?? "")) emit("update:text", text, props.padLocator, nodes);
     emit("update:nodes", nodes, props.padLocator);
   }
   commitTitle();
@@ -788,11 +839,26 @@ defineExpose({ flushText, dismissSelection });
         </header>
         <div ref="scrollRef" class="thinkpad-panel__scroll">
           <div
-            ref="editorHostRef"
-            class="thinkpad-editor"
-            :class="{ 'thinkpad-editor--focus-mode': reflectMode && activeBlockIdx !== null }"
+            ref="editorWrapRef"
+            class="thinkpad-editor-wrap"
+            :class="{ 'thinkpad-editor-wrap--with-gutter': reflectMode && gutterRows.length }"
           >
-            <EditorContent v-if="editor" :editor="editor" class="thinkpad-editor__content" />
+            <div class="thinkpad-editor-wrap__body">
+              <div
+                ref="editorHostRef"
+                class="thinkpad-editor"
+                :class="{ 'thinkpad-editor--focus-mode': reflectMode && activeBlockIdx !== null }"
+              >
+                <EditorContent v-if="editor" :editor="editor" class="thinkpad-editor__content" />
+              </div>
+            </div>
+            <IdeaGutter
+              v-if="reflectMode && gutterRows.length"
+              :rows="gutterRows"
+              :editor="editor"
+              :wrap-el="editorWrapRef"
+              @peek="handleIdeaPeek"
+            />
           </div>
         </div>
       </div>
@@ -1606,5 +1672,21 @@ defineExpose({ flushText, dismissSelection });
 .thinkpad-editor :deep(.thinkpad-block-action--reopen:hover) {
   background: rgba(var(--v-theme-primary), 0.1);
   border-color: rgba(var(--v-theme-primary), 0.65);
+}
+
+.thinkpad-editor-wrap {
+  position: relative;
+  --thinkpad-grid-gap: 10px;
+}
+
+.thinkpad-editor-wrap--with-gutter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 28px;
+  column-gap: var(--thinkpad-grid-gap);
+  align-items: start;
+}
+
+.thinkpad-editor-wrap__body {
+  min-width: 0;
 }
 </style>

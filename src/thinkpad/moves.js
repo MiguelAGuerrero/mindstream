@@ -16,7 +16,7 @@
 // and so all three consumers read from one table:
 //   1. the selection popover in ThinkPadPanel.vue (the manual palette),
 //   2. the lens prompt seed (a move's `prompt`),
-//   3. the move-type chip rendered in IdeasPanel (reflect mode).
+//   3. the move-type chip on inline idea bubbles (reflect mode).
 // ---------------------------------------------------------------------------
 
 /**
@@ -220,9 +220,40 @@ export const MOVES = Object.freeze([
   },
 ]);
 
+/** Display metadata for annotation stance tags (block-action entry path). */
+export const ANNOTATION_TAG_DISPLAY = Object.freeze({
+  question: { label: "Question", icon: "mdi-help-circle-outline", glyph: "?" },
+  expand: { label: "Expand", icon: "mdi-arrow-expand-all", glyph: "!" },
+  converge: { label: "Resolve", icon: "mdi-flag-checkered", glyph: "⚑" },
+});
+
 /** Look up a move by id. Returns null when unknown. */
 export function getMoveById(id) {
   return MOVES.find((m) => m.id === id) ?? null;
+}
+
+/**
+ * Resolve the stance label shown while drilled into a thread.
+ * Prefers a specific move id; falls back to the annotation tag; then a generic focus label.
+ */
+export function getStanceDisplay({ moveId = "", tag = null } = {}) {
+  const move = typeof moveId === "string" && moveId ? getMoveById(moveId) : null;
+  if (move) {
+    return {
+      label: move.label,
+      icon: move.icon,
+      symbol: getSymbolForMove(moveId),
+    };
+  }
+  const tagDisplay = tag && ANNOTATION_TAG_DISPLAY[tag] ? ANNOTATION_TAG_DISPLAY[tag] : null;
+  if (tagDisplay) {
+    return {
+      label: tagDisplay.label,
+      icon: tagDisplay.icon,
+      symbol: tagDisplay.glyph,
+    };
+  }
+  return { label: "Focus", icon: "mdi-target", symbol: null };
 }
 
 /**

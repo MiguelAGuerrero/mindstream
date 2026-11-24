@@ -344,22 +344,24 @@ export const usePadStore = defineStore("pad", {
       this._replaceCurrent(next);
     },
 
-    resolveThreadIntoParent({ threadId } = {}) {
+    resolveThreadIntoParent({ threadId, result: explicitResult } = {}) {
       if (!this.currentPad) return null;
       const now = nowIso();
       const path = this.threadPath;
       const frame = path.length > 0 && path[path.length - 1].id === threadId
         ? path[path.length - 1] : null;
       if (!frame) return null;
-      if (threadIsOpenCheck(frame)) return null;
 
       const anchor = frame.parentAnchor;
       if (!anchor) return null;
       const childStep = frame.steps?.[0];
       if (!childStep) return null;
 
-      const subPadText = padForThreadOnPad(this.currentPad, threadId)?.text ?? "";
-      if (!subPadText) return null;
+      const subPadText = (padForThreadOnPad(this.currentPad, threadId)?.text ?? "").trim();
+      const synthesized = typeof explicitResult === "string" ? explicitResult.trim() : "";
+      if (threadIsOpenCheck(frame) && !synthesized) return null;
+      const rollUpText = synthesized || subPadText;
+      if (!rollUpText) return null;
 
       const parentFrameId = anchor.parentFrameId ?? null;
       const annotationId = anchor.annotationId;
@@ -372,10 +374,10 @@ export const usePadStore = defineStore("pad", {
         return { resolved: true, delta: null };
       }
 
-      let pad = setStepOutputOnPad(this.currentPad, { stepId: childStep.id, output: subPadText }, { now });
+      let pad = setStepOutputOnPad(this.currentPad, { stepId: childStep.id, output: rollUpText }, { now });
       pad = stampDraftOnPad(pad, { padLocator: parentFrameId }, { now });
       pad = stageStepOutputOnPad(pad, {
-        stepId: childStep.id, annotationId, text: subPadText, padLocator: parentFrameId,
+        stepId: childStep.id, annotationId, text: rollUpText, padLocator: parentFrameId,
       }, { now, makeId });
 
       const ascended = popSurfaceOnPad(pad, { now });
@@ -383,9 +385,13 @@ export const usePadStore = defineStore("pad", {
       return { resolved: true, delta: null };
     },
 
-    setPadText({ padLocator = null, text } = {}) {
+    setPadText({ padLocator = null, text, nodes = null } = {}) {
       if (!this.currentPad) return;
-      const next = setPadTextOnPad(this.currentPad, { padLocator, text }, { now: nowIso() });
+      const next = setPadTextOnPad(
+        this.currentPad,
+        { padLocator, text, nodes },
+        { now: nowIso(), makeId },
+      );
       if (next === this.currentPad) return;
       this._replaceCurrent(next);
     },
@@ -413,7 +419,7 @@ export const usePadStore = defineStore("pad", {
       const next = reorderBlockOnPad(
         this.currentPad,
         { padLocator, fromIdx, toIdx },
-        { now: nowIso() },
+        { now: nowIso(), makeId },
       );
       if (next === this.currentPad) return;
       this._replaceCurrent(next);

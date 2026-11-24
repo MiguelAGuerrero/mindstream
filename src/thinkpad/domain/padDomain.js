@@ -62,3 +62,11 @@ export {
   // Block reorder
   reorderBlock,
 } from "./thinkPadModel";
+
+export {
+  ideasToText,
+  ideaRanges,
+  ideaIdForRange,
+  ensureDocIdeas,
+  syncIdeasFromNodes,
+} from "./ideas";
