@@ -23,6 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# Local agent/session config and scratch files
-.claude/
+# Local agent/session config and scratch files (project skills are tracked)
+.claude/*
+!.claude/skills/
 _elbow_extract.txt
