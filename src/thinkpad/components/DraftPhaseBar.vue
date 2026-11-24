@@ -13,11 +13,18 @@ const draftCount         = computed(() => draftHistory.value.length);
 const viewingDraftN      = computed(() => padStore.viewingDraftN);
 const isDraftHistoryView = computed(() => padStore.isDraftHistoryView);
 
-// Stream → Reflect: one-way commit. No return path exposed in the UI.
+// Stream → Reflect: the first stamp. The way back to writing is Write more,
+// which adds after the frozen draft and never reopens it.
 function handleStamp() {
   if (!isDraftFrozen.value && !isDraftHistoryView.value) {
     padStore.stampDraft({ padLocator: padLocator.value });
   }
+}
+
+// Write more (append-only): open the writing area under the frozen draft.
+const writeMoreOpen = computed(() => padStore.writeMoreText !== null);
+function handleWriteMore() {
+  padStore.beginWriteMore({ padLocator: padLocator.value });
 }
 
 // Apply all staged outputs and advance to the next draft version.
@@ -91,6 +98,20 @@ function handleNavigateDraft(dir) {
         </div>
       </template>
 
+      <!-- Write more: the append-only way back to writing (live view only) -->
+      <template v-if="!isDraftHistoryView && !writeMoreOpen">
+        <span class="phase-pill__sep" aria-hidden="true" />
+        <button
+          type="button"
+          class="phase-pill__write-more"
+          title="Write more — add new text after this draft"
+          @click="handleWriteMore"
+        >
+          <v-icon icon="mdi-pencil-plus-outline" size="14" />
+          <span>Write more</span>
+        </button>
+      </template>
+
       <!-- Next Draft: only in live cultivate mode with staged moves -->
       <Transition name="phase-reveal">
         <button
@@ -145,6 +166,26 @@ function handleNavigateDraft(dir) {
 
 .phase-pill__mode-label--reflect {
   color: rgb(var(--v-theme-primary));
+}
+
+/* Write more: quiet, so the easy path stays the reflect loop */
+.phase-pill__write-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(var(--v-theme-on-surface), 0.7);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.phase-pill__write-more:hover {
+  background: rgba(var(--v-theme-on-surface), 0.06);
+  color: rgb(var(--v-theme-on-surface));
 }
 
 /* Stamp button: the one-way transition trigger in stream mode */

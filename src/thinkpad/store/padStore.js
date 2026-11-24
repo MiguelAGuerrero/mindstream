@@ -29,6 +29,10 @@ import {
   stampDraft as stampDraftOnPad,
   stageStepOutput as stageStepOutputOnPad,
   advanceToNextDraft as advanceToNextDraftOnPad,
+  beginWriteMore as beginWriteMoreOnPad,
+  setWriteMoreText as setWriteMoreTextOnPad,
+  cancelWriteMore as cancelWriteMoreOnPad,
+  addWriteMore as addWriteMoreOnPad,
   openItems as openItemsOnPad,
   disposeOpenItem as disposeOpenItemOnPad,
   clearDisposition as clearDispositionOnPad,
@@ -138,6 +142,12 @@ export const usePadStore = defineStore("pad", {
 
     stagedOutputs() {
       return this.viewPad?.staged ?? [];
+    },
+
+    /** Text being added by Write more on the surface; null when the area is closed. */
+    writeMoreText() {
+      const v = this.viewPad?.writeMore;
+      return typeof v === "string" ? v : null;
     },
 
     draftHistory() {
@@ -299,6 +309,31 @@ export const usePadStore = defineStore("pad", {
       if (next === this.currentPad) return;
       this._replaceCurrent(next);
       this.viewingDraftN = null;
+    },
+
+    /** Write more (append-only, G4): open, edit, cancel, add. Each acts on one level. */
+    beginWriteMore({ padLocator = null } = {}) {
+      this._applyOnPad((pad, now) => beginWriteMoreOnPad(pad, { padLocator }, { now }));
+    },
+
+    setWriteMoreText({ padLocator = null, text = "" } = {}) {
+      this._applyOnPad((pad, now) => setWriteMoreTextOnPad(pad, { padLocator, text }, { now }));
+    },
+
+    cancelWriteMore({ padLocator = null } = {}) {
+      this._applyOnPad((pad, now) => cancelWriteMoreOnPad(pad, { padLocator }, { now }));
+    },
+
+    addWriteMore({ padLocator = null } = {}) {
+      this._applyOnPad((pad, now) => addWriteMoreOnPad(pad, { padLocator }, { now, makeId }));
+      this.viewingDraftN = null;
+    },
+
+    _applyOnPad(reduce) {
+      if (!this.currentPad) return;
+      const next = reduce(this.currentPad, nowIso());
+      if (next === this.currentPad) return;
+      this._replaceCurrent(next);
     },
 
     navigateToDraft(n) {

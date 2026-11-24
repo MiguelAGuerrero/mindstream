@@ -58,6 +58,23 @@ describe("padStore", () => {
     expect(store.currentPad?.title).toBe("In progress");
   });
 
+  it("Write more opens under a frozen draft and adds text as a new version", () => {
+    const store = usePadStore();
+    store.createNewPad({ title: "Plan" });
+    store.setPadText({ text: "The plan is a mess." });
+    store.stampDraft();
+    expect(store.writeMoreText).toBeNull();
+    store.beginWriteMore();
+    expect(store.writeMoreText).toBe("");
+    store.setWriteMoreText({ text: "Dates slip." });
+    expect(store.writeMoreText).toBe("Dates slip.");
+    store.addWriteMore();
+    expect(store.writeMoreText).toBeNull();
+    expect(store.viewPad.frozenText).toBe("The plan is a mess.\n\nDates slip.");
+    expect(store.draftHistory).toHaveLength(2);
+    expect(store.isDraftFrozen).toBe(true);
+  });
+
   it("createNewPad adds a pad to the pool and sets it active", () => {
     const store = usePadStore();
     store.createNewPad({ title: "Fix auth bug" });
