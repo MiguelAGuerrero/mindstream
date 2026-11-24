@@ -6,6 +6,7 @@ import ThinkPadPanel from "./components/ThinkPadPanel.vue";
 import DraftPhaseBar from "./components/DraftPhaseBar.vue";
 import StudyBeatCard from "./components/StudyBeatCard.vue";
 import LinkDialogs from "./dialogs/LinkDialogs.vue";
+import SendSheet from "../shelf/SendSheet.vue";
 import { useWorkflowSlot } from "./composables/useWorkflowSlot";
 import DocumentPickerDialog from "./dialogs/DocumentPickerDialog.vue";
 import OpenItemsDialog from "./dialogs/OpenItemsDialog.vue";
@@ -84,6 +85,7 @@ const resolveFieldRef = ref(null);
 // Links: the selection being linked, and the link whose sheet is open.
 const linkPending = ref(null);
 const quoteOpen = ref(false);
+const sendText = ref("");
 const workflowSlot = useWorkflowSlot();
 const tagLabel = (tag) => ({ question: "Question", expand: "Expand", converge: "Flag" })[tag] ?? tag;
 const viewingLinkId = ref(null);
@@ -321,6 +323,7 @@ watch(
                     @link-span="(span) => { linkPending = span; }"
                     @source-span="(span) => padStore.markNeedsSource({ padLocator: surface.surfaceHead, ...span })"
                     @open-link="({ annotationId }) => { viewingLinkId = annotationId; }"
+                    @send-span="({ selectedText }) => { sendText = selectedText; }"
                   >
                     <template v-if="!surface.isAtRoot" #title>
                       <blockquote class="thinkpad-quote">{{ surface.surfaceTitle }}</blockquote>
@@ -453,6 +456,8 @@ watch(
           </v-card-actions>
         </v-card>
       </v-dialog>
+
+      <SendSheet :text="sendText" from="thinkpad" @close="sendText = ''" />
 
       <LinkDialogs
         :pending="linkPending"

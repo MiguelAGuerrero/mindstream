@@ -4,18 +4,22 @@
 // parked contexts in the runner, and requests still waiting on a reply. Each
 // shows its one next step and opens exactly where it left off. Home only
 // lists what the tools report; it reads no tool's data itself.
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { emitAudioEvent } from "../sfx";
 import { TOOLS, getTool, routeForTool } from "../handoff/toolRegistry";
 import { usePadStore } from "../thinkpad/store/padStore";
 import { useSessionRunStore } from "../focus/store/sessionRunStore";
 import { useHandoffStore } from "../handoff/handoffStore";
+import { useShelfStore } from "../shelf/shelfStore";
+import SendSheet from "../shelf/SendSheet.vue";
 
 const router = useRouter();
 const pads = usePadStore();
 const runs = useSessionRunStore();
 const handoffs = useHandoffStore();
+const shelf = useShelfStore();
+const sending = ref(null); // the shelf item being sent on
 
 onMounted(async () => {
   handoffs.hydrate();
@@ -75,7 +79,24 @@ function openTool(tool) {
         </ul>
       </section>
 
-      <h2 v-if="loops.length" class="home-loops__title">Tools</h2>
+      <section v-if="shelf.items.length" class="home-loops" aria-label="Shelf">
+        <h2 class="home-loops__title">Shelf</h2>
+        <ul class="home-loops__list">
+          <li v-for="item in shelf.items" :key="item.id" class="home-shelf__item">
+            <button type="button" class="home-loops__row" @click="sending = item">
+              <v-icon icon="mdi-tray-full" size="18" class="home-loops__icon" />
+              <span class="home-loops__text">
+                <span class="home-loops__name">{{ item.text }}</span>
+                <span class="home-loops__next">Send on…<template v-if="getTool(item.from)"> · from {{ getTool(item.from).name }}</template></span>
+              </span>
+            </button>
+            <v-btn icon="mdi-close" size="small" variant="text" aria-label="Remove from the shelf" @click="shelf.remove(item.id)" />
+          </li>
+        </ul>
+      </section>
+      <SendSheet :text="sending?.text ?? ''" from="shelf" @sent="sending && shelf.remove(sending.id)" @close="sending = null" />
+
+      <h2 v-if="loops.length || shelf.items.length" class="home-loops__title">Tools</h2>
       <v-row>
         <v-col v-for="tool in TOOLS" :key="tool.id" cols="12" sm="6">
           <v-card class="h-100" rounded="lg" variant="outlined" hover :aria-label="`Open ${tool.name}`" @click="openTool(tool)">
@@ -126,4 +147,5 @@ function openTool(tool) {
 .home-loops__name { font-size: 0.95rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-loops__next { font-size: 0.8rem; color: rgba(var(--v-theme-on-surface), 0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-loops__go { color: rgba(var(--v-theme-on-surface), 0.4); }
+.home-shelf__item { display: flex; align-items: center; }
 </style>

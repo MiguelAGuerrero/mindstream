@@ -43,7 +43,10 @@ export function useDecomposeHandoff() {
       const fresh = store.peek(id, "thinkpad");
       if (fresh) {
         const accepted = store.consume(id, "thinkpad");
-        if (accepted?.steps?.length) {
+        if (accepted?.oneWay) {
+          // A one-way Send: a new pad titled with the text, nothing to send back.
+          padStore.newPad({ outcome: accepted.text });
+        } else if (accepted?.steps?.length) {
           // A workflow run: written out as a document, a heading per step. The
           // sender waits on nothing, so the request is answered on arrival.
           const pad = padStore.newPad({ outcome: accepted.text });

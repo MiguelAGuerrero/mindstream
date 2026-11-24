@@ -32,7 +32,7 @@ watch(padText, (text) => {
 const count = computed(() => itemsFromDraft(draft.value).length);
 const handoff = computed(() => decompose.open.value);
 // What asked, named through the shell's registry (never hard-coded here).
-const askerName = computed(() => getTool(handoff.value?.replyTo.tool)?.name ?? "the tool that asked");
+const askerName = computed(() => getTool(handoff.value?.replyTo?.tool)?.name ?? "the tool that asked");
 const contextLine = computed(() => (handoff.value?.context ?? []).join(" › "));
 
 function onInput(event) {
@@ -42,9 +42,24 @@ function onInput(event) {
 function send() {
   decompose.returnSteps(draft.value);
 }
+
+function jumpToReply() {
+  const field = document.getElementById("decompose-steps");
+  field?.scrollIntoView({ behavior: "smooth", block: "center" });
+  field?.focus({ preventScroll: true });
+}
 </script>
 
 <template>
+  <!-- Phones: the panel sits below the page, so a thin strip on top says what
+       asked and jumps to the reply (Revision 29: one tool per screen). -->
+  <v-col v-if="handoff" cols="12" class="decompose-strip-col d-md-none">
+    <div class="decompose-strip" role="note">
+      <v-icon icon="mdi-reply" size="16" />
+      <span class="decompose-strip__text">Asked by {{ askerName }}: <strong>{{ handoff.text }}</strong></span>
+      <v-btn size="small" variant="tonal" color="primary" @click="jumpToReply">Reply</v-btn>
+    </div>
+  </v-col>
   <v-col v-if="handoff" cols="12" md="auto" class="decompose-col">
     <aside class="decompose-panel" :aria-label="`Steps to send back to ${askerName}`">
       <header class="decompose-panel__head">
@@ -73,6 +88,30 @@ function send() {
 </template>
 
 <style scoped>
+.decompose-strip-col {
+  order: -1;
+  padding-bottom: 0;
+}
+
+.decompose-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid rgba(var(--v-theme-primary), 0.4);
+  border-radius: 8px;
+  background: rgba(var(--v-theme-primary), 0.08);
+  font-size: 0.85rem;
+}
+
+.decompose-strip__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .decompose-col {
   display: flex;
   flex-direction: column;

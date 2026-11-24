@@ -32,7 +32,7 @@ export const useHandoffStore = defineStore("handoff", {
   getters: {
     /** Requests still waiting on a reply (Phase 4 open loops), newest first. */
     waiting(state) {
-      return state.handoffs.filter((h) => !h.reply).slice().reverse();
+      return state.handoffs.filter((h) => h.replyTo && !h.reply).slice().reverse();
     },
   },
   actions: {
@@ -95,13 +95,13 @@ export const useHandoffStore = defineStore("handoff", {
     get(id, tool) {
       this.hydrate();
       const h = this.handoffs.find((x) => x.id === id);
-      return h && (h.replyTo.tool === tool || h.to.tool === tool) ? copy(h) : null;
+      return h && (h.replyTo?.tool === tool || h.to.tool === tool) ? copy(h) : null;
     },
     /** The reply to one request, readable only by the tool that sent it. Null until it arrives. */
     replyFor(id, senderTool) {
       this.hydrate();
       const h = this.handoffs.find((x) => x.id === id);
-      if (!h || h.replyTo.tool !== senderTool || !h.reply) return null;
+      if (!h || h.replyTo?.tool !== senderTool || !h.reply) return null;
       return copy(h.reply);
     },
     /** Record where the receiver put the work (e.g. a pad id) so it can find its way back. Once only. */
@@ -123,14 +123,14 @@ export const useHandoffStore = defineStore("handoff", {
     cancel(id, senderTool) {
       this.hydrate();
       const h = this.handoffs.find((x) => x.id === id);
-      if (!h || h.replyTo.tool !== senderTool) return false;
+      if (!h || h.replyTo?.tool !== senderTool) return false;
       if (!h.consumedAt) h.consumedAt = new Date().toISOString();
       if (!h.reply) h.reply = normalizeReply({ outcome: "abandoned" }, h);
       return true;
     },
     /** Aggregate replies for everything `tool` sent about `ref`; null when none. */
     summaryFor(tool, ref) {
-      return summarizeReplies(this.handoffs.filter((h) => h.replyTo.tool === tool && h.replyTo.ref === ref));
+      return summarizeReplies(this.handoffs.filter((h) => h.replyTo?.tool === tool && h.replyTo.ref === ref));
     },
     /** Route location for opening a request's receiver. */
     routeFor(handoff) {

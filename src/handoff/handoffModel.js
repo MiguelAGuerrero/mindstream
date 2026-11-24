@@ -61,9 +61,10 @@ function cleanTag(tag) {
  * Validate and build a request, or null when it can't be delivered: no reply
  * address, no subject text, or a target that doesn't serve `want` (with these steps).
  */
-export function createRequest({ replyTo, to, want, text: subject, context, steps, tag } = {}, { id, now } = {}) {
-  const address = cleanAddress(replyTo);
-  if (!address) return null;
+export function createRequest({ replyTo, to, want, text: subject, context, steps, tag, oneWay = false } = {}, { id, now } = {}) {
+  // A one-way Send (roadmap §4.3) has no reply address; anything else must have one.
+  const address = oneWay === true ? null : cleanAddress(replyTo);
+  if (!address && oneWay !== true) return null;
   const body = text(subject).slice(0, MAX_TEXT);
   if (!body) return null;
   const verb = text(want);
@@ -85,6 +86,7 @@ export function createRequest({ replyTo, to, want, text: subject, context, steps
     reply: null,
   };
   if (plan.length) request.steps = plan;
+  if (oneWay === true) request.oneWay = true;
   return request;
 }
 

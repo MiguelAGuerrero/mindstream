@@ -132,3 +132,19 @@ describe("summarizeReplies", () => {
     expect(summarizeReplies(undefined)).toBe(null);
   });
 });
+
+describe("one-way Send (roadmap §4.3: a request with no reply address)", () => {
+  const send = (extra = {}) => createRequest(
+    { oneWay: true, replyTo: null, to: { tool: "thinkpad" }, want: "think", text: "Rear-foot-elevated split squats?", ...extra },
+    { id: "s1", now: "2026-11-24T00:00:00.000Z" },
+  );
+
+  it("is accepted only when marked one-way, and carries no reply address", () => {
+    expect(send()).toMatchObject({ oneWay: true, replyTo: null, text: "Rear-foot-elevated split squats?" });
+    expect(createRequest({ replyTo: null, to: { tool: "thinkpad" }, want: "think", text: "x" }, { id: "s2" })).toBe(null);
+  });
+
+  it("survives save and load", () => {
+    expect(normalizeHandoffRecord(JSON.parse(JSON.stringify(send())))).toMatchObject({ oneWay: true, replyTo: null });
+  });
+});

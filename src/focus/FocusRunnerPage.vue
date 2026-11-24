@@ -21,8 +21,10 @@ import FocusComposer from "./components/FocusComposer.vue";
 import HandoffReadyCard from "./components/HandoffReadyCard.vue";
 import DecomposeReturnDialog from "./components/DecomposeReturnDialog.vue";
 import SessionPromptCard from "./components/SessionPromptCard.vue";
+import SendSheet from "../shelf/SendSheet.vue";
 
 const runStore = useSessionRunStore();
+const sendText = ref("");
 
 // Deep link from the workspace's open loops (Phase 4): ?context=… opens it
 // (resuming a parked one at its exact depth), then the query is dropped.
@@ -410,6 +412,7 @@ watch(
             @decide="handleDecide"
             @abandon="handleAbandon"
             @stop="handleStopAside"
+            @send="sendText = runStore.currentFocus"
             @close="handleCloseContext"
             @toggle-expand="focusUi.expanded = !focusUi.expanded"
             @dismiss-waiting-on="runStore.clearWaitingOn({ id: runStore.activeContextId })"
@@ -512,6 +515,7 @@ watch(
       </v-card>
     </v-dialog>
   </div>
+    <SendSheet :text="sendText" from="focus" @close="sendText = ''" />
 </template>
 
 <style scoped>

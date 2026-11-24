@@ -32,6 +32,7 @@ const emit = defineEmits([
   "resolve",
   "abandon",
   "stop",
+  "send",
   "close",
   "toggle-expand",
   "dismiss-waiting-on",
@@ -72,6 +73,14 @@ const trail = computed(() => props.breadcrumb.slice(0, -1).join("  ›  "));
       <div class="srun-top">
         <div class="srun-trail" :title="trail">{{ trail }}</div>
         <v-spacer />
+        <v-btn
+          icon="mdi-send-outline"
+          size="small"
+          variant="text"
+          aria-label="Send to…"
+          title="Send this focus elsewhere (one-way)"
+          @click="emit('send')"
+        />
         <v-btn
           :icon="expanded ? 'mdi-arrow-collapse' : 'mdi-arrow-expand'"
           size="small"

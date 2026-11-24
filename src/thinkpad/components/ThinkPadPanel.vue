@@ -60,7 +60,7 @@ const props = defineProps({
   stagedIdeas: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(["update:text", "update:nodes", "update:title", "extract-step", "drill-span", "hide-span", "reveal-hidden", "focus", "reopen-drill", "tag-span", "reorder-block", "idea-peek", "link-span", "source-span", "open-link"]);
+const emit = defineEmits(["update:text", "update:nodes", "update:title", "extract-step", "drill-span", "hide-span", "reveal-hidden", "focus", "reopen-drill", "tag-span", "reorder-block", "idea-peek", "link-span", "source-span", "open-link", "send-span"]);
 
 const bodyRef = ref(null);
 const marginsRef = ref(null);
@@ -657,6 +657,13 @@ function sourceSelection() {
   dismissSelection();
 }
 
+/** Send the selected text elsewhere, one-way (the page shows the destinations). */
+function sendSelection() {
+  if (!selectionState.value) return;
+  emit("send-span", { selectedText: selectionState.value.text });
+  dismissSelection();
+}
+
 /** Hide the selected text from view — a pure visibility toggle, not a move. The
  *  parent records a hidden marker; the text stays in the doc and can be revealed. */
 function hideSelection() {
@@ -1023,6 +1030,10 @@ defineExpose({ flushText, dismissSelection });
           <button type="button" class="thinkpad-mini-picker__hide-link" @click="sourceSelection">
             <v-icon icon="mdi-book-search-outline" size="12" />
             <span>Needs source</span>
+          </button>
+          <button type="button" class="thinkpad-mini-picker__hide-link" @click="sendSelection">
+            <v-icon icon="mdi-send-outline" size="12" />
+            <span>Send…</span>
           </button>
           <button type="button" class="thinkpad-mini-picker__hide-link" @click="hideSelection">
             <v-icon icon="mdi-eye-off-outline" size="12" />

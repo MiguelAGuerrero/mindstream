@@ -35,7 +35,7 @@ export function useWorkflowsHandoff() {
 
   /** A request for steps waiting on your choice, or null. */
   const pickRequest = computed(() => (pending.value?.want === WANTS.CHOOSE_STEPS ? pending.value : null));
-  const requesterName = computed(() => getTool(pickRequest.value?.replyTo.tool)?.name ?? "");
+  const requesterName = computed(() => getTool(pickRequest.value?.replyTo?.tool)?.name ?? "");
 
   function back(request) {
     router.push(routeForTool(request.replyTo.tool));
