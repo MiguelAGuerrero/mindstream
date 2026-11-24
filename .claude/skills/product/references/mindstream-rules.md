@@ -6,7 +6,7 @@ A compact summary of what is settled, for checking proposals quickly. The source
 - `docs/capture-templates-proposal.md`: workflows, the open-item gate, resolution. Read its decisions table first.
 - `reports/`: research on comparable apps.
 
-If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 10 and proposal decisions 1 to 22.
+If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 11 and proposal decisions 1 to 22.
 
 ## Contents
 
@@ -113,6 +113,9 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 - **Open-item gate.** A level cannot resolve while moves started there are undecided. Each is addressed, accepted as a stated caveat, lifted to an ancestor, or parked. Built in ThinkPad.
 - **Steps declare what they produce:** text or an action. ThinkPad accepts a set of steps only if all produce text; the runner accepts any. A step may also carry `expects: "call"` with `options`: a decision step, finished by choosing an output (Revision 8).
 - **A workflow is only its steps.** No workflow-level notes; notes belong to the run. The runner's card shows the current step only; a side panel is the fallback for the whole plan (Revision 8, settled by Miguel).
+- **"Write more" is append-only, for now** (Revision 11). Going back to writing adds text after the frozen draft as a new version; the frozen text is never reopened for editing. Branching from an earlier draft is the way to rewrite.
+- **Phases follow the roadmap order.** The gate and bridges landing before Phase 1 was circumstance, not a reorder (Revision 11).
+- **Every finished phase lands on `master`** once its exit test passes, without asking again (Miguel, Revision 11). Work inside an unfinished phase stays on the branch.
 - **Reflection is not an app feature.** Nothing prompts it. It is a step or a workflow the person chooses.
 - **Human executes.** No AI agent in this horizon. If revisited, an agent would be one more tool behind the shell.
 - **No shared data model between tools.** Considered and rejected in favour of message passing. The strongest counter-argument (Ink and Switch, "one shared reality") is known; do not re-propose a shared tree without new evidence.
@@ -146,8 +149,6 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 Check the documents for the current list. At last sync:
 
 - Revision 8 questions: the runner's opt-in Reflect button vs decision 17; ThinkPad's typed synthesis vs "one block"; whether a call can branch; the library access rule as built.
-- Phase order: the open-item gate (Phase 2) and most of Phase 3 were built before Phase 1.
-- What "Write more" does (G4): unfreeze in place (roadmap) or add a new dump (lifecycle doc §6). Recommended append-only; roadmap §6 question 8. Deliberate reordering, or return to Phase 1 next? Asked in roadmap §6.
 - Where tag shortcuts to workflows come from: pinned per tag, recent use, or the library only.
 - Who may read the workflow library. Built as: the runner never reads it, asks with `choose-steps`; only the library page writes. Not yet confirmed by Miguel.
 - How much of the shell already exists in the undeployed multi-tool layout work.

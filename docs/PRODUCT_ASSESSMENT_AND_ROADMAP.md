@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 10)
+**Date:** 2026-11-23 (last revised 2026-11-24, Revision 11)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,11 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 11 (2026-11-24): three answers from Miguel.**
+- **"Write more" is append-only, for now.** His words: "Write more is append only for now. In a way." Going back to writing adds a new piece of text after the frozen draft; it never reopens the frozen text for editing. "For now" means this can be revisited.
+- **The phase order was not deliberate.** The gate and the bridges were built ahead of Phase 1 by circumstance, not by a decision to reorder. Miguel left the order to judgement; Phase 1 continues as written.
+- **Every finished phase lands on `master`.** Standing instruction: when a phase's exit test passes, merge it to `master` without asking again.
 
 **Revision 10 (2026-11-24): Phase 1 started.** Miguel said "merge and proceed" without answering the phase-order question, so Phase 1 is being taken in its written order. G6 is fixed: a sub-pad at any depth lists its own threads and shows Continue / Reopen, through a pure `drillThreadsAt`. D7 was checked in the browser and not reproduced. The "Write more" escape hatch (G4) is waiting on a decision, because this doc and `stream-reflect-lifecycle.md` §6 describe it differently (§6 question 8).
 
@@ -270,7 +275,7 @@ Nothing here changes behaviour; it stops the repo from misdescribing itself.
 
 Make the existing recursion complete and trustworthy before extending it.
 
-- **Escape hatch (G4).** *Waiting on §6 question 8.* Wire `restreamDraft` as a named "Write more" action in the phase bar. Stop `resolveThreadIntoParent` from force-stamping a parent that is still in Stream; either stage without freezing, or ask.
+- **Escape hatch (G4).** *Settled in Revision 11: append-only.* A named "Write more" action in the phase bar opens an empty writing area after the frozen draft; adding it makes a new draft version recorded as a stream pass. The frozen text is never reopened for editing. Stop `resolveThreadIntoParent` from force-stamping a parent that is still in Stream; either stage without freezing, or ask.
 - **Symmetric recursion (G6).** *Done (Revision 10), except the root-as-thread unification, which did not fall out cheaply.* Compute `drillThreads` for the current surface at any depth so every sub-pad shows its own threads and Continue / Reopen. Take the root-as-thread unification from the contract (§13.3) only if it falls out cheaply.
 - **Make the fold-up the moment (G7).** After "Next Draft", show a short before/after of each replaced span, then the whole new draft. This is the study beat. Keep it skippable.
 - **Open-thread hygiene.** On the parent, mark threads as open, converged-not-completed, or completed. On Back from a thread with content, say it is being left open. Contract rule 6 calls unclosed drills "worse than no feature".
@@ -380,14 +385,14 @@ Designed in the session that produced Revision 8, not built. Each item names the
 
 Open:
 
-1. **Phase order.** The open-item gate (Phase 2) and most of Phase 3 (runner persistence, the registry, both bridges) were built before Phase 1. Was that a deliberate reordering, or should Phase 1 (the "Write more" escape hatch, symmetric recursion, the study beat) come next? The case for Phase 1 first is the first bullet of this section: replies land in ThinkPad through the fold-up path, and that path still has a one-way phase and root-only thread lists.
+1. *(Settled in Revision 11: not deliberate; Phase 1 continues as written.)*
 2. **The layout work.** Phase 3's shell layout, "Send to…" and the shelf are not built. If the multi-tool layout exists on an unpushed branch, pushing it would let it be checked.
 3. **Where tag shortcuts come from:** pinned per tag, recent use, or the library only. Open in the capture-templates proposal.
 4. **The runner's Reflect button vs decision 17.** Revision 7 says reflection is not an app feature. In the session that produced Revision 8, Miguel asked for "reflection [as] an opt-in side button per step". It is built that way: never prompted, never required. Keep it, or replace it with a reflection step you put in a workflow?
 5. **Typed synthesis vs "one block".** Rule 2 says nothing ascends unless it is one block. The ThinkPad work that was uncommitted on `master` added a dialog that lets a thread with several blocks resolve with a typed synthesis. The merge keeps it, after the open-item gate: every open item must be decided first. Keep it, or require convergence?
 6. **Does a call branch?** Today a call (decision step) only gates progress: you choose, and the plan moves to its next undone step. Should an option be able to lead to different next steps?
 7. **Library access rule (capture-templates §10.8).** Built as proposed: the runner never reads the library. It asks with `choose-steps`, the library page answers, and only the library page writes (`keep`). Confirm before it hardens.
-8. **What "Write more" does (G4).** This doc says wire `restreamDraft`, which unfreezes the draft for editing in place and, as written, discards staged results. `stream-reflect-lifecycle.md` §6 says going back to writing should add a visibly new dump: you never pour raw text into a frozen draft. Recommended: append-only. "Write more" opens an empty Stream area below the frozen draft; stamping it again adds that text as a new draft version, recorded in draft history as a stream pass. Nothing staged is lost, anchors on the frozen text stay valid, and a child resolving into the parent never needs to force-freeze it. Rewriting earlier text stays possible through the existing branch-from-history (`restreamFromDraftHistory`).
+8. *(Settled in Revision 11: append-only, for now.)*
 
 Settled:
 

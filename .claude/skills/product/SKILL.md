@@ -112,7 +112,7 @@ Purpose: keep the documents true, because the next session starts from them.
 Proceed without asking through research, planning inside settled ground, code and tests on a branch, and documentation updates. Stop and ask before:
 
 - A product decision, as defined above.
-- Anything landing on `master`. Approval given once covers that push, not the next one.
+- Anything landing on `master`, except a finished phase: Miguel's standing instruction is that every phase lands on `master` once its exit test passes. Anything else on `master` (a partial phase, a hotfix) needs approval each time.
 - Starting more than a handful of parallel agents. It spends the user's budget in a burst.
 - Anything hard to reverse or outward-facing: deleting data or branches, opening a pull request, changing environment or network settings.
 
