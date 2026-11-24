@@ -18,6 +18,14 @@
 
 **Revision 6 (2026-11-24):** two decisions from Miguel. **The shelf is confirmed.** **ThinkPad has no step-by-step view:** a pad is a document that offloads the context of your thinking, interpretation and reasoning; working through steps one at a time is the runner's job, and ThinkPad must not re-implement it. A workflow run inside ThinkPad is shown as a document (the form view in the capture-templates proposal); to step through it, send it to the runner.
 
+**Revision 7 (2026-11-24):** decisions confirmed by Miguel, several first settled in the capture-templates session.
+- **The message carries content, not labels.** A workflow travels as its ordered list of prompts. The broker only matches capabilities and routes; it does no lookup or translation. The runner never learns workflow names or ThinkPad types. Replies carry plain notes. Basis: "smart endpoints, dumb pipes", FDC3 and Android intents, and the routing-slip pattern (§4.2).
+- **"Resolve", not "Complete".** A resolution means you reached understanding, even with room for doubt; "complete" implies the task is solved. The recent rename on `master` is to be reverted.
+- **Tags do not start a workflow.** Question, Expand and Flag offer shortcuts to workflows, but no workflow is tied to a type of move.
+- **Steps declare what they produce:** text or an action.
+- **The workflow library belongs to the workspace** and has its own page.
+- **Reflection is not an app feature.** Nothing prompts it; it is a step or a workflow you choose to run.
+
 **How this was assessed:** read every design doc and all non-test source, ran `vitest` and `vite build`, and drove both tools in a real browser (stream, reflect, drill two levels, complete, next draft, Focus decompose, reload).
 
 ---
@@ -77,7 +85,7 @@ The recursive ThinkPad loop is real and it works. In the browser run, a two-leve
 
 **G4. Reflect is a one-way door.** `resolveThreadIntoParent` in the store force-stamps the parent, and `restreamDraft` / `restreamFromDraftHistory` exist in the domain but are not wired to any UI. Once a pad is in Reflect there is no way to write freely in it again. The lifecycle doc says the escape hatch must exist ("never trapped"); the build has the trap without the hatch.
 
-**G5. Designed vocabulary, undelivered.** `moves.js` defines nine moves in four families with prompts, write-back modes and intent mappings. The UI exposes three tags (Question, Expand, Flag), and the tag does not change what happens next: every tag opens the same blank sub-pad. The move's driving question, the thing that would make a drill *guided*, never reaches the screen. *The capture-templates proposal answers this by making a move a workflow of prompted steps.* Likewise unwired: pins (`captureIdea`, `performMoveOnIdea`), the intent detector (does not exist), `promoteWithinPad` (no component emits `extract-step`), `resumeHint`, and the timebox config.
+**G5. Designed vocabulary, undelivered.** `moves.js` defines nine moves in four families with prompts, write-back modes and intent mappings. The UI exposes three tags (Question, Expand, Flag), and the tag does not change what happens next: every tag opens the same blank sub-pad. The move's driving question, the thing that would make a drill *guided*, never reaches the screen. *The capture-templates proposal answers this with workflows of prompted steps, offered as shortcuts from the tags.* Likewise unwired: pins (`captureIdea`, `performMoveOnIdea`), the intent detector (does not exist), `promoteWithinPad` (no component emits `extract-step`), `resumeHint`, and the timebox config.
 
 **G6. Recursion is asymmetric below the root.** `drillThreads` is only computed at the root (`useThinkPadSurface.js:40`), so the thread list and "Continue / Reopen" affordances do not appear inside a sub-pad. The root is also special in the model (`pad.doc` vs `thread.doc`), which is why a reframe cannot rewrite the root's goal. The contract already names root-as-frame as the fix.
 
@@ -135,40 +143,51 @@ Against this contract today: both tools meet 1 and 5. ThinkPad meets 2. The runn
 
 ### 4.2 The message
 
-A sketch, to be hardened when built. Keep it this small.
+A sketch, to be hardened when built. The rule for anything added here: a tool that has never heard of the sender must be able to make sense of it. Only two shapes pass: **text**, and **an ordered list of text**.
 
 ```js
 Message = {
   id,
   kind: "request" | "reply",
-  text,            // the payload: the thought, claim, step or action to work on
+  text,            // the subject: the thought, claim, step or action to work on
   context: [],     // optional lines of surrounding context, outermost first (e.g. parent prompts)
-  intent: null,    // optional hint: "think", "doubt", "decompose", ... the receiver may ignore it
+  steps: [],       // optional ordered prompts to work through; each { prompt, produces: "text" | "action" }
+  want: null,      // optional neutral verb from the shell's short list, e.g. "think", "step-through"
   replyTo: null,   // { tool, ref } set by the sender; opaque to the receiver
+  tag: null,       // opaque to the receiver, handed back on the reply (e.g. workflow id + version)
   // replies only:
   inReplyTo: id,
   outcome: "resolved" | "question" | "abandoned",
+  notes: [],       // optional plain lines that qualify the result
 }
 ```
 
-- `ref` means something only to the sender: an annotation id in ThinkPad, a frame id in the runner. The receiver stores it and hands it back untouched. This is how results come home without either tool knowing the other's model.
+- **Content, not labels.** When you run a workflow on a claim, the request carries the workflow's prompts in `steps`. The receiver does not look anything up and does not interpret a name or a type. Its behaviour follows from the message's shape: with `steps`, a tool that can step through prompts does so; without, it treats the text as a single thing to work on.
+- **The broker is a dumb pipe.** It matches a request against what tools registered (accepts text; accepts steps; serves which `want` verbs), shows a picker when more than one fits, routes, and brings the reply home. It never expands, translates or classifies.
+- **`want` is not a move.** It is a neutral verb owned by the shell, kept to a handful. ThinkPad's words (doubt, claim, question, the tags) never go on the wire.
+- **`tag` and `ref` are opaque.** `ref` means something only to the sender: an annotation id in ThinkPad, a frame id in the runner. `tag` lets the sender recognise what was run, for comparing runs later. The receiver stores both and hands them back untouched.
+- **`notes` are plain lines.** If you went ahead with something unchecked, that line comes back with the result. ThinkPad shows notes as caveats under the span; another tool may show them differently.
+- **`produces`** is what lets a tool decide whether it can take a set of steps: ThinkPad takes them only if every step produces text; the runner takes any.
 - The sender keeps a **pending request** at its origin, shown as an open item, until the reply arrives.
 - Requests nest. A ThinkPad span sends to the runner; a runner step sends to a new ThinkPad pad; each reply unwinds one hop.
+
+**The irreducible coupling.** Something must know that "Doubt" means a particular set of prompts. That knowledge lives in the workflow library as data, owned by neither tool, and it travels in the message. What both tools must agree on is only the shape "an ordered list of prompts".
 
 **The two examples Miguel gave, as messages:**
 
 | Action | Request | Reply |
 |---|---|---|
-| Doubt a claim in ThinkPad | `text`: the claim. `intent`: "doubt". `replyTo`: ThinkPad, the span's annotation. The runner starts the Doubt workflow on it. | `text`: the call. ThinkPad places it at the span through the existing splice. |
-| A runner decompose step offers "Think in ThinkPad" | `text`: the step's prompt. `context`: the parent prompts. `replyTo`: runner, the frame. ThinkPad opens a pad titled with the prompt. | `text`: the pad's resolved text. The runner records it as the step's result. |
+| Run the Doubt workflow on a claim in ThinkPad | `text`: the claim. `steps`: Doubt's prompts, read from the library by ThinkPad. `tag`: doubt, v3. `replyTo`: ThinkPad, the span's annotation. The runner opens on the claim at step 1 of 4. | `text`: the call. `notes`: anything accepted unchecked. ThinkPad places the call at the span through the existing splice and lists the notes beneath it. |
+| A runner decompose step offers "Think this through" | `text`: the step's prompt. `context`: the parent prompts. `want`: "think". `replyTo`: runner, the frame. ThinkPad opens a pad titled with the prompt. | `text`: the pad's resolved text. The runner records it as the step's result. |
 
 ### 4.3 The workspace shell
 
 The shell is the one shared thing. It is what makes separate tools feel like one workspace, and it is the only place that knows which tools exist.
 
 - **Layout.** You open the tools you need and arrange them. Several can be up at once. This builds on the existing, not yet deployed, multi-tool layout work.
-- **Registry.** Each tool registers what it accepts, for example "text; I am for thinking it through" or "text; I run it as steps". Nothing else is needed for a new tool to become a destination everywhere.
-- **"Send to…" on every text item.** One uniform action, built by the shell from the registry at the moment you open it. This is how a decompose step can offer ThinkPad without knowing ThinkPad exists. A tool may promote one option to a button where it is the obvious next move ("Think this through" on a decompose step); the button names an intent, and the registry resolves it to a tool.
+- **Registry.** Each tool registers what it accepts: text, steps (and whether action steps are allowed), and which `want` verbs it serves. Nothing else is needed for a new tool to become a destination everywhere.
+- **Workflow library.** Workflows are a workspace thing, not a ThinkPad or runner construct. The library has its own page where you browse, edit and create them, and any tool can read from it. A workflow is an ordered list of prompts, each marked as producing text or an action.
+- **"Send to…" on every text item.** One uniform action, built by the shell from the registry at the moment you open it. This is how a decompose step can offer ThinkPad without knowing ThinkPad exists. A tool may promote one option to a button where it is the obvious next move ("Think this through" on a decompose step); the button names a neutral `want` verb, and the registry resolves it to a tool.
 - **Two kinds of hand-off.**
   - **Ask:** send text and expect a result back. The result returns to whatever asked, like a function returning to its caller. You never pick a destination by hand. This is the `request` / `reply` pair in §4.2.
   - **Send:** one-way. The text lands in the receiving tool and nothing comes back. This is a `request` with `replyTo: null`.
@@ -196,7 +215,7 @@ One caution carried over from `recursive-resolve-contract.md` (rule 2 there): a 
 | Runner | One unit of attention | **focus** | frame (in UI) |
 | Runner | Going down | **decompose** | drill |
 
-One naming conflict to settle: `master` just renamed "Resolve up" to "Complete", while the proposal uses "Resolve" and "resolution" throughout. Pick one before the workflow UI is built. "Resolve" fits better once a level can end in *a call or a sharper question*, since a sharper question is resolved but not complete.
+**Naming, settled:** the act of finishing a level is **Resolve**, and what comes back is a **resolution**. A resolution means you reached understanding, even with room for doubt. `master`'s rename of "Resolve up" to "Complete" (commits `fa086a9`, `a823faf`) is to be reverted before the gate UI is built.
 
 ---
 
@@ -208,7 +227,8 @@ Sized for one developer. Phases are ordered so each one makes the identity more 
 
 Nothing here changes behaviour; it stops the repo from misdescribing itself.
 
-- Fix D1 to D5. For D2, disable Complete on an empty sub-pad and say why in the tooltip.
+- Fix D1 to D5. For D2, disable the action on an empty sub-pad and say why in the tooltip.
+- Revert the "Complete" rename to "Resolve" in both tools (UI labels, `completeFocus`, `canComplete`, tests). D1's failing tests get rewritten as part of this.
 - Replace `README.md` with the identity statement from §4, the two routes, and how to run and test.
 - Mark `PRODUCT_AGENT_CONTEXT.md`, `PRODUCT_IDEATION_CONTEXT.md`, `TRIAGE_IDEATION_CONTEXT.md`, `GRAPH_STATUS_AGENT_CONTEXT.md` and `feature-science-map.md` §3 as historical, or move them to `docs/archive/`. Correct `FRONTEND_PATHS.md`.
 - Remove Font Awesome and the unused audio assets if confirmed unused.
@@ -232,8 +252,10 @@ Make the existing recursion complete and trustworthy before extending it.
 
 This is the in-flight work, sequenced in the proposal's own build order (§12, steps 1 to 3). It is where "the app guides" becomes true for thinking (G5).
 
-- **Open-item gate first.** `openItems`, `disposeOpenItem`, `canResolve`, wired into `canComplete`, with the four decisions (address, accept as doubt, lift, park). It is pure-core, useful without workflows, and it also fixes D2. Show open counts in the breadcrumb.
-- **A move is a workflow.** Add the workflow table; `escalatesTo` becomes slot defaults. Starting "Doubt" on a claim creates a run thread anchored to that span. Keep the palette small: the three tags stay as the entry, each offering its workflows.
+- **Open-item gate first.** `openItems`, `disposeOpenItem`, `canResolve`, replacing `canComplete`, with the four decisions (address, accept as doubt, lift, park). It is pure-core, useful without workflows, and it also fixes D2. Show open counts in the breadcrumb.
+- **Workflows come from the library.** Add the workspace workflow library and its page. A workflow is an ordered list of prompts, each marked text or action. Retire `escalatesTo` in `moves.js` as a fixed link.
+- **Tags stay light.** Question, Expand and Flag still open a plain sub-pad. Each also offers shortcuts to workflows, but none is bound to a tag, because which method fits depends on context. Where the shortcuts come from (pinned, recent, or the whole library) is still open.
+- **Running a workflow in ThinkPad** shows it as a document: the prompts as headings, one resolution under each. There is no step-by-step view here.
 - **A step is the same primitive again.** Write it directly (base case) or slot a workflow into it (recursive case). Slotted workflows fold up into the step through `resolveThreadIntoParent`. No new fold-up mechanism.
 - **Resolution: a call or a sharper question.** Honour write-back at the origin: a call sits beside or replaces the span; a sharper question replaces it and stays open.
 - **Pins in the keystream.** One keystroke in Stream marks the current block (`captureIdea`). Pins are notes, not open items, which matches the proposal's §8.1.
@@ -252,7 +274,7 @@ The identity phase. It resolves G1 and G2 and delivers both bridges Miguel descr
 - **The shelf.** Build it alongside Send, as its default landing place.
 - **The broker (Ask).** A small module in the shell: tools register what they receive and what they offer; `send(request)` routes and navigates; `reply(message)` routes back. Pending requests are persisted by the sender, so a hop survives a reload. Pure and node-testable, in the style of the existing domain code.
 - **ThinkPad as sender and receiver.** Send: an action on a span creates a pending open item and a request. Receive a reply: place the text at the anchor with the existing tolerant splice. Receive a request: open a new pad titled with the text, context shown above it; resolving the pad sends the reply.
-- **Runner as sender and receiver.** Receive a request: open a context whose root focus is the text, starting the workflow named by `intent` if there is one. Completing the root sends the reply. Send: the decompose composer offers "Think in ThinkPad" beside typing a sub-focus.
+- **Runner as sender and receiver.** Receive a request: open a context whose root focus is the text, and, if the request carries `steps`, working through them in order. Resolving the root sends the reply. Send: the decompose composer offers "Think in ThinkPad" beside typing a sub-focus.
 - **Where you are across hops.** A tool opened by an Ask shows what asked, from where, and "Send back". With both tools on screen, the shell highlights the asking item and dims the rest of that tool; in a single-tool layout the same information is a thin strip at the top.
 - **Requests that do not come back cleanly.** Abandoning sends an `abandoned` reply so the origin's open item can be decided, not orphaned. If the origin span moved or was edited, the tolerant splice already handles relocation; if it was deleted, the reply goes to the shelf.
 
@@ -305,8 +327,11 @@ With the broker in place, the workspace home can answer "what is my next small s
 5. **The shelf.** Settled in Revision 6: yes.
 6. **The layout work.** It was not on the remote, so Phase 3's first item is sized blind. Pushing that branch would let me check how much of the shell already exists.
 2. **Where is the in-flight code?** Only the proposal doc is on the remote. If implementation exists on an unpushed branch, §2 and §3 should be re-checked against it.
-3. **Resolve or Complete?** See the naming note in §4.
-4. **Does every tag map to a workflow?** Doubt is the example given. Should Question, Expand and Flag each open a workflow by default, or do some stay as a plain blank sub-pad?
+3. **Resolve or Complete?** Settled in Revision 7: Resolve.
+4. **Does every tag map to a workflow?** Settled in Revision 7: no. Tags offer shortcuts; none is bound.
+5. **The shelf.** Settled in Revision 6: yes.
+6. **The layout work.** It was not on the remote, so Phase 3's first item is sized blind. Pushing that branch would let me check how much of the shell already exists.
+7. **Where tag shortcuts come from:** pinned per tag, recent use, or the library only. Open in the capture-templates proposal.
 
 ---
 
