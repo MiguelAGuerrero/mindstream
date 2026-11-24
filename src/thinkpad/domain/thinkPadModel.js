@@ -1570,6 +1570,37 @@ export function clearDisposition(pad, { padLocator = null, id } = {}, { now } = 
 }
 
 /**
+ * The threads drilled from one level, in creation order, as the surface lists
+ * them: { threadId, annotationId, title, anchorText, hasWork, completed, tag }.
+ * padLocator null = the root document; a thread id = that sub-pad. Every level
+ * is the same primitive, so a sub-pad lists its own threads exactly as the
+ * root does. [] for no pad, an unknown level, or a level with no threads.
+ */
+export function drillThreadsAt(pad, padLocator = null) {
+  if (!pad) return [];
+  const doc = padForThread(pad, padLocator);
+  if (!doc) return [];
+  const threads = padLocator === null || padLocator === undefined
+    ? (pad.threads ?? [])
+    : (findThreadById(pad, padLocator)?.subThreads ?? []);
+  const annotations = doc.annotations ?? [];
+  return threads
+    .filter((t) => t.parentAnchor)
+    .map((t) => {
+      const ann = annotations.find((a) => a.id === t.parentAnchor.annotationId);
+      return {
+        threadId: t.id,
+        annotationId: t.parentAnchor.annotationId,
+        title: t.steps?.[0]?.title ?? "Untitled",
+        anchorText: ann?.selectedText ?? "",
+        hasWork: (t.doc?.text ?? "").trim() !== "",
+        completed: !!(t.steps?.[0]?.completedAt),
+        tag: ann?.tag ?? null,
+      };
+    });
+}
+
+/**
  * Whether a thread may resolve up into its parent: it has converged to one
  * non-empty block and has no undecided open items. False for the root document
  * (nothing is above it) and for an unknown thread.

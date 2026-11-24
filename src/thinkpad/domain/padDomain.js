@@ -67,6 +67,7 @@ export {
   disposeOpenItem,
   clearDisposition,
   canResolve,
+  drillThreadsAt,
   decidedItems,
 } from "./thinkPadModel";
 

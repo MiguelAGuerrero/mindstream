@@ -2,7 +2,7 @@ import { ref, computed, reactive } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import { usePadStore } from "../store/padStore";
-import { padForThread, threadIsOpen } from "../domain/padDomain";
+import { drillThreadsAt, padForThread, threadIsOpen } from "../domain/padDomain";
 import { getMoveById, getStanceDisplay } from "../moves";
 
 /**
@@ -99,24 +99,8 @@ export function useThinkPadSurface() {
     return getStanceDisplay({ moveId, tag });
   });
 
-  const drillThreads = computed(() => {
-    if (!currentContext.value || !isAtRoot.value) return [];
-    const annotations = currentContext.value.doc?.annotations ?? [];
-    return (currentContext.value.threads ?? [])
-      .filter((t) => t.parentAnchor)
-      .map((t) => {
-        const ann = annotations.find((a) => a.id === t.parentAnchor?.annotationId);
-        return {
-          threadId: t.id,
-          annotationId: t.parentAnchor.annotationId,
-          title: t.steps?.[0]?.title ?? "Untitled",
-          anchorText: ann?.selectedText ?? "",
-          hasWork: (t.doc?.text ?? "").trim() !== "",
-          completed: !!(t.steps?.[0]?.completedAt),
-          tag: ann?.tag ?? null,
-        };
-      });
-  });
+  // Threads drilled from the level on screen, at any depth (G6).
+  const drillThreads = computed(() => drillThreadsAt(currentContext.value, surfaceHead.value));
 
   const peekOpen = ref(false);
   const peekParentLocator = computed(() => {
