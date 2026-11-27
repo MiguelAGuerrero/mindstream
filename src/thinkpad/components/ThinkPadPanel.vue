@@ -574,6 +574,11 @@ const editor = useEditor({
             emit("reopen-drill", { threadId: drill.threadId, annotationId, fromPassage: true });
             return true;
           }
+          // A "needs a source" mark: its card has the ways to settle or remove it.
+          if (annTarget.dataset.annotationKind === "source") {
+            emit("reopen-drill", { threadId: null, annotationId, fromPassage: true });
+            return true;
+          }
           // No drill yet → open the mini picker at this span so user can tag + thread.
           const charStart = parseInt(annTarget.dataset.annotationStart ?? "NaN", 10);
           const charEnd = parseInt(annTarget.dataset.annotationEnd ?? "NaN", 10);

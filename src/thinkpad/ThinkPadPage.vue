@@ -99,7 +99,26 @@ function onReopenDrill({ threadId, annotationId, fromPassage } = {}) {
     activeMoveId.value = annotationId;
     return;
   }
-  surface.navigateToThread(threadId);
+  if (threadId) surface.navigateToThread(threadId);
+}
+
+const openMoveCount = computed(() => moveCards.value.filter((c) => c.status !== "resolved" && !c.setAside).length);
+
+// Phones: one way into the sheet that does not depend on tapping a passage
+// (some moves have none to tap: an item moved up, a synthesis).
+function openMoveSheet() {
+  const first = moveCards.value.find((c) => c.status !== "resolved") ?? moveCards.value[0];
+  freshMoveId.value = null;
+  activeMoveId.value = first?.id ?? null;
+}
+
+// Set the thread on screen aside and step back out of it.
+function setAsideCurrentThread() {
+  const threadId = surface.surfaceHead;
+  if (!threadId) return;
+  padStore.setAsideThread({ threadId });
+  surface.handleAscend();
+  surface.leftOpen = { status: "aside", title: surface.surfaceTitle, threadId: null };
 }
 
 function onAnswerMove({ threadId, result }) {
@@ -431,6 +450,16 @@ watch(
                     title="This thread is set aside. Bring it back to your unfinished work."
                     @click="padStore.bringBackThread({ threadId: surface.surfaceHead })"
                   >Bring back</v-btn>
+                  <v-btn
+                    v-else
+                    class="drill-bar__btn--squeeze"
+                    size="small"
+                    variant="text"
+                    prepend-icon="mdi-tray-arrow-down"
+                    title="Set aside: stop counting this thread as unfinished. Its writing is kept."
+                    aria-label="Set aside"
+                    @click="setAsideCurrentThread()"
+                  >Set aside</v-btn>
                   <v-chip
                     v-if="focusHandoff.focusSummary.value"
                     size="small"
@@ -521,6 +550,16 @@ watch(
                       <DraftPhaseBar />
                     </template>
                     <template #bar-end>
+                      <button
+                        v-if="smAndDown && moveCards.length"
+                        type="button"
+                        class="thinkpad-bar-action"
+                        title="Moves on this page"
+                        @click="openMoveSheet"
+                      >
+                        <v-icon icon="mdi-comment-text-multiple-outline" size="14" />
+                        <span>{{ openMoveCount ? `${openMoveCount} open` : "Moves" }}</span>
+                      </button>
                       <!-- Synthesize (Revisions 19-22): one thread over the whole draft. -->
                       <button
                         v-if="isDraftFrozen && !padStore.isDraftHistoryView && !padStore.isSynthesisSurface"
@@ -589,6 +628,8 @@ watch(
                 @remove="onRemoveMove"
         @set-aside="(threadId) => padStore.setAsideThread({ threadId })"
         @bring-back="(threadId) => padStore.bringBackThread({ threadId })"
+        @remove-source="(id) => { padStore.removeNeedsSource({ padLocator: surface.surfaceHead, id }); activeMoveId = null; }"
+        @settle="(id) => { padStore.disposeOpenItem({ padLocator: surface.surfaceHead, id, kind: 'parked' }); activeMoveId = null; }"
               />
               </div>
           </div>
@@ -608,6 +649,8 @@ watch(
         @remove="onRemoveMove"
         @set-aside="(threadId) => padStore.setAsideThread({ threadId })"
         @bring-back="(threadId) => padStore.bringBackThread({ threadId })"
+        @remove-source="(id) => { padStore.removeNeedsSource({ padLocator: surface.surfaceHead, id }); activeMoveId = null; }"
+        @settle="(id) => { padStore.disposeOpenItem({ padLocator: surface.surfaceHead, id, kind: 'parked' }); activeMoveId = null; }"
       />
       <component :is="'style'" v-if="activeMoveCss">{{ activeMoveCss }}</component>
 
@@ -637,6 +680,7 @@ watch(
         @update:model-value="(v) => { if (!v) surface.leftOpen = null; }"
       >
         <template v-if="surface.leftOpen?.status === 'removed'">Empty thread removed.</template>
+        <template v-else-if="surface.leftOpen?.status === 'aside'">Set aside. Its writing is kept; it is under Threads here.</template>
         <template v-else-if="surface.leftOpen">
           “{{ surface.leftOpen.title }}” is
           {{ surface.leftOpen.status === "converged" ? "ready to resolve" : "still open" }}.

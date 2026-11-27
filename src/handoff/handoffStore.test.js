@@ -226,4 +226,23 @@ describe("handoffStore: the sender reads its own reply", () => {
     expect(s.acceptedBy("focus").map((h) => h.id)).toEqual([a.id]);
     expect(s.acceptedBy("thinkpad")).toEqual([]);
   });
+
+  it("declining a one-way set of steps does not put it on the shelf", () => {
+    const s = freshStore();
+    const h = s.create({ oneWay: true, to: { tool: "focus" }, want: "step-through", text: "Weekly review", steps: ["Look back", "Look ahead"] });
+    expect(s.decline(h.id, "focus")).toBe(true);
+    expect(useShelfStore().items).toEqual([]);
+    expect(s.waiting).toEqual([]);
+  });
+
+  it("waitingFrom lists what a tool sent that is unanswered; summaryFor can be narrowed to one verb", () => {
+    const s = freshStore();
+    const a = s.create(input("thread:1"));
+    const b = s.create({ ...input("thread:1"), to: { tool: "workflows" }, want: "choose-steps" });
+    expect(s.waitingFrom("thinkpad").map((h) => h.id)).toEqual([a.id, b.id]);
+    s.cancel(b.id, "thinkpad");
+    expect(s.waitingFrom("thinkpad").map((h) => h.id)).toEqual([a.id]);
+    expect(s.summaryFor("thinkpad", "thread:1", "step-through")).toBe(null);
+    expect(s.summaryFor("thinkpad", "thread:1")).toMatchObject({ sessions: 1 });
+  });
 });

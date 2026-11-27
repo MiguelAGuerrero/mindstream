@@ -157,6 +157,11 @@ export function useFocusHandoff() {
     return h ? store.routeFor(h) : null;
   }
 
+  /** The frame (as a string id) that asked for this request, or null. */
+  function askerOf(handoffId) {
+    return handoffId ? store.get(handoffId, "focus")?.replyTo?.ref ?? null : null;
+  }
+
   /** Stop waiting: the receiver can no longer accept it, and it ends as abandoned. */
   function cancelAwaiting(handoffId) {
     if (handoffId) store.cancel(handoffId, "focus");
@@ -177,5 +182,6 @@ export function useFocusHandoff() {
     awaitingState,
     routeForAwaiting,
     cancelAwaiting,
+    askerOf,
   };
 }

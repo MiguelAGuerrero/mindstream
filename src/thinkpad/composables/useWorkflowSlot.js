@@ -26,6 +26,10 @@ export function useWorkflowSlot() {
     const target = chooser.value;
     const text = typeof title === "string" && title.trim() ? title.trim() : "Steps for this thread";
     if (!target || !threadId) return false;
+    // Asking again replaces an earlier ask for this thread that never came back.
+    for (const slot of padStore.currentPad?.pendingSlots ?? []) {
+      if (slot.threadId === threadId) handoffs.cancel(slot.handoffId, "thinkpad");
+    }
     const handoff = handoffs.create({
       replyTo: { tool: "thinkpad", ref: threadId },
       to: { tool: target.id },

@@ -178,14 +178,11 @@ function handleResolve() {
     closure.elapsed = timerFormatted.value;
     closure.open = true;
     const ctx = runStore.activeContext;
-    // Resolved without the answer it asked another tool for: stop waiting on it.
-    if (ctx?.awaitingHandoffId) {
-      handoff.cancelAwaiting(ctx.awaitingHandoffId);
-      runStore.setAwaitingHandoff({ id: ctx.id, handoffId: null });
-    }
+    dropAwaitingOfActiveFrame();
     runStore.resolveFocus({ result: takeaway });
     handoff.reportEnd(ctx, { outcome: "resolved", text: takeaway });
   } else {
+    dropAwaitingOfActiveFrame();
     runStore.resolveFocus({ result: takeaway });
   }
   restartTimer();
@@ -289,8 +286,24 @@ function openNewContext() {
   composer.open = true;
   nextTick(() => composerField.value?.focus?.());
 }
+// Leaving the focus that asked another tool for steps (Back, or resolving it
+// without them) ends that ask; otherwise the steps would land on its parent.
+function dropAwaitingOfActiveFrame() {
+  const ctx = runStore.activeContext;
+  const frame = runStore.activeFrame;
+  if (!ctx?.awaitingHandoffId || !frame) return;
+  if (handoff.askerOf(ctx.awaitingHandoffId) !== String(frame.id)) return;
+  handoff.cancelAwaiting(ctx.awaitingHandoffId);
+  runStore.setAwaitingHandoff({ id: ctx.id, handoffId: null });
+}
+function handleDiscardPlan() {
+  bankElapsed();
+  runStore.discardPlan();
+  restartTimer();
+}
 function handleAbandon() {
   bankElapsed();
+  dropAwaitingOfActiveFrame();
   runStore.abandonFocus();
   restartTimer();
 }
@@ -341,13 +354,14 @@ watch(
       class="session-runner__bar"
     >
       <button
-        v-if="isStackView && runStore.hasFocus"
+        v-if="runStore.hasFocus"
         type="button"
         class="session-runner__bar-back"
+        title="Step off this context without changing it"
         @click="handleBackToBoard"
       >
         <v-icon icon="mdi-arrow-left" size="16" />
-        <span>Board</span>
+        <span>{{ isStackView ? "Board" : "Contexts" }}</span>
       </button>
 
       <v-spacer />
@@ -390,6 +404,7 @@ watch(
         :can-save="handoff.canSaveSteps.value"
         @jump="handleJumpToStep"
         @save-workflow="handleSaveAsWorkflow"
+        @discard-plan="handleDiscardPlan"
       />
 
       <div class="session-runner__main">
@@ -621,9 +636,21 @@ watch(
    (min-width: var(--x))` is a parse error that drops the whole block — but it
    CAN set one, and custom properties inherit straight through scoped-CSS
    boundaries. So both components just read the answer. */
+/* Narrow (a phone): the panel is not hidden, it sits under the card, so the
+   plan's steps can still be seen, switched and discarded by tap. */
 .session-runner__stage--paneled {
-  --focus-trail-panel: none;
+  --focus-trail-panel: flex;
   --focus-trail-inline: block;
+  flex-direction: column;
+}
+
+.session-runner__stage--paneled :deep(.ctx-trail) {
+  order: 2;
+  flex: 0 1 auto;
+  width: 100%;
+  max-height: 40%;
+  border-inline-end: 0;
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
 /* 440px, NOT the ~620 this started at. Two reasons: the panel became a plain
@@ -635,6 +662,16 @@ watch(
   .session-runner__stage--paneled {
     --focus-trail-panel: flex;
     --focus-trail-inline: none;
+    flex-direction: row;
+  }
+
+  .session-runner__stage--paneled :deep(.ctx-trail) {
+    order: 0;
+    flex: 0 0 var(--ctx-trail-width);
+    width: var(--ctx-trail-width);
+    max-height: none;
+    border-top: 0;
+    border-inline-end: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   }
 
   /* Gutter between the card's elevation-4 shadow and the panel's rule. Inside

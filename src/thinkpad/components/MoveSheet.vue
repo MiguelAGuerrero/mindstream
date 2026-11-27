@@ -11,7 +11,7 @@ const props = defineProps({
   freshId: { type: String, default: null },
 });
 
-const emit = defineEmits(["update:activeId", "open", "answer", "link", "remove", "set-aside", "bring-back"]);
+const emit = defineEmits(["update:activeId", "open", "answer", "link", "remove", "set-aside", "bring-back", "remove-source", "settle"]);
 
 const index = computed(() => props.cards.findIndex((c) => c.id === props.activeId));
 const card = computed(() => props.cards[index.value] ?? null);
@@ -51,6 +51,8 @@ function step(by) {
         @remove="(id) => emit('remove', id)"
         @set-aside="(id) => emit('set-aside', id)"
         @bring-back="(id) => emit('bring-back', id)"
+        @remove-source="(id) => emit('remove-source', id)"
+        @settle="(id) => emit('settle', id)"
       />
     </v-card>
   </VBottomSheet>

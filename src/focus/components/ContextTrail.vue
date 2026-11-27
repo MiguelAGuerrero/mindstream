@@ -32,7 +32,7 @@ const props = defineProps({
 
 // Steps are the one clickable part: switching steps is how you pivot when what
 // you discover changes the plan. The stack above stays read-only (see header).
-const emit = defineEmits(["jump", "save-workflow"]);
+const emit = defineEmits(["jump", "save-workflow", "discard-plan"]);
 
 // The current frame is always the LAST row, so a stack taller than the panel
 // would open scrolled away from the one thing you're working on.
@@ -116,6 +116,16 @@ watch(() => props.cards.at(-1)?.id, pinToCurrent, { flush: "post" });
         @click="emit('save-workflow')"
       >
         Save as workflow
+      </v-btn>
+      <v-btn
+        size="small"
+        variant="text"
+        prepend-icon="mdi-close"
+        class="ctx-steps__save"
+        title="Drop these steps and go back to the focus they were for. Notes on finished steps are dropped too."
+        @click="emit('discard-plan')"
+      >
+        Discard plan
       </v-btn>
     </section>
   </aside>

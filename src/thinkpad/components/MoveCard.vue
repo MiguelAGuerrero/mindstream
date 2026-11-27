@@ -11,7 +11,7 @@ const props = defineProps({
   autofocus: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["open", "answer", "link", "remove", "set-aside", "bring-back"]);
+const emit = defineEmits(["open", "answer", "link", "remove", "set-aside", "bring-back", "remove-source", "settle"]);
 
 const draft = ref("");
 const fieldRef = ref(null);
@@ -25,17 +25,20 @@ watch(() => props.autofocus, (v) => { if (v) focusField(); });
 
 function glyph(card) {
   if (card.kind === "source") return "“";
+  if (card.kind === "lifted") return "↑";
   if (card.status === "resolved") return "✓";
   return ANNOTATION_TAG_DISPLAY[card.tag]?.glyph ?? "↗";
 }
 
 function label(card) {
   if (card.kind === "source") return "Needs a source";
+  if (card.kind === "lifted") return "Moved up";
   return ANNOTATION_TAG_DISPLAY[card.tag]?.label ?? "Thread";
 }
 
 function meta(card) {
   if (card.kind === "source") return "Open";
+  if (card.kind === "lifted") return "Open · from a thread below";
   const caveats = card.caveats ? ` · ${card.caveats} caveat${card.caveats === 1 ? "" : "s"}` : "";
   if (card.status === "resolved") return `Resolved${caveats}`;
   if (card.setAside) return "Set aside";
@@ -80,7 +83,7 @@ function answer() {
     </header>
 
     <blockquote v-if="card.passage" class="move-card__passage">{{ card.passage }}</blockquote>
-    <p v-if="card.kind === 'thread' && card.title && card.title !== card.passage" class="move-card__title">{{ card.title }}</p>
+    <p v-if="card.kind !== 'source' && card.title && card.title !== card.passage" class="move-card__title">{{ card.title }}</p>
     <p v-if="card.status === 'resolved' && card.result" class="move-card__result">{{ card.result }}</p>
     <p v-else-if="card.latest" class="move-card__latest">Latest: “{{ card.latest }}”</p>
 
@@ -126,7 +129,17 @@ function answer() {
           @click.stop="emit('remove', card.threadId)"
         >Remove</button>
       </template>
-      <button v-else type="button" class="move-card__btn" @click.stop="emit('link', card.span)">Attach a link</button>
+      <template v-else-if="card.kind === 'source'">
+        <button type="button" class="move-card__btn" @click.stop="emit('link', card.span)">Attach a link</button>
+        <button type="button" class="move-card__btn move-card__btn--quiet" @click.stop="emit('remove-source', card.id)">Remove</button>
+      </template>
+      <button
+        v-else
+        type="button"
+        class="move-card__btn"
+        title="Stop counting this as open here."
+        @click.stop="emit('settle', card.id)"
+      >Set aside</button>
     </div>
   </article>
 </template>

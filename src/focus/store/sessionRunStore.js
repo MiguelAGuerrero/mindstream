@@ -392,6 +392,26 @@ export const useSessionRunStore = defineStore("sessionRun", {
       ctx.stack.push(this._stepFrame(frame, 0));
     },
 
+    /** Drop the plan the active card is part of and return to the focus that
+     *  held it: its steps go, and so does the step you were on. No-op with no plan. */
+    discardPlan() {
+      const ctx = this.activeContext;
+      if (!ctx) return;
+      let holder = ctx.stack[ctx.stack.length - 1];
+      if (!holder?.steps?.length) {
+        const parent = ctx.stack[ctx.stack.length - 2];
+        if (!parent?.steps?.length || holder?.fromStep == null) return;
+        ctx.stack.pop();
+        holder = parent;
+      }
+      delete holder.steps;
+      delete holder.stepIndex;
+      delete holder.stepDone;
+      delete holder.stepResults;
+      delete holder.stepChoices;
+      delete holder.planTag;
+    },
+
     /** Start (or restart) step `index` of the active frame's plan. */
     startStep({ index } = {}) {
       const ctx = this.activeContext;
@@ -438,7 +458,9 @@ export const useSessionRunStore = defineStore("sessionRun", {
       const ctx = this.activeContext;
       if (!ctx) return;
       ctx.parked = true;
-      ctx.waitingOn = typeof reason === "string" ? reason.trim() : "";
+      // Stopping again without a new reason keeps the one already given.
+      const next = typeof reason === "string" ? reason.trim() : "";
+      if (next || !ctx.waitingOn) ctx.waitingOn = next;
       ctx.parkedAt = new Date().toISOString(); // so a return can say how long it waited
       this.activeContextId = null;
     },

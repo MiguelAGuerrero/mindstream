@@ -48,7 +48,7 @@ export function useFocusHandoff({ surface, currentContext }) {
   /** e.g. { label: "2 sessions · 50 min", reflection } for this move, or null. */
   const focusSummary = computed(() => {
     const t = thread.value;
-    const s = t ? store.summaryFor("thinkpad", t.id) : null;
+    const s = t ? store.summaryFor("thinkpad", t.id, WANTS.STEP_THROUGH) : null;
     if (!s) return null;
     return {
       label: `${s.sessions} ${s.sessions === 1 ? "session" : "sessions"} · ${s.minutes} min`,

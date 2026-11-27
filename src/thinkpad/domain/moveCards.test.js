@@ -14,6 +14,8 @@ import {
   drillThreadsAt,
   padForThread,
   discardThread,
+  disposeOpenItem,
+  removeNeedsSource,
 } from "./padDomain";
 import { moveCardsAt, answerMove, removeMove } from "./moveCards";
 import { makeTestEnv } from "./__testkit__";
@@ -151,5 +153,29 @@ describe("a move with nothing written in it", () => {
     pad = setPadText(pad, { padLocator: frame.id, text: "a thought" }, env);
     expect(moveCardsAt(pad, null)[0].canRemove).toBe(false);
     expect(removeMove(pad, { threadId: frame.id }, env)).toBe(pad);
+  });
+});
+
+describe("marks and items that have no thread", () => {
+  it("a needs-a-source mark can be taken off", () => {
+    const env = makeTestEnv();
+    const pad = markNeedsSource(rootPad(env), { padLocator: null, selectionStart: 0, selectionEnd: 5, selectedText: "alpha" }, env);
+    const [card] = moveCardsAt(pad, null);
+    const cleared = removeNeedsSource(pad, { padLocator: null, id: card.id }, env);
+    expect(moveCardsAt(cleared, null)).toEqual([]);
+    expect(openItems(cleared, null)).toEqual([]);
+    expect(removeNeedsSource(cleared, { padLocator: null, id: card.id }, env)).toBe(cleared);
+  });
+
+  it("an item moved up to a level gets a card there, and setting it aside settles it", () => {
+    const env = makeTestEnv();
+    let { pad, frame } = drill(rootPad(env), env);
+    pad = setPadText(pad, { padLocator: frame.id, text: "inner thought here" }, env);
+    const inner = drill(pad, env, { parent: frame.id, word: "thought", text: "inner thought here", title: "Is that so?" });
+    pad = disposeOpenItem(inner.pad, { padLocator: frame.id, id: inner.annotationId, kind: "lifted", target: null }, env);
+    const card = moveCardsAt(pad, null).find((c) => c.kind === "lifted");
+    expect(card).toMatchObject({ kind: "lifted", title: "Is that so?", status: "open" });
+    const settled = disposeOpenItem(pad, { padLocator: null, id: card.id, kind: "parked" }, env);
+    expect(moveCardsAt(settled, null).some((c) => c.kind === "lifted")).toBe(false);
   });
 });

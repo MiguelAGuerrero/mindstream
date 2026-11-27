@@ -513,3 +513,34 @@ describe("sessionRunStore plans (queued steps)", () => {
     expect(store.activeStack).toHaveLength(1);
   });
 });
+
+describe("sessionRunStore: ending what was started", () => {
+  beforeEach(() => setActivePinia(createPinia()));
+
+  it("discardPlan drops the plan and the step you were on, back to the focus that held it", () => {
+    const store = useSessionRunStore();
+    store.newContext({ title: "Ship it" });
+    store.planSteps({ steps: ["A", "B"] });
+    expect(store.activePlan).toBeTruthy();
+    expect(store.depth).toBe(2);
+    store.discardPlan();
+    expect(store.activePlan).toBe(null);
+    expect(store.depth).toBe(1);
+    expect(store.currentFocus).toBe("Ship it");
+    store.discardPlan(); // nothing to drop
+    expect(store.depth).toBe(1);
+  });
+
+  it("stopping again without a reason keeps the reason already given", () => {
+    const store = useSessionRunStore();
+    store.newContext({ title: "Ship it" });
+    const id = store.activeContextId;
+    store.parkActiveContext({ reason: "waiting on review" });
+    store.switchContext(id);
+    store.parkActiveContext();
+    expect(store.contexts.find((c) => c.id === id).waitingOn).toBe("waiting on review");
+    store.switchContext(id);
+    store.parkActiveContext({ reason: "blocked on API" });
+    expect(store.contexts.find((c) => c.id === id).waitingOn).toBe("blocked on API");
+  });
+});

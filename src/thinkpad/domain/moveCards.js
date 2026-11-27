@@ -38,6 +38,7 @@ function spanOf(annotation) {
  *     status: "open" | "converged" | "resolved", openInside, caveats, canAnswer,
  *     canRemove, span }
  *   { id, kind: "source", passage, status: "open", canAnswer: false, span }
+ *   { id, kind: "lifted", title, passage, status: "open", canAnswer: false, span }
  * canAnswer: the move can take a result from its card (not resolved, and
  * nothing undecided inside its thread). canRemove: nothing was written in its
  * thread, so the move can be taken back. [] for no pad or an unknown level.
@@ -88,7 +89,20 @@ export function moveCardsAt(pad, padLocator = null) {
       span: spanOf(byId.get(i.id)),
     }));
 
-  return [...threads, ...sources]
+  // Items moved up from a thread below have no passage here; they follow the rest.
+  const lifted = openItems(pad, padLocator)
+    .filter((i) => i.kind === "lifted")
+    .map((i) => ({
+      id: i.id,
+      kind: "lifted",
+      title: i.text,
+      passage: i.source && i.source !== i.text ? i.source : "",
+      status: "open",
+      canAnswer: false,
+      span: { selectionStart: Number.MAX_SAFE_INTEGER, selectionEnd: Number.MAX_SAFE_INTEGER, selectedText: "" },
+    }));
+
+  return [...threads, ...sources, ...lifted]
     .map((card, i) => ({ card, i }))
     .sort((a, b) => a.card.span.selectionStart - b.card.span.selectionStart || a.i - b.i)
     .map(({ card }) => card);

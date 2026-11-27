@@ -37,6 +37,7 @@ import {
   addPassageLink as addPassageLinkOnPad,
   removeLink as removeLinkOnPad,
   markNeedsSource as markNeedsSourceOnPad,
+  removeNeedsSource as removeNeedsSourceOnPad,
   linksAt as linksAtOnPad,
   startSynthesis as startSynthesisOnPad,
   quoteInto as quoteIntoOnPad,
@@ -520,6 +521,10 @@ export const usePadStore = defineStore("pad", {
     /** Take back a move that has nothing written in it. */
     removeMove({ threadId } = {}) {
       this._applyOnPad((pad, now) => removeMoveOnPad(pad, { threadId }, { now }));
+    },
+
+    removeNeedsSource({ padLocator = null, id } = {}) {
+      this._applyOnPad((pad, now) => removeNeedsSourceOnPad(pad, { padLocator, id }, { now }));
     },
 
     markNeedsSource({ padLocator = null, selectionStart, selectionEnd, selectedText } = {}) {

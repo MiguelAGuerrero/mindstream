@@ -1614,6 +1614,13 @@ export function markNeedsSource(pad, { padLocator = null, selectionStart, select
   }, { now });
 }
 
+/** Take a "needs a source" mark off a passage. Same pad when there is no such mark. */
+export function removeNeedsSource(pad, { padLocator = null, id } = {}, { now } = {}) {
+  const doc = padForThread(pad, padLocator);
+  if (!pad || !doc || !(doc.annotations ?? []).some((a) => a.id === id && a.needsSource === true)) return pad;
+  return withPad(pad, padLocator, { ...doc, annotations: doc.annotations.filter((a) => a.id !== id) }, { now });
+}
+
 /**
  * The links at one level, in document order: { annotationId, kind, selectionStart,
  * selectionEnd, selectedText, href } for URLs, and for passages { ideaId, snapshot,

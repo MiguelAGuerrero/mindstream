@@ -87,8 +87,9 @@ export function useWorkflowsHandoff() {
     const wf = workflows.byId(workflowId);
     const target = runnerFor(wf);
     if (!wf || !wf.steps.length || !target) return false;
+    // One-way: the library does nothing with an answer, so nothing waits on one.
     const handoff = store.create({
-      replyTo: { tool: "workflows", ref: wf.id },
+      oneWay: true,
       to: { tool: target.id },
       want: WANTS.STEP_THROUGH,
       text: workflowLabel(wf),

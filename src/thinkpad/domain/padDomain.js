@@ -65,6 +65,7 @@ export {
   addPassageLink,
   removeLink,
   markNeedsSource,
+  removeNeedsSource,
   linksAt,
   textWithLinks,
   startSynthesis,

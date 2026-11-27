@@ -93,8 +93,9 @@ export const useHandoffStore = defineStore("handoff", {
       h.consumedAt = new Date().toISOString();
       if (h.oneWay) {
         // A one-way Send has no asker to tell: its text goes to the shelf
-        // (roadmap §4.3) instead of being lost.
-        useShelfStore().add({ text: h.text, from: null });
+        // (roadmap §4.3) instead of being lost. A set of steps is not text in
+        // transit (it still lives where it came from), so it is just dropped.
+        if (!h.steps?.length) useShelfStore().add({ text: h.text, from: null });
       } else if (!h.reply) {
         h.reply = normalizeReply({ outcome: "abandoned" }, h);
       }
@@ -108,6 +109,11 @@ export const useHandoffStore = defineStore("handoff", {
     acceptedBy(toTool) {
       this.hydrate();
       return this.handoffs.filter((h) => h.to.tool === toTool && h.consumedAt && h.replyTo && !h.reply).map(copy);
+    },
+    /** The requests `tool` sent that have no reply yet. A sender uses this to stop waiting for work whose asker is gone. */
+    waitingFrom(tool) {
+      this.hydrate();
+      return this.handoffs.filter((h) => h.replyTo?.tool === tool && !h.reply).map(copy);
     },
     /** Send the reply. Written once; ignored for unknown ids, repeats, or an unknown outcome. */
     reply(id, message) {
@@ -158,8 +164,9 @@ export const useHandoffStore = defineStore("handoff", {
       return true;
     },
     /** Aggregate replies for everything `tool` sent about `ref`; null when none. */
-    summaryFor(tool, ref) {
-      return summarizeReplies(this.handoffs.filter((h) => h.replyTo?.tool === tool && h.replyTo.ref === ref));
+    summaryFor(tool, ref, want = null) {
+      return summarizeReplies(this.handoffs.filter((h) =>
+        h.replyTo?.tool === tool && h.replyTo.ref === ref && (want == null || h.want === want)));
     },
     /** Route location for opening a request's receiver. */
     routeFor(handoff) {

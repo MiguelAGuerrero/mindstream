@@ -80,6 +80,26 @@ export function useDecomposeHandoff() {
     { immediate: true },
   );
 
+  // The mirror case: a request ThinkPad sent from a thread stops when that
+  // thread (or its pad) is gone, so nothing keeps waiting on its behalf.
+  function threadIds(list) {
+    const ids = new Set();
+    const visit = (t) => { ids.add(t.id); (t.subThreads ?? []).forEach(visit); };
+    for (const pad of list) (pad.threads ?? []).forEach(visit);
+    return ids;
+  }
+  watch(
+    [isLoaded, pads],
+    ([loaded]) => {
+      if (!loaded) return;
+      const sent = store.waitingFrom("thinkpad");
+      if (!sent.length) return;
+      const alive = threadIds(pads.value);
+      for (const h of sent) if (!alive.has(h.replyTo.ref)) store.cancel(h.id, "thinkpad");
+    },
+    { immediate: true },
+  );
+
   /** The unanswered request attached to the pad on screen, or null. */
   const open = computed(() => (currentPadId.value ? store.openFor("thinkpad", currentPadId.value) : null));
 

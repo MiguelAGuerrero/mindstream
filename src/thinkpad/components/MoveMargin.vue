@@ -11,7 +11,7 @@ const props = defineProps({
   freshId: { type: String, default: null },
 });
 
-const emit = defineEmits(["update:activeId", "open", "answer", "link", "remove", "set-aside", "bring-back"]);
+const emit = defineEmits(["update:activeId", "open", "answer", "link", "remove", "set-aside", "bring-back", "remove-source", "settle"]);
 
 const GAP = 8;
 const rootRef = ref(null);
@@ -138,6 +138,8 @@ function onInput() { schedule(); }
         @remove="(id) => emit('remove', id)"
         @set-aside="(id) => emit('set-aside', id)"
         @bring-back="(id) => emit('bring-back', id)"
+        @remove-source="(id) => emit('remove-source', id)"
+        @settle="(id) => emit('settle', id)"
       />
     </div>
   </aside>
