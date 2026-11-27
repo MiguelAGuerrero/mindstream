@@ -53,7 +53,7 @@ function goHome() {
       <v-app-bar flat color="surface" :elevation="0" :height="smAndDown ? 52 : 68" :model-value="showAppBar">
         <div class="ms-appbar-content">
           <div class="app-icon">
-            <v-icon icon="mdi-brain" width="256" height="256" @click="goHome" />
+            <v-btn icon="mdi-brain" variant="text" title="Home" aria-label="Home" @click="goHome" />
           </div>
           <div class="ms-appbar-right">
             <span class="text-subtitle-1 font-weight-medium">Mindstream</span>

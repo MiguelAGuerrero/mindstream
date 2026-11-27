@@ -56,3 +56,12 @@ samp {
     min-width: 40px;
   }
 }
+
+/* Touch screens: ordinary buttons get a tap height of at least 40px (the
+   ux-audit probe flagged 36px Resolve / Decompose / New on phones). Compact
+   and icon-only sizes are sized by their own rules. */
+@media (pointer: coarse) {
+  .v-btn.v-btn--size-default:not(.v-btn--icon) {
+    min-height: 40px;
+  }
+}
