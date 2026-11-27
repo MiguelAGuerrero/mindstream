@@ -6,6 +6,8 @@ import { useRoute, useRouter } from "vue-router";
 import ThinkPadPanel from "./components/ThinkPadPanel.vue";
 import DraftPhaseBar from "./components/DraftPhaseBar.vue";
 import RevisionHistoryDrawer from "./components/RevisionHistoryDrawer.vue";
+import MoveMargin from "./components/MoveMargin.vue";
+import { moveCardsAt } from "./domain/moveCards";
 import LinkDialogs from "./dialogs/LinkDialogs.vue";
 import SendSheet from "../shelf/SendSheet.vue";
 import { useWorkflowSlot } from "./composables/useWorkflowSlot";
@@ -27,7 +29,7 @@ const surface = useThinkPadSurface();
 const sessionUi = useSessionUi();
 // Phones: the welcome is a document list with a + button; the question is
 // asked in a dialog instead of a full-screen prompt (Revision 33).
-const { smAndDown } = useDisplay();
+const { smAndDown, mdAndUp } = useDisplay();
 const padStore = usePadStore();
 const { currentPad: currentContext, isLoaded: padStoreIsLoaded, isDraftFrozen, currentPadId } = storeToRefs(padStore);
 
@@ -60,6 +62,16 @@ function handlePickerNew() {
 }
 
 const focusHandoff = useFocusHandoff({ surface, currentContext });
+
+// Desktop, in Reflect: the moves of this level sit beside the page as
+// comment-style cards. Phones have no margin (their sheet is a later slice).
+const MOVE_MARGIN_WIDTH = 280;
+const moveCards = computed(() => (
+  mdAndUp.value && isDraftFrozen.value && !padStore.isDraftHistoryView
+    ? moveCardsAt(currentContext.value, surface.surfaceHead)
+    : []
+));
+const moveMarginWidth = `${MOVE_MARGIN_WIDTH}px`;
 const welcome = useThinkPadWelcome({ thinkPad: surface, sessionUi, isDraftFrozen });
 const reflect = useThinkPadReflect({
   surface,
@@ -271,7 +283,7 @@ watch(
           <div
             v-else
             class="thinkpad-page-col"
-            :class="{ 'thinkpad-page-col--expanded': sessionUi.padExpanded }"
+            :class="{ 'thinkpad-page-col--expanded': sessionUi.padExpanded, 'thinkpad-page-col--with-margin': moveCards.length }"
           >
               <div
                 v-if="!surface.isAtRoot"
@@ -506,6 +518,13 @@ watch(
                   </ThinkPadPanel>
                 </div>
               </div>
+              <MoveMargin
+                v-if="moveCards.length"
+                :cards="moveCards"
+                @open="(threadId) => surface.navigateToThread(threadId)"
+                @answer="({ threadId, result }) => padStore.answerMove({ padLocator: surface.surfaceHead, threadId, result })"
+                @link="(span) => { linkPending = span; }"
+              />
               </div>
           </div>
         </div>
@@ -1036,6 +1055,15 @@ watch(
 
 .thinkpad-page-col--expanded {
   max-width: v-bind(expandedMaxWidth);
+}
+
+/* The move margin sits beside the page, so the column grows by its width. */
+.thinkpad-page-col--with-margin {
+  max-width: calc(v-bind(pageWidth) + v-bind(moveMarginWidth));
+}
+
+.thinkpad-page-col--expanded.thinkpad-page-col--with-margin {
+  max-width: calc(v-bind(expandedMaxWidth) + v-bind(moveMarginWidth));
 }
 
 .thinkpad-page-row {

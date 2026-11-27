@@ -7,7 +7,8 @@ import { provideSessionUi } from "./composables/useSessionUi";
 import { useThinkPadBootstrap } from "./composables/useThinkPadBootstrap";
 
 // Shell content column max-width (px) — owned by the ThinkPad route layout.
-const THINKPAD_PAGE_MAX_WIDTH = 880;
+// Wide enough for the page (816) plus the move margin beside it in Reflect.
+const THINKPAD_PAGE_MAX_WIDTH = 1160;
 
 // Route-scoped chrome state; the dashboard widget host provides its own.
 const sessionUi = provideSessionUi();

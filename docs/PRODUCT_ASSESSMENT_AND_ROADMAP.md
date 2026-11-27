@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-24, Revision 37)
+**Date:** 2026-11-23 (last revised 2026-11-27, Revision 38)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 38 (2026-11-27): ThinkPad looks like a standard document editor, and moves look like comments.** Miguel: "The look and feel of the thinkpad tool should be a standard document editor. The moves could look like comments. Draw inspiration from Google Docs." A mockup was made (https://claude.ai/artifact/QJ5jucnKwTdnPvURo5DSWg). Four details were left open; Miguel said "Proceed with reasonable defaults", so these are defaults chosen in that session, not his own wording, and can be changed: (1) a move can take a one-line result in its card, with Open thread for longer work; (2) cards show in Reflect only, as moves are still made on a frozen draft; (3) the toolbar stays minimal (no fonts, sizes or colours); (4) desktop gets no File / Edit menu row. **Built (first slice, desktop):** in Reflect, the moves of the level on screen sit in a margin to the right of the page as cards, in the order of their passages. A card shows the tag, the passage, the thread's last line and its state ("Open · 1 open inside", "Ready to resolve", "Resolved"). Typing a line and pressing Resolve (or ✓) settles the move from the card: the result waits for the next draft like any other, and the thread's text is kept. Resolve is off while the thread has open items inside. "Needs a source" gets a card with Attach a link. **Not built:** the phone sheet for a tapped move; cards lining up with their passages and lighting the passage when selected; the toolbar. **Found:** a tagged passage whose thread is left empty is removed on Back, so a move cannot yet sit unanswered in the margin the way a fresh comment does. For that, picking a tag would have to stay on the page and open the card instead of the thread. That changes the tag flow, so it is proposed, not decided.
 
 **Revision 37 (2026-11-24): on phones, pads show as tiles.** Miguel: "I expected the tiles to be in. I still see the list view." Settled with him: two columns, each tile a mini page showing the pad's first lines; tiles only, with no list/tiles switch; on the home screen and in Open… alike. This replaces the Revision 33 phone list. **Built:** each tile has the page preview, a title of up to two lines, and when / where you left off. In Open…, the delete button sits beside the title so it never covers the preview, and the "Delete …? Keep / Delete" confirmation fits on the tile. **Fixed:** Open… listed empty pads as "Untitled", because the placeholder title counted as a real one. Also this session: the new-pad dialog's question is its heading, so it wraps instead of being cut off.
 

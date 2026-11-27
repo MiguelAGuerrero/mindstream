@@ -56,6 +56,7 @@ import {
   decidedItems as decidedItemsOnPad,
   threadIsOpen as threadIsOpenCheck,
 } from "../domain/padDomain";
+import { answerMove as answerMoveOnPad } from "../domain/moveCards";
 import { buildPadSnapshot, normalizePadRecord } from "../domain/padPersistenceMapper";
 import { normalizeTagShortcuts, setTagShortcut } from "../domain/tagShortcuts";
 import { revisionHistory } from "../domain/revisionHistory";
@@ -487,6 +488,11 @@ export const usePadStore = defineStore("pad", {
 
     removeLink({ padLocator = null, annotationId } = {}) {
       this._applyOnPad((pad, now) => removeLinkOnPad(pad, { padLocator, annotationId }, { now }));
+    },
+
+    /** Answer a move from its card in the margin, without opening its thread. */
+    answerMove({ padLocator = null, threadId, result } = {}) {
+      this._applyOnPad((pad, now) => answerMoveOnPad(pad, { padLocator, threadId, result }, { now, makeId }));
     },
 
     markNeedsSource({ padLocator = null, selectionStart, selectionEnd, selectedText } = {}) {
