@@ -80,6 +80,19 @@ export const useHandoffStore = defineStore("handoff", {
       h.consumedAt = new Date().toISOString();
       return copy(h);
     },
+    /**
+     * The receiver turns a pending request down ("Not now"): it is taken so it
+     * cannot come back, and answered as abandoned so the sender stops waiting.
+     * A request is never left silently unanswered (tool contract, point 4).
+     */
+    decline(id, toTool) {
+      this.hydrate();
+      const h = this._deliverable(id, toTool);
+      if (!h) return false;
+      h.consumedAt = new Date().toISOString();
+      if (!h.reply) h.reply = normalizeReply({ outcome: "abandoned" }, h);
+      return true;
+    },
     /** Send the reply. Written once; ignored for unknown ids, repeats, or an unknown outcome. */
     reply(id, message) {
       this.hydrate();

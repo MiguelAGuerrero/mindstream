@@ -187,4 +187,23 @@ describe("handoffStore: the sender reads its own reply", () => {
     s.cancel(h.id, "focus");
     expect(s.replyFor(h.id, "focus").outcome).toBe("resolved");
   });
+
+  it("decline turns a request down: it cannot be accepted and ends as abandoned", () => {
+    const s = freshStore();
+    const h = s.create(input());
+    expect(s.decline(h.id, "thinkpad")).toBe(false); // only the tool it was sent to
+    expect(s.waiting.map((w) => w.id)).toEqual([h.id]);
+    expect(s.decline(h.id, "focus")).toBe(true);
+    expect(s.peek(h.id, "focus")).toBe(null);
+    expect(s.replyFor(h.id, "thinkpad")).toMatchObject({ outcome: "abandoned" });
+    expect(s.waiting).toEqual([]);
+  });
+
+  it("decline leaves a request that was already accepted alone", () => {
+    const s = freshStore();
+    const h = s.create(input());
+    s.consume(h.id, "focus");
+    expect(s.decline(h.id, "focus")).toBe(false);
+    expect(s.waiting.map((w) => w.id)).toEqual([h.id]);
+  });
 });

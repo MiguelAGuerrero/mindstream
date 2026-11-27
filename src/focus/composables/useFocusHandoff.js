@@ -45,10 +45,10 @@ export function useFocusHandoff() {
     return { request: h, origin: h.replyTo, handoffId: h.id };
   }
 
-  /** "Not now": consume without starting, so reload/back cannot bring it back. */
+  /** "Not now": turn it down, so reload/back cannot bring it back and the asker stops waiting. */
   function dismiss() {
     const id = handoffId.value;
-    if (id) store.consume(id, "focus");
+    if (id) store.decline(id, "focus");
     stripQuery();
   }
 

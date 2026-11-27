@@ -51,6 +51,8 @@ const loops = computed(() => [
     next: `Waiting on ${getTool(h.to.tool)?.name ?? "another tool"}`,
     meta: getTool(h.replyTo.tool)?.name ?? "",
     to: handoffs.routeFor(h),
+    // The asker may stop waiting from here; the request ends as abandoned.
+    stop: () => handoffs.cancel(h.id, h.replyTo.tool),
   })),
 ]);
 
@@ -66,7 +68,7 @@ function openTool(tool) {
       <section v-if="loops.length" class="home-loops" aria-label="Pick up">
         <h2 class="home-loops__title">Pick up</h2>
         <ul class="home-loops__list">
-          <li v-for="l in loops" :key="`${l.tool}:${l.id}`">
+          <li v-for="l in loops" :key="`${l.tool}:${l.id}`" class="home-shelf__item">
             <button type="button" class="home-loops__row" @click="router.push(l.to)">
               <v-icon :icon="getTool(l.tool)?.icon ?? 'mdi-circle-small'" size="18" class="home-loops__icon" />
               <span class="home-loops__text">
@@ -75,6 +77,7 @@ function openTool(tool) {
               </span>
               <v-icon icon="mdi-chevron-right" size="18" class="home-loops__go" />
             </button>
+            <v-btn v-if="l.stop" icon="mdi-close" size="small" variant="text" aria-label="Stop waiting" title="Stop waiting" @click="l.stop()" />
           </li>
         </ul>
       </section>

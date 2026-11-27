@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-27, Revision 39)
+**Date:** 2026-11-23 (last revised 2026-11-27, Revision 40)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,8 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 40 (2026-11-27): a request you did not mean to send can be ended.** Miguel, with a screenshot of Pick up: "There's no way to abort these. For example I accidentally opened a focus timer from thinkpad and it won't let me close it out". **Cause:** "Not now" on the runner's ready screen took the request without answering it, so ThinkPad waited forever and the "Waiting on Focus" row could never clear (against tool contract point 4). **Fixed:** "Not now" now answers the request as abandoned. On Home, every "Waiting on …" row has a × (Stop waiting) that ends the request as abandoned; this also clears rows already stuck. **Open, asked of Miguel:** what ending a ThinkPad thread row from Home should mean when the thread has work in it (set aside and keep, or delete). Not built.
 
 **Revision 39 (2026-11-27): moves behave like comments, on desktop and phone.** Miguel, after Revision 38: "Proceed with the remaining work, and deploy". That was taken as accepting the proposal recorded in Revision 38 (picking a tag stays on the page), which is now settled on that basis. **Built:** in Reflect, picking Question, Expand or Flag makes the move and stays on the page: its card is selected and the cursor is in its result field. "Thread" (no tag) still opens the thread's own page. A tagged move with nothing written in it now stays (it used to be removed on Back); its card has **Remove** to take it back. An untagged empty thread is still removed on Back. On desktop each card sits level with its passage; the selected card lines up exactly and the others stack around it; cards whose passage is scrolled away or on another page are not shown. Selecting a card lights its passage, and tapping a passage that has a move selects its card instead of jumping into the thread (the Threads menu still jumps in). On phones a tapped move opens as a bottom sheet with ‹ 1 of N › to page through the moves of the level. **Fixed on the way:** on a phone, the tag picker for a passage near the top slid under the top bar and could not be tapped; it now drops below the passage when it does not fit above. **Not built, and why:** the formatting toolbar. A pad is plain text (paragraphs only; links are Markdown-style text), so bold, italic and headings would have nothing to store them. Adding them is a change to what a pad holds, which is Miguel's decision.
 
