@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: finds-requests-left-waiting
+expected_outcome: |
+  The reported bug is fixed at its cause: "Not now" on the Focus start screen answers the request (as abandoned or declined) instead of only taking it.
+  Beyond the report, the run finds and fixes lifecycle gaps that cannot be seen by looking at one screen: a request left open when the pad or context doing the work is deleted, a request left open when the asker (a thread, pad or focus) is closed or deleted, and a Home row for an accepted request that opens a blank runner.
+  Home gets a way to end a waiting row, so rows that are already stuck can be cleared.
+  The existing test suite still passes, and the reply separates what was fixed, what was left, and what was not checked.
+context:
+  scaffold_script: place-files.sh
