@@ -41,6 +41,22 @@ function parseArgs(argv) {
   return out;
 }
 
+// Playwright may be installed globally, in the project being audited, or
+// beside this script; look in all three so the probe runs from wherever the
+// skill happens to live.
+function loadPlaywright() {
+  const tried = [];
+  const roots = [__dirname, process.cwd()];
+  try { roots.push(require("child_process").execSync("npm root -g", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim()); } catch { /* no npm */ }
+  for (const name of ["playwright", "@playwright/test", "playwright-core"]) {
+    try { return require(name); } catch { tried.push(name); }
+    for (const root of roots) {
+      try { return require(require.resolve(name, { paths: [root] })); } catch { /* next */ }
+    }
+  }
+  throw new Error(`Playwright not found (tried ${tried.join(", ")} from ${roots.join(", ")}). Run this from the project that has it installed, or set NODE_PATH to its node_modules.`);
+}
+
 async function probe(page, minTap) {
   return page.evaluate((minTap) => {
     const SELECTOR = 'button, a[href], input:not([type="hidden"]), textarea, select, [role="button"], [role="menuitem"], [role="tab"], [role="link"], [tabindex]:not([tabindex="-1"])';
@@ -96,7 +112,7 @@ async function probe(page, minTap) {
 (async () => {
   const args = parseArgs(process.argv.slice(2));
   if (!args.url) { console.error("usage: node ui_probe.cjs <url> [--viewport WxH] [--no-touch] [--min-tap N] [--steps file.cjs] [--shot out.png] [--json]"); process.exit(2); }
-  const { chromium } = require("playwright");
+  const { chromium } = loadPlaywright();
   const browser = await chromium.launch();
   try {
     const context = await browser.newContext({ viewport: args.viewport, hasTouch: args.touch });

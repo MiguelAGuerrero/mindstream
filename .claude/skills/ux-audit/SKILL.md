@@ -12,6 +12,8 @@ It has two modes:
 - **Audit** (something is already built): sections 1 to 6, in order.
 - **Prevent** (something is about to be built or reviewed): section 7. It is short; use it every time a change adds anything a person can start.
 
+**Scale it to what is in front of you.** For one file or one diff, the whole audit is a careful read against the rule and the neighbouring classes: no inventory document, no delegation, a short report. The fuller method below earns its cost when the app has several screens and parts that hand work to each other, because that is where lapses hide from a single read.
+
 ## 1. State the rule the bug broke
 
 Before looking for more bugs, write one or two sentences that the reported bug violates and that could be checked against any screen. This is the most important step: a vague rule ("the UX should be clean") finds nothing, and a rule copied from the report ("the focus timer needs a close button") finds only the report.
@@ -38,6 +40,8 @@ For "can be started", the inventory is every:
 - **Mark** on content: tags, flags, highlights, "needs X" markers, pins.
 - **List row** that reports unfinished work (an inbox, "continue", "pick up", notifications, badges).
 
+Take the inventory across the whole app, not only along the mechanism in the report. The pull is to follow the reported bug's own plumbing to the end and stop, and that part is usually done well; the misses are the same lapse in mechanisms nobody mentioned. In the audit this skill came from, the report was about a request between two tools, and nine of the fifteen findings were elsewhere: a mark that could not be removed, a view with no way to step back, a panel hidden on phones, a count with no list. If time runs out before the inventory does, finish the reported mechanism, then sample each remaining kind of entry rather than exhausting one, and name what was left in "Not covered".
+
 Find them from the code as well as the screen: search for the verbs that create things (`create`, `start`, `open`, `add`, `push`, `begin`, `enter`, `mark`, `set…Open`), for stores' action lists, and for every `v-if`/conditional that switches a whole surface. For each entry, write down where it is started and what code path ends it. An entry with no ending path is a finding before the app is even opened.
 
 ## 3. Audit in two passes that check each other
@@ -52,7 +56,7 @@ Find them from the code as well as the screen: search for the verbs that create 
 
 Phone size first, because it is the strictest: no hover, no right-click, no Escape key, little room. A control that is hidden at a breakpoint, covered by a fixed bar, or reachable only by hover is a dead end for a phone user even though the feature "exists".
 
-`scripts/ui_probe.cjs` checks one screen mechanically for the things eyes miss: controls covered by another element, tap targets too small to hit, buttons with no name, and sideways overflow. Run it on each distinct screen state (it takes a URL and optional setup steps); see the header of the script. It finds symptoms, not lifecycle bugs, so it supplements the walk and does not replace it.
+`scripts/ui_probe.cjs` (run it from the project's folder so it can find Playwright there) checks one screen mechanically for the things eyes miss: controls covered by another element, tap targets too small to hit, buttons with no name, and sideways overflow. Run it on each distinct screen state (it takes a URL and optional setup steps); see the header of the script. It finds symptoms, not lifecycle bugs, so it supplements the walk and does not replace it.
 
 **Delegating the crawl.** The screen pass is long, independent and floods context with screenshots, so it is a good job for a subagent while you do the plumbing pass yourself. Use the template in `references/crawl-brief.md`: it makes the agent read-only, gives it the rule, lists what is already known so it does not report it back, and demands evidence labels. Treat what comes back as a draft: confirm each finding in the code before acting on it, because a crawl reports mistakes in the same confident tone as real findings, and it may have been looking at code you changed in the meantime.
 
