@@ -62,6 +62,24 @@ export function useFocusHandoff() {
     });
   }
 
+  /**
+   * Keep requests and contexts in step once contexts are loaded:
+   * - a link back to a request already accepted here opens its context
+   *   (returns that context's id), instead of a blank runner;
+   * - a request whose context is gone is answered as abandoned.
+   * @param {Array<{id: number, handoffId?: string}>} contexts
+   */
+  function reconcile(contexts = []) {
+    const byHandoff = new Map(contexts.filter((c) => c.handoffId).map((c) => [c.handoffId, c.id]));
+    for (const h of store.acceptedBy("focus")) {
+      if (!byHandoff.has(h.id)) store.reply(h.id, { outcome: "abandoned" });
+    }
+    const id = handoffId.value;
+    if (!id || store.peek(id, "focus")) return null;
+    stripQuery();
+    return byHandoff.get(id) ?? null;
+  }
+
   // --- Sending --------------------------------------------------------------
 
   const thinker = computed(() => toolsFor(WANTS.THINK)[0] ?? null);
@@ -148,6 +166,7 @@ export function useFocusHandoff() {
     pending,
     accept,
     dismiss,
+    reconcile,
     reportEnd,
     canDecomposeElsewhere,
     canPickSteps,

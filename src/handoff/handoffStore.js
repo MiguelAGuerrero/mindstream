@@ -12,6 +12,7 @@ import { acceptHMRUpdate, defineStore } from "pinia";
 import { HANDOFF_QUERY_PARAM, routeForTool, serves } from "./toolRegistry.js";
 import { createRequest, normalizeHandoffRecord, normalizeReply, summarizeReplies } from "./handoffModel.js";
 import { readHandoffs, writeHandoffs } from "./handoffStorage.js";
+import { useShelfStore } from "../shelf/shelfStore.js";
 
 const MAX_HANDOFFS = 500;
 
@@ -90,8 +91,23 @@ export const useHandoffStore = defineStore("handoff", {
       const h = this._deliverable(id, toTool);
       if (!h) return false;
       h.consumedAt = new Date().toISOString();
-      if (!h.reply) h.reply = normalizeReply({ outcome: "abandoned" }, h);
+      if (h.oneWay) {
+        // A one-way Send has no asker to tell: its text goes to the shelf
+        // (roadmap §4.3) instead of being lost.
+        useShelfStore().add({ text: h.text, from: null });
+      } else if (!h.reply) {
+        h.reply = normalizeReply({ outcome: "abandoned" }, h);
+      }
       return true;
+    },
+    /**
+     * The requests `toTool` accepted and has not answered yet. A receiver uses
+     * this to notice work of its own that is gone (a deleted pad, a closed
+     * context) and answer those requests as abandoned.
+     */
+    acceptedBy(toTool) {
+      this.hydrate();
+      return this.handoffs.filter((h) => h.to.tool === toTool && h.consumedAt && h.replyTo && !h.reply).map(copy);
     },
     /** Send the reply. Written once; ignored for unknown ids, repeats, or an unknown outcome. */
     reply(id, message) {

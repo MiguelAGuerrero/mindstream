@@ -108,6 +108,16 @@ function onAnswerMove({ threadId, result }) {
   if (smAndDown.value) activeMoveId.value = null;
 }
 
+// Inside a thread that was set aside: say so, with the way to bring it back.
+const currentSetAside = computed(() => {
+  const anchor = surface.currentAnchor;
+  if (!anchor) return false;
+  const doc = anchor.padLocator == null
+    ? currentContext.value?.doc
+    : surface.threadPath.find((t) => t.id === anchor.padLocator)?.doc;
+  return (doc?.annotations ?? []).find((a) => a.id === anchor.annotationId)?.disposition?.kind === "parked";
+});
+
 function onRemoveMove(threadId) {
   padStore.removeMove({ threadId });
   activeMoveId.value = null;
@@ -413,6 +423,14 @@ watch(
                 </v-expand-transition>
 
                 <div class="drill-bar__actions" @click.stop>
+                  <v-btn
+                    v-if="currentSetAside"
+                    size="small"
+                    variant="tonal"
+                    prepend-icon="mdi-tray-arrow-up"
+                    title="This thread is set aside. Bring it back to your unfinished work."
+                    @click="padStore.bringBackThread({ threadId: surface.surfaceHead })"
+                  >Bring back</v-btn>
                   <v-chip
                     v-if="focusHandoff.focusSummary.value"
                     size="small"
@@ -569,6 +587,8 @@ watch(
                 @answer="onAnswerMove"
                 @link="(span) => { linkPending = span; }"
                 @remove="onRemoveMove"
+        @set-aside="(threadId) => padStore.setAsideThread({ threadId })"
+        @bring-back="(threadId) => padStore.bringBackThread({ threadId })"
               />
               </div>
           </div>
@@ -586,6 +606,8 @@ watch(
         @answer="onAnswerMove"
         @link="(span) => { linkPending = span; }"
         @remove="onRemoveMove"
+        @set-aside="(threadId) => padStore.setAsideThread({ threadId })"
+        @bring-back="(threadId) => padStore.bringBackThread({ threadId })"
       />
       <component :is="'style'" v-if="activeMoveCss">{{ activeMoveCss }}</component>
 

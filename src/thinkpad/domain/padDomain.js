@@ -90,6 +90,8 @@ export {
   clearDisposition,
   canResolve,
   drillThreadsAt,
+  setAsideThread,
+  bringBackThread,
   decidedItems,
 } from "./thinkPadModel";
 

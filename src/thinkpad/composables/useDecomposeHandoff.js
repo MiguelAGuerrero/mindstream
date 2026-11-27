@@ -20,7 +20,7 @@ export function useDecomposeHandoff() {
   const store = useHandoffStore();
   store.hydrate();
   const padStore = usePadStore();
-  const { currentPadId, isLoaded } = storeToRefs(padStore);
+  const { currentPadId, isLoaded, pads } = storeToRefs(padStore);
 
   const queryId = computed(() => {
     const raw = route.query[HANDOFF_QUERY_PARAM];
@@ -62,6 +62,20 @@ export function useDecomposeHandoff() {
         if (known?.to.ref && !known.reply) padStore.activatePad(known.to.ref);
       }
       stripQuery();
+    },
+    { immediate: true },
+  );
+
+  // A request is answered even when its pad is gone: deleting the pad that
+  // was opened for it ends the request as abandoned, so the asker stops waiting.
+  watch(
+    [isLoaded, () => pads.value.map((p) => p.id).join("|")],
+    ([loaded]) => {
+      if (!loaded) return;
+      const ids = new Set(pads.value.map((p) => p.id));
+      for (const h of store.acceptedBy("thinkpad")) {
+        if (!h.to.ref || !ids.has(h.to.ref)) store.reply(h.id, { outcome: "abandoned" });
+      }
     },
     { immediate: true },
   );

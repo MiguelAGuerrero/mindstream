@@ -36,6 +36,7 @@ describe("drillThreadsAt", () => {
         tag: null,
         status: "open",
         caveats: 0,
+        disposition: null,
       },
     ]);
   });

@@ -2025,8 +2025,37 @@ export function drillThreadsAt(pad, padLocator = null) {
         tag: ann?.tag ?? null,
         status: isResolved ? "resolved" : canResolve(pad, t.id) ? "converged" : "open",
         caveats: Array.isArray(ann?.caveats) ? ann.caveats.length : 0,
+        // Decided at the level that holds it (accepted / lifted / parked), or null.
+        disposition: ann?.disposition?.kind ?? null,
       };
     });
+}
+
+/**
+ * Set a thread aside: the move it came from is parked at the level that holds
+ * it, so it stops counting as unfinished. Nothing is deleted; the thread and
+ * its text stay and it can be brought back. Same pad for an unknown thread,
+ * one already resolved, or one already decided.
+ */
+export function setAsideThread(pad, { threadId } = {}, { now, makeId } = {}) {
+  const at = locateThread(pad, threadId);
+  if (!at) return pad;
+  return disposeOpenItem(pad, { padLocator: at.padLocator, id: at.annotationId, kind: "parked" }, { now, makeId });
+}
+
+/** Bring a set-aside thread back: its move is open again. */
+export function bringBackThread(pad, { threadId } = {}, { now } = {}) {
+  const at = locateThread(pad, threadId);
+  if (!at) return pad;
+  return clearDisposition(pad, { padLocator: at.padLocator, id: at.annotationId }, { now });
+}
+
+/** Where a thread hangs: the level that holds its passage, and that passage's mark. */
+function locateThread(pad, threadId) {
+  const thread = findThreadById(pad, threadId);
+  const anchor = thread?.parentAnchor;
+  if (!anchor?.annotationId) return null;
+  return { padLocator: anchor.parentFrameId ?? null, annotationId: anchor.annotationId };
 }
 
 /**
@@ -2153,6 +2182,9 @@ export function openLoopsFor(pad) {
   const loops = [];
   function visit(locator) {
     for (const t of drillThreadsAt(pad, locator)) {
+      // Set aside (or otherwise decided) where it was started: not unfinished,
+      // and neither is anything under it.
+      if (t.disposition) continue;
       if (t.status !== "resolved") {
         loops.push({
           tool: "thinkpad",

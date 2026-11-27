@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createPinia, setActivePinia } from "pinia";
 import { useHandoffStore } from "./handoffStore.js";
+import { useShelfStore } from "../shelf/shelfStore.js";
 
 function stubLocalStorage() {
   const map = new Map();
@@ -205,5 +206,24 @@ describe("handoffStore: the sender reads its own reply", () => {
     s.consume(h.id, "focus");
     expect(s.decline(h.id, "focus")).toBe(false);
     expect(s.waiting.map((w) => w.id)).toEqual([h.id]);
+  });
+
+  it("declining a one-way send puts its text on the shelf", () => {
+    const s = freshStore();
+    const h = s.create({ oneWay: true, to: { tool: "focus" }, want: "step-through", text: "Call the bank" });
+    expect(s.decline(h.id, "focus")).toBe(true);
+    expect(useShelfStore().items.map((i) => i.text)).toEqual(["Call the bank"]);
+  });
+
+  it("acceptedBy lists what a tool took and has not answered", () => {
+    const s = freshStore();
+    const a = s.create(input("thread:1"));
+    const b = s.create(input("thread:2"));
+    s.create(input("thread:3")); // never accepted
+    s.consume(a.id, "focus");
+    s.consume(b.id, "focus");
+    s.reply(b.id, { outcome: "resolved", text: "done" });
+    expect(s.acceptedBy("focus").map((h) => h.id)).toEqual([a.id]);
+    expect(s.acceptedBy("thinkpad")).toEqual([]);
   });
 });

@@ -56,6 +56,17 @@ const awaitingTool = computed(() =>
   awaiting.value?.status === "waiting" ? awaiting.value.sourceName || "another tool" : "",
 );
 const returnOpen = computed(() => awaiting.value?.status === "ready");
+// Requests and contexts stay in step: a link back to an accepted request opens
+// its context, and a request whose context is gone is answered (abandoned).
+watch(
+  [() => runStore.isLoaded, () => runStore.contexts.map((c) => c.id).join("|"), () => deepRoute.query.handoff],
+  ([loaded]) => {
+    if (!loaded) return;
+    const contextId = handoff.reconcile(runStore.contexts);
+    if (contextId != null) runStore.switchContext(contextId);
+  },
+  { immediate: true },
+);
 function clearAwaiting() {
   const ctx = runStore.activeContext;
   if (ctx) runStore.setAwaitingHandoff({ id: ctx.id, handoffId: null });
@@ -167,6 +178,11 @@ function handleResolve() {
     closure.elapsed = timerFormatted.value;
     closure.open = true;
     const ctx = runStore.activeContext;
+    // Resolved without the answer it asked another tool for: stop waiting on it.
+    if (ctx?.awaitingHandoffId) {
+      handoff.cancelAwaiting(ctx.awaitingHandoffId);
+      runStore.setAwaitingHandoff({ id: ctx.id, handoffId: null });
+    }
     runStore.resolveFocus({ result: takeaway });
     handoff.reportEnd(ctx, { outcome: "resolved", text: takeaway });
   } else {
@@ -285,6 +301,8 @@ function handleStopAside() {
 }
 function handleCloseContext() {
   bankElapsed();
+  // Whatever this context was still waiting on is no longer wanted.
+  handoff.cancelAwaiting(runStore.activeContext?.awaitingHandoffId);
   handoff.reportEnd(runStore.activeContext, { outcome: "abandoned" });
   runStore.endActiveContext();
 }

@@ -783,7 +783,7 @@ function reorderBlockDown() {
 // How a thread's state reads in the thread menu (open-thread hygiene, Phase 1).
 const THREAD_STATUS_LABEL = { open: "open", converged: "ready to resolve", resolved: "resolved" };
 const unresolvedThreadCount = computed(() =>
-  (props.drillThreads ?? []).filter((d) => d.status !== "resolved").length,
+  (props.drillThreads ?? []).filter((d) => d.status !== "resolved" && !d.disposition).length,
 );
 
 function drillTagIcon(tag) {
@@ -1103,7 +1103,7 @@ defineExpose({ flushText, dismissSelection });
             </template>
             <v-list-item-title class="text-body-2 text-truncate">{{ drill.title }}</v-list-item-title>
             <v-list-item-subtitle class="text-caption">
-              {{ THREAD_STATUS_LABEL[drill.status] ?? "" }}<template v-if="drill.caveats"> · {{ drill.caveats }} caveat{{ drill.caveats === 1 ? "" : "s" }}</template>
+              {{ drill.disposition === "parked" && drill.status !== "resolved" ? "set aside" : THREAD_STATUS_LABEL[drill.status] ?? "" }}<template v-if="drill.caveats"> · {{ drill.caveats }} caveat{{ drill.caveats === 1 ? "" : "s" }}</template>
             </v-list-item-subtitle>
           </v-list-item>
         </v-list>

@@ -54,6 +54,8 @@ import {
   clearDisposition as clearDispositionOnPad,
   canResolve as canResolveOnPad,
   decidedItems as decidedItemsOnPad,
+  setAsideThread as setAsideThreadOnPad,
+  bringBackThread as bringBackThreadOnPad,
   threadIsOpen as threadIsOpenCheck,
 } from "../domain/padDomain";
 import { answerMove as answerMoveOnPad, removeMove as removeMoveOnPad } from "../domain/moveCards";
@@ -493,6 +495,26 @@ export const usePadStore = defineStore("pad", {
     /** Answer a move from its card in the margin, without opening its thread. */
     answerMove({ padLocator = null, threadId, result } = {}) {
       this._applyOnPad((pad, now) => answerMoveOnPad(pad, { padLocator, threadId, result }, { now, makeId }));
+    },
+
+    /**
+     * Set a thread aside (its writing is kept) or bring it back. Works on any
+     * pad, not only the one on screen, so the workspace can offer it for the
+     * unfinished threads it lists.
+     */
+    setAsideThread({ padId = this.currentPadId, threadId } = {}) {
+      this._applyOnPadById(padId, (pad, now) => setAsideThreadOnPad(pad, { threadId }, { now, makeId }));
+    },
+    bringBackThread({ padId = this.currentPadId, threadId } = {}) {
+      this._applyOnPadById(padId, (pad, now) => bringBackThreadOnPad(pad, { threadId }, { now }));
+    },
+    _applyOnPadById(padId, reduce) {
+      const pad = this.pads.find((c) => c.id === padId);
+      if (!pad) return;
+      const next = reduce(pad, nowIso());
+      if (!next || next === pad) return;
+      this.pads = this.pads.map((c) => (c.id === padId ? next : c));
+      persistPadToDb(next);
     },
 
     /** Take back a move that has nothing written in it. */

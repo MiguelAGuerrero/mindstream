@@ -2,7 +2,7 @@
 // depth, with its one next step and where to go. Reported by ThinkPad itself;
 // Home only lists what each tool reports.
 import { describe, expect, it } from "vitest";
-import { createPad, setPadText, enterReflect, drillIntoSpan, resolveThreadIntoParent, openLoopsFor } from "./padDomain";
+import { createPad, setPadText, enterReflect, drillIntoSpan, resolveThreadIntoParent, openLoopsFor, setAsideThread, bringBackThread, startSynthesis, padForThread, drillThreadsAt } from "./padDomain";
 import { makeTestEnv } from "./__testkit__";
 
 function pad(env) {
@@ -47,5 +47,38 @@ describe("openLoopsFor", () => {
     const env = makeTestEnv();
     expect(openLoopsFor(createPad({ title: "x", now: env.now }, env))).toEqual([]);
     expect(openLoopsFor(null)).toEqual([]);
+  });
+
+  it("leaves a thread that was set aside out, keeps its text, and lists it again when brought back", () => {
+    const env = makeTestEnv();
+    const { p, a, b } = pad(env);
+    const aside = setAsideThread(p, { threadId: a.id }, env);
+    expect(openLoopsFor(aside).map((l) => l.place.thread)).toEqual([b.id]);
+    expect(padForThread(aside, a.id).text).toBe("Volume might matter more.\n\nNot sure.");
+    expect(drillThreadsAt(aside, null).find((t) => t.threadId === a.id).disposition).toBe("parked");
+    expect(setAsideThread(aside, { threadId: a.id }, env)).toBe(aside);
+    const back = bringBackThread(aside, { threadId: a.id }, env);
+    expect(openLoopsFor(back).map((l) => l.place.thread)).toEqual([a.id, b.id]);
+  });
+
+  it("setting a thread aside also takes the threads under it off the list", () => {
+    const env = makeTestEnv();
+    const { p, a } = pad(env);
+    const inner = drillIntoSpan(p, { parentThreadId: a.id, title: "Inner", selectionStart: 0, selectionEnd: 6, selectedText: "Volume" }, env);
+    expect(openLoopsFor(inner.pad).map((l) => l.title)).toContain("Inner");
+    const aside = setAsideThread(inner.pad, { threadId: a.id }, env);
+    expect(openLoopsFor(aside).map((l) => l.title)).toEqual(["Knee-friendly lifts"]);
+  });
+
+  it("a synthesis thread can be set aside too", () => {
+    const env = makeTestEnv();
+    let p = createPad({ title: "Plateau", now: env.now }, env);
+    p = setPadText(p, { text: "One idea.\n\nAnother idea." }, env);
+    p = enterReflect(p, {}, env);
+    const started = startSynthesis(p, {}, env);
+    const withSynthesis = started.pad ?? started;
+    const [loop] = openLoopsFor(withSynthesis);
+    expect(loop).toBeTruthy();
+    expect(openLoopsFor(setAsideThread(withSynthesis, { threadId: loop.place.thread }, env))).toEqual([]);
   });
 });

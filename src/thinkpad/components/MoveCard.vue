@@ -11,7 +11,7 @@ const props = defineProps({
   autofocus: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(["open", "answer", "link", "remove"]);
+const emit = defineEmits(["open", "answer", "link", "remove", "set-aside", "bring-back"]);
 
 const draft = ref("");
 const fieldRef = ref(null);
@@ -38,6 +38,7 @@ function meta(card) {
   if (card.kind === "source") return "Open";
   const caveats = card.caveats ? ` · ${card.caveats} caveat${card.caveats === 1 ? "" : "s"}` : "";
   if (card.status === "resolved") return `Resolved${caveats}`;
+  if (card.setAside) return "Set aside";
   if (card.openInside) return `Open · ${card.openInside} open inside`;
   return card.status === "converged" ? "Ready to resolve" : "Open";
 }
@@ -105,6 +106,19 @@ function answer() {
         <button type="button" class="move-card__btn" @click.stop="emit('open', card.threadId)">
           {{ card.status === "resolved" ? "Reopen thread" : "Open thread" }}
         </button>
+        <button
+          v-if="card.setAside"
+          type="button"
+          class="move-card__btn move-card__btn--quiet"
+          @click.stop="emit('bring-back', card.threadId)"
+        >Bring back</button>
+        <button
+          v-else-if="!card.canRemove && card.status !== 'resolved'"
+          type="button"
+          class="move-card__btn move-card__btn--quiet"
+          title="Stop counting this as unfinished. Its writing is kept."
+          @click.stop="emit('set-aside', card.threadId)"
+        >Set aside</button>
         <button
           v-if="card.canRemove"
           type="button"

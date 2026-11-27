@@ -20,6 +20,7 @@ const runs = useSessionRunStore();
 const handoffs = useHandoffStore();
 const shelf = useShelfStore();
 const sending = ref(null); // the shelf item being sent on
+const undo = ref(null); // { text, run } for the last thing set aside here
 
 onMounted(async () => {
   handoffs.hydrate();
@@ -43,6 +44,12 @@ const loops = computed(() => [
     ...l,
     meta: l.where,
     to: { name: "thinkpad", query: { pad: l.place.pad, thread: l.place.thread } },
+    // Set aside: off this list, writing kept; it can be brought back in the pad.
+    stopLabel: "Set aside",
+    stop: () => {
+      pads.setAsideThread({ padId: l.place.pad, threadId: l.place.thread });
+      undo.value = { text: `Set aside “${l.title}”. Its writing is kept.`, run: () => pads.bringBackThread({ padId: l.place.pad, threadId: l.place.thread }) };
+    },
   })),
   ...handoffs.waiting.map((h) => ({
     tool: h.to.tool,
@@ -52,6 +59,7 @@ const loops = computed(() => [
     meta: getTool(h.replyTo.tool)?.name ?? "",
     to: handoffs.routeFor(h),
     // The asker may stop waiting from here; the request ends as abandoned.
+    stopLabel: "Stop waiting",
     stop: () => handoffs.cancel(h.id, h.replyTo.tool),
   })),
 ]);
@@ -77,7 +85,7 @@ function openTool(tool) {
               </span>
               <v-icon icon="mdi-chevron-right" size="18" class="home-loops__go" />
             </button>
-            <v-btn v-if="l.stop" icon="mdi-close" size="small" variant="text" aria-label="Stop waiting" title="Stop waiting" @click="l.stop()" />
+            <v-btn v-if="l.stop" icon="mdi-close" size="small" variant="text" :aria-label="l.stopLabel" :title="l.stopLabel" @click="l.stop()" />
           </li>
         </ul>
       </section>
@@ -97,6 +105,12 @@ function openTool(tool) {
           </li>
         </ul>
       </section>
+      <v-snackbar :model-value="!!undo" :timeout="6000" location="bottom" @update:model-value="(v) => { if (!v) undo = null; }">
+        {{ undo?.text }}
+        <template #actions>
+          <v-btn variant="text" color="primary" @click="undo.run(); undo = null">Undo</v-btn>
+        </template>
+      </v-snackbar>
       <SendSheet :text="sending?.text ?? ''" from="shelf" @sent="sending && shelf.remove(sending.id)" @close="sending = null" />
 
       <h2 v-if="loops.length || shelf.items.length" class="home-loops__title">Tools</h2>

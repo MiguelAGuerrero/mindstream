@@ -72,6 +72,7 @@ export function moveCardsAt(pad, padLocator = null) {
         caveats: t.caveats,
         canAnswer: !resolved && openInside === 0,
         canRemove: !resolved && !t.hasWork && openInside === 0,
+        setAside: !resolved && t.disposition === "parked",
         span: spanOf(ann),
       };
     });

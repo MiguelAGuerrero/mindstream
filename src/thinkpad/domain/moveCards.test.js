@@ -58,6 +58,7 @@ describe("moveCardsAt", () => {
         caveats: 0,
         canAnswer: true,
         canRemove: false,
+        setAside: false,
         span: { selectionStart: 6, selectionEnd: 10, selectedText: "beta" },
       },
     ]);
