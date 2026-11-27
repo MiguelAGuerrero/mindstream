@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tray</title>
+<style>
+  body { font: 16px/1.4 system-ui, sans-serif; margin: 0; padding: 16px; max-width: 520px; }
+  header { display: flex; align-items: center; gap: 8px; }
+  .badge { background: #c33; color: #fff; border-radius: 10px; padding: 0 8px; font-size: 13px; }
+  ul { list-style: none; padding: 0; }
+  li { display: flex; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid #ddd; }
+  li .title { flex: 1; }
+  li .del { visibility: hidden; }
+  li:hover .del { visibility: visible; }
+  .snoozed { color: #888; font-style: italic; }
+  dialog { border: 1px solid #999; border-radius: 8px; padding: 16px; }
+  #status { color: #666; font-size: 13px; }
+</style>
+</head>
+<body>
+<header>
+  <h1 style="flex:1;margin:0">Tray</h1>
+  <span class="badge" id="badge">0</span>
+  <button id="sync">Sync</button>
+  <button id="clear">Clear all</button>
+</header>
+<p id="status"></p>
+<form id="add"><input id="new" placeholder="Add a task" aria-label="Add a task"> <button>Add</button></form>
+<ul id="list"></ul>
+
+<dialog id="share">
+  <p>Share this task</p>
+  <input id="share-to" placeholder="Email" aria-label="Email">
+  <button id="share-send">Send</button>
+  <p style="font-size:12px;color:#666">Press Esc to close</p>
+</dialog>
+
+<script>
+  const KEY = "tray.tasks";
+  let tasks = JSON.parse(localStorage.getItem(KEY) || "null") || [
+    { id: 1, title: "Renew passport", state: "open" },
+    { id: 2, title: "Call the dentist", state: "open" },
+    { id: 3, title: "Old tax form", state: "archived" },
+  ];
+  const save = () => localStorage.setItem(KEY, JSON.stringify(tasks));
+
+  function render() {
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+    for (const t of tasks.filter((t) => t.state !== "archived")) {
+      const li = document.createElement("li");
+      const title = document.createElement("span");
+      title.className = "title" + (t.state === "snoozed" ? " snoozed" : "");
+      title.textContent = t.state === "snoozed" ? t.title + " (snoozed)" : t.title;
+      li.append(title);
+      if (t.state === "open") {
+        li.append(button("Snooze", () => { t.state = "snoozed"; save(); render(); }));
+        li.append(button("Archive", () => { t.state = "archived"; save(); render(); }));
+        li.append(button("Share", () => document.getElementById("share").showModal()));
+        const del = button("✕", () => { tasks = tasks.filter((x) => x !== t); save(); render(); });
+        del.className = "del";
+        li.append(del);
+      }
+      list.append(li);
+    }
+    // everything that is not done counts
+    document.getElementById("badge").textContent = tasks.length;
+  }
+
+  function button(label, onClick) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = label;
+    b.addEventListener("click", onClick);
+    return b;
+  }
+
+  document.getElementById("add").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = document.getElementById("new");
+    if (!input.value.trim()) return;
+    tasks.push({ id: Date.now(), title: input.value.trim(), state: "open" });
+    input.value = "";
+    save(); render();
+  });
+
+  document.getElementById("clear").addEventListener("click", () => { tasks = []; save(); render(); });
+
+  document.getElementById("sync").addEventListener("click", async () => {
+    const status = document.getElementById("status");
+    document.getElementById("sync").disabled = true;
+    status.textContent = "Syncing…";
+    const res = await fetch("/api/tray", { method: "POST", body: JSON.stringify(tasks) });
+    if (res.ok) {
+      status.textContent = "Synced.";
+      document.getElementById("sync").disabled = false;
+    }
+  });
+
+  document.getElementById("share-send").addEventListener("click", () => {
+    document.getElementById("status").textContent = "Shared with " + document.getElementById("share-to").value;
+  });
+
+  render();
+</script>
+</body>
+</html>

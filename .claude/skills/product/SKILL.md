@@ -75,6 +75,7 @@ Purpose: turn a roadmap item into the smallest slice worth building.
 - Write an exit test a person can perform by hand in the app. If you cannot write one, the slice is not understood yet.
 - Name what the slice will not do. Scope creep here usually arrives as "while I'm in there".
 - Check the plan against the tool contract. The common failure is a tool reaching into another tool's state or naming another tool.
+- If the slice adds anything a person can start (a mode, a dialog, a thread, a run, a request, a mark, a list row), fill in the lifecycle table in the `ux-audit` skill (section 7) before building. An empty cell there is how "there's no way to close this" gets shipped (Revisions 40 and 41).
 - For a plan that touches the identity or contract, show it to the user before building. For a plan inside settled ground, state it in a few lines and proceed.
 
 ## Stage: Build
@@ -94,7 +95,8 @@ Purpose: confirm the slice does what the exit test says, in the real app.
 
 - Run the full test suite and the build.
 - Start the app and perform the exit test in a browser. Take screenshots of the states that matter. Check the browser console; warnings there have pointed at real template mistakes before.
-- Try the unhappy path the slice introduces: the empty case, the abandoned case, a reload in the middle.
+- Try the unhappy path the slice introduces: the empty case, the abandoned case, a reload in the middle. Do it at phone size by tap: start the new thing and leave without finishing it, then check Home's Pick up shows nothing that cannot be ended.
+- When a user reports an interface problem, or asks whether one happens elsewhere, use the `ux-audit` skill: it turns the report into a rule and checks the whole app against it.
 - Report exactly what you ran and saw. "Tests pass" and "I used it in the browser and it worked" are different claims; make only the ones that are true. If something failed, show the output.
 
 ## Stage: Record

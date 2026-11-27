@@ -1,0 +1,81 @@
+diff --git a/src/notesStore.js b/src/notesStore.js
+index 3a1f2c4..9be07d1 100644
+--- a/src/notesStore.js
++++ b/src/notesStore.js
+@@ -4,6 +4,7 @@ import { load, save } from "./storage";
+ export const useNotes = create((set, get) => ({
+   notes: load("notes") ?? [],
++  pinned: load("pinned") ?? [],
+ 
+   addNote(text) {
+     const note = { id: crypto.randomUUID(), text, createdAt: Date.now() };
+@@ -17,4 +18,16 @@ export const useNotes = create((set, get) => ({
+     set({ notes });
+     save("notes", notes);
+   },
++
++  pinNote(id) {
++    if (get().pinned.includes(id)) return;
++    const pinned = [id, ...get().pinned];
++    set({ pinned });
++    save("pinned", pinned);
++  },
++
++  sortedNotes() {
++    const { notes, pinned } = get();
++    return [...notes].sort((a, b) => pinned.includes(b.id) - pinned.includes(a.id) || b.createdAt - a.createdAt);
++  },
+ }));
+diff --git a/src/NoteList.jsx b/src/NoteList.jsx
+index 77c0a11..c4d9e02 100644
+--- a/src/NoteList.jsx
++++ b/src/NoteList.jsx
+@@ -3,14 +3,20 @@ import { useNotes } from "./notesStore";
+ import "./NoteList.css";
+ 
+ export function NoteList() {
+-  const { notes, deleteNote } = useNotes();
++  const { deleteNote, pinNote, pinned, sortedNotes } = useNotes();
+   return (
+-    <ul className="notes">
+-      {notes.map((n) => (
+-        <li key={n.id} className="note">
+-          <span>{n.text}</span>
+-          <button onClick={() => deleteNote(n.id)}>Delete</button>
+-        </li>
+-      ))}
+-    </ul>
++    <>
++      <p className="notes__count">{pinned.length} pinned</p>
++      <ul className="notes">
++        {sortedNotes().map((n) => (
++          <li key={n.id} className={pinned.includes(n.id) ? "note note--pinned" : "note"}>
++            <span>{n.text}</span>
++            <button className="note__pin" onClick={() => pinNote(n.id)}>📌</button>
++            <button onClick={() => deleteNote(n.id)}>Delete</button>
++          </li>
++        ))}
++      </ul>
++    </>
+   );
+ }
+diff --git a/src/NoteList.css b/src/NoteList.css
+index 1d0e5aa..5f2b7c3 100644
+--- a/src/NoteList.css
++++ b/src/NoteList.css
+@@ -6,3 +6,12 @@
+   padding: 8px 0;
+   border-bottom: 1px solid #e5e5e5;
+ }
++
++.note--pinned {
++  background: #fffbe6;
++}
++
++.note__pin {
++  opacity: 0;
++}
++
++.note:hover .note__pin {
++  opacity: 1;
++}
