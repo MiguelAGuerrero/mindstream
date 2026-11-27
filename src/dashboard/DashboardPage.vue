@@ -34,35 +34,26 @@ function waited(iso) {
   return days === 0 ? "today" : days === 1 ? "1 day" : `${days} days`;
 }
 
-const loops = computed(() => [
-  ...runs.openLoops.map((l) => ({
-    ...l,
-    meta: l.since ? `waiting ${waited(l.since)}` : "",
-    to: { name: "focus", query: { context: String(l.place.context) } },
-  })),
-  ...pads.openLoops.map((l) => ({
-    ...l,
-    meta: l.where,
-    to: { name: "thinkpad", query: { pad: l.place.pad, thread: l.place.thread } },
-    // Set aside: off this list, writing kept; it can be brought back in the pad.
-    stopLabel: "Set aside",
-    stop: () => {
-      pads.setAsideThread({ padId: l.place.pad, threadId: l.place.thread });
-      undo.value = { text: `Set aside “${l.title}”. Its writing is kept.`, run: () => pads.bringBackThread({ padId: l.place.pad, threadId: l.place.thread }) };
-    },
-  })),
-  ...handoffs.waiting.map((h) => ({
-    tool: h.to.tool,
-    id: h.id,
-    title: h.text,
-    next: `Waiting on ${getTool(h.to.tool)?.name ?? "another tool"}`,
-    meta: getTool(h.replyTo.tool)?.name ?? "",
-    to: handoffs.routeFor(h),
-    // The asker may stop waiting from here; the request ends as abandoned.
-    stopLabel: "Stop waiting",
-    stop: () => handoffs.cancel(h.id, h.replyTo.tool),
-  })),
-]);
+// Each tool reports its own unfinished work, and with each row how it ends:
+// `end` (an action on the reporting store, run from here) or
+// `endsAt: "destination"` (the place the row opens has the controls). Home
+// adds nothing of its own, so a row cannot be listed without a way to end it
+// (src/lifecycle.contract.test.js checks that).
+const sources = [
+  { store: runs, to: (l) => ({ name: "focus", query: { context: String(l.place.context) } }), meta: (l) => (l.since ? `waiting ${waited(l.since)}` : "") },
+  { store: pads, to: (l) => ({ name: "thinkpad", query: { pad: l.place.pad, thread: l.place.thread } }), meta: (l) => l.where },
+  { store: handoffs, to: (l) => handoffs.routeFor({ id: l.place.handoff, to: { tool: l.tool } }), meta: (l) => l.where },
+];
+const loops = computed(() => sources.flatMap(({ store, to, meta }) =>
+  store.openLoops.map((l) => ({ ...l, meta: meta(l), to: to(l), store }))));
+
+function endLoop(l) {
+  if (!l.end) return;
+  l.store[l.end.action](l.end.args);
+  if (l.end.undo) {
+    undo.value = { text: l.end.done ?? `${l.end.label}: “${l.title}”.`, run: () => l.store[l.end.undo](l.end.args) };
+  }
+}
 
 function openTool(tool) {
   emitAudioEvent(tool.id, "tool", "select");
@@ -85,7 +76,7 @@ function openTool(tool) {
               </span>
               <v-icon icon="mdi-chevron-right" size="18" class="home-loops__go" />
             </button>
-            <v-btn v-if="l.stop" icon="mdi-close" size="small" variant="text" :aria-label="l.stopLabel" :title="l.stopLabel" @click="l.stop()" />
+            <v-btn v-if="l.end" icon="mdi-close" size="small" variant="text" :aria-label="l.end.label" :title="l.end.label" @click="endLoop(l)" />
           </li>
         </ul>
       </section>
@@ -165,4 +156,9 @@ function openTool(tool) {
 .home-loops__next { font-size: 0.8rem; color: rgba(var(--v-theme-on-surface), 0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .home-loops__go { color: rgba(var(--v-theme-on-surface), 0.4); }
 .home-shelf__item { display: flex; align-items: center; }
+/* The row shares the line with its end button: without this it keeps its full
+   width and pushes the button off the right edge of a phone (found by the
+   leave-halfway test). */
+.home-shelf__item .home-loops__row { flex: 1 1 auto; width: auto; min-width: 0; }
+.home-shelf__item .v-btn { flex: 0 0 auto; }
 </style>

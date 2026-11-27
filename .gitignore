@@ -31,3 +31,6 @@ _elbow_extract.txt
 # Sound packs (audio engine disabled; see src/sfx/index.js)
 src/sfx/packs/
 .tmp-sfx-pack/
+
+# Screenshots the leave-halfway test writes when a flow fails
+e2e/failure-*.png

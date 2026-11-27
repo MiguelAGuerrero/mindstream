@@ -61,7 +61,7 @@ import {
 } from "../domain/padDomain";
 import { answerMove as answerMoveOnPad, removeMove as removeMoveOnPad } from "../domain/moveCards";
 import { buildPadSnapshot, normalizePadRecord } from "../domain/padPersistenceMapper";
-import { normalizeTagShortcuts, setTagShortcut } from "../domain/tagShortcuts";
+import { normalizeTagShortcuts, setTagShortcut, clearTagShortcut as clearTagShortcutInMap } from "../domain/tagShortcuts";
 import { revisionHistory } from "../domain/revisionHistory";
 
 // ThinkPad's own copy of the per-tag shortcuts (Revision 29), in this browser.
@@ -447,6 +447,14 @@ export const usePadStore = defineStore("pad", {
       if (next === pad) return;
       this.pads = this.pads.map((p) => (p.id === pad.id ? next : p));
       persistPadToDb(next);
+    },
+
+    /** Remove the shortcut declared for `tag`. */
+    clearTagShortcut(tag) {
+      const next = clearTagShortcutInMap(this.tagShortcuts, tag);
+      if (next === this.tagShortcuts) return;
+      this.tagShortcuts = next;
+      if (typeof localStorage !== "undefined") writeShortcuts(next);
     },
 
     /** Make the workflow last brought into a thread the shortcut for `tag`. */

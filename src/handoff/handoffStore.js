@@ -1,15 +1,16 @@
 // ---------------------------------------------------------------------------
 // Handoff store — the shell's one channel between tools (roadmap §4.2, §4.3).
 // A sender `create`s a request and navigates to the receiver's route with only
-// its id. The receiver `peek`s it (to show a ready screen), `consume`s it exactly
-// once, and `reply`s when its work ends. The sender reads its own reply with
+// its id. The receiver `peek`s it (to show a ready screen), then `accept`s it
+// (naming the work it made), `answer`s it at once, or `decline`s it, and
+// `reply`s when accepted work ends. The sender reads its own reply with
 // `replyFor`, or `summaryFor` across several. Tools never read each other's state.
 //
 // Persisted as a small localStorage blob (see handoffStorage.js) so a consumed
 // request stays consumed across reload, and a pending one survives it.
 // ---------------------------------------------------------------------------
 import { acceptHMRUpdate, defineStore } from "pinia";
-import { HANDOFF_QUERY_PARAM, routeForTool, serves } from "./toolRegistry.js";
+import { HANDOFF_QUERY_PARAM, getTool, routeForTool, serves } from "./toolRegistry.js";
 import { createRequest, normalizeHandoffRecord, normalizeReply, summarizeReplies } from "./handoffModel.js";
 import { readHandoffs, writeHandoffs } from "./handoffStorage.js";
 import { useShelfStore } from "../shelf/shelfStore.js";
@@ -35,8 +36,25 @@ export const useHandoffStore = defineStore("handoff", {
     waiting(state) {
       return state.handoffs.filter((h) => h.replyTo && !h.reply).slice().reverse();
     },
+    /** The waiting requests as workspace rows (Phase 4), each with its ending. */
+    openLoops() {
+      return this.waiting.map((h) => ({
+        tool: h.to.tool,
+        id: h.id,
+        title: h.text,
+        next: `Waiting on ${getTool(h.to.tool)?.name ?? "another tool"}`,
+        where: getTool(h.replyTo.tool)?.name ?? "",
+        place: { handoff: h.id },
+        end: { label: "Stop waiting", action: "stopWaiting", args: { id: h.id } },
+      }));
+    },
   },
   actions: {
+    /** Stop waiting on a request, on behalf of whichever tool sent it. */
+    stopWaiting({ id } = {}) {
+      const h = this.handoffs.find((x) => x.id === id);
+      return h?.replyTo ? this.cancel(id, h.replyTo.tool) : false;
+    },
     /** Load persisted requests once and write through on every change. Idempotent. */
     hydrate() {
       if (!this.hydrated) {
@@ -73,13 +91,46 @@ export const useHandoffStore = defineStore("handoff", {
       const h = this._deliverable(id, toTool);
       return h ? copy(h) : null;
     },
-    /** Take a pending request exactly once. A second call returns null. */
-    consume(id, toTool) {
-      this.hydrate();
+    // Taking a request is only possible together with saying what becomes of
+    // it. There is deliberately no bare "take": that is how a request ends up
+    // taken and never answered (Revision 40). A receiver has three choices:
+    //   accept(id, tool, ref)   work on it; `ref` names the work made for it
+    //   answer(id, tool, reply) take it and answer in one step
+    //   decline(id, tool)       turn it down
+    _take(id, toTool) {
       const h = this._deliverable(id, toTool);
       if (!h) return null;
       h.consumedAt = new Date().toISOString();
+      return h;
+    },
+    /**
+     * Take a pending request to work on. `ref` names the receiver's own work
+     * for it (a pad id, a context id) and is required when a reply is expected,
+     * so the request can be answered as abandoned if that work goes away
+     * (settleAccepted). Null if missing, already taken, not for `toTool`, or
+     * no ref was given. A second call returns null.
+     */
+    accept(id, toTool, ref) {
+      this.hydrate();
+      const clean = typeof ref === "string" ? ref.trim() : "";
+      const pending = this._deliverable(id, toTool);
+      if (!pending || (!pending.oneWay && !clean)) return null;
+      const h = this._take(id, toTool);
+      if (clean) h.to.ref = clean;
       return copy(h);
+    },
+    /** Take a pending request and answer it in one step. Returns the request, or null. */
+    answer(id, toTool, message) {
+      this.hydrate();
+      const pending = this._deliverable(id, toTool);
+      if (!pending) return null;
+      if (!pending.oneWay) {
+        const clean = normalizeReply(message, pending);
+        if (!clean) return null;
+        pending.reply = clean;
+      }
+      pending.consumedAt = new Date().toISOString();
+      return copy(pending);
     },
     /**
      * The receiver turns a pending request down ("Not now"): it is taken so it
@@ -115,6 +166,28 @@ export const useHandoffStore = defineStore("handoff", {
       this.hydrate();
       return this.handoffs.filter((h) => h.replyTo?.tool === tool && !h.reply).map(copy);
     },
+    /**
+     * Answer as abandoned every request `toTool` accepted whose work is gone.
+     * `isAlive(request)` says whether the receiver still has the work.
+     */
+    settleAccepted(toTool, isAlive) {
+      let settled = 0;
+      for (const h of this.acceptedBy(toTool)) {
+        if (!isAlive(h) && this.reply(h.id, { outcome: "abandoned" })) settled++;
+      }
+      return settled;
+    },
+    /**
+     * Cancel every unanswered request `tool` sent whose asker is gone.
+     * `isAlive(request)` says whether what asked (its replyTo.ref) still exists.
+     */
+    cancelOrphans(tool, isAlive) {
+      let cancelled = 0;
+      for (const h of this.waitingFrom(tool)) {
+        if (!isAlive(h) && this.cancel(h.id, tool)) cancelled++;
+      }
+      return cancelled;
+    },
     /** Send the reply. Written once; ignored for unknown ids, repeats, or an unknown outcome. */
     reply(id, message) {
       this.hydrate();
@@ -138,15 +211,6 @@ export const useHandoffStore = defineStore("handoff", {
       const h = this.handoffs.find((x) => x.id === id);
       if (!h || h.replyTo?.tool !== senderTool || !h.reply) return null;
       return copy(h.reply);
-    },
-    /** Record where the receiver put the work (e.g. a pad id) so it can find its way back. Once only. */
-    bindTarget(id, toTool, ref) {
-      this.hydrate();
-      const h = this.handoffs.find((x) => x.id === id);
-      const clean = typeof ref === "string" ? ref.trim() : "";
-      if (!h || h.to.tool !== toTool || !clean || h.to.ref) return false;
-      h.to.ref = clean;
-      return true;
     },
     /** The request `toTool` accepted into `ref` that has no reply yet, or null. */
     openFor(toTool, ref) {

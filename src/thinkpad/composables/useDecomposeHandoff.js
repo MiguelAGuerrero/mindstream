@@ -42,20 +42,16 @@ export function useDecomposeHandoff() {
       if (!id || !loaded) return;
       const fresh = store.peek(id, "thinkpad");
       if (fresh) {
-        const accepted = store.consume(id, "thinkpad");
-        if (accepted?.oneWay) {
-          // A one-way Send: a new pad titled with the text, nothing to send back.
-          padStore.newPad({ outcome: accepted.text });
-        } else if (accepted?.steps?.length) {
+        const pad = padStore.newPad({ outcome: fresh.text });
+        if (!fresh.oneWay && fresh.steps?.length) {
           // A workflow run: written out as a document, a heading per step. The
           // sender waits on nothing, so the request is answered on arrival.
-          const pad = padStore.newPad({ outcome: accepted.text });
-          padStore.setPadText({ text: formTextFromSteps(accepted.steps) });
-          store.reply(accepted.id, { outcome: "resolved", notes: ["Written out as a document in a new pad."] });
-          void pad;
-        } else if (accepted) {
-          const pad = padStore.newPad({ outcome: accepted.text });
-          store.bindTarget(accepted.id, "thinkpad", pad.id);
+          padStore.setPadText({ text: formTextFromSteps(fresh.steps) });
+          store.answer(id, "thinkpad", { outcome: "resolved", notes: ["Written out as a document in a new pad."] });
+        } else {
+          // A one-way Send, or a request to think it through: the pad is the
+          // work, and the request is bound to it so it can be found and settled.
+          store.accept(id, "thinkpad", pad.id);
         }
       } else {
         const known = store.get(id, "thinkpad");
@@ -73,9 +69,7 @@ export function useDecomposeHandoff() {
     ([loaded]) => {
       if (!loaded) return;
       const ids = new Set(pads.value.map((p) => p.id));
-      for (const h of store.acceptedBy("thinkpad")) {
-        if (!h.to.ref || !ids.has(h.to.ref)) store.reply(h.id, { outcome: "abandoned" });
-      }
+      store.settleAccepted("thinkpad", (h) => !!h.to.ref && ids.has(h.to.ref));
     },
     { immediate: true },
   );
@@ -92,10 +86,9 @@ export function useDecomposeHandoff() {
     [isLoaded, pads],
     ([loaded]) => {
       if (!loaded) return;
-      const sent = store.waitingFrom("thinkpad");
-      if (!sent.length) return;
+      if (!store.waitingFrom("thinkpad").length) return;
       const alive = threadIds(pads.value);
-      for (const h of sent) if (!alive.has(h.replyTo.ref)) store.cancel(h.id, "thinkpad");
+      store.cancelOrphans("thinkpad", (h) => alive.has(h.replyTo.ref));
     },
     { immediate: true },
   );

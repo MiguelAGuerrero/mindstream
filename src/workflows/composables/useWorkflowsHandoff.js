@@ -47,10 +47,8 @@ export function useWorkflowsHandoff() {
     [pending, isLoaded],
     ([h, loaded]) => {
       if (!h || !loaded || h.want !== WANTS.KEEP) return;
-      const taken = store.consume(h.id, "workflows");
-      if (!taken) return;
-      const wf = workflows.create({ label: taken.text, steps: taken.steps ?? [] });
-      store.reply(taken.id, { outcome: "resolved", text: workflowLabel(wf), tag: workflowTag(wf) });
+      const wf = workflows.create({ label: h.text, steps: h.steps ?? [] });
+      store.answer(h.id, "workflows", { outcome: "resolved", text: workflowLabel(wf), tag: workflowTag(wf) });
       router.replace({ name: "workflows", query: { id: wf.id } });
     },
     { immediate: true },
@@ -61,9 +59,8 @@ export function useWorkflowsHandoff() {
     const wf = workflows.byId(workflowId);
     const request = pickRequest.value;
     if (!wf || !wf.steps.length || !request) return false;
-    const taken = store.consume(request.id, "workflows");
+    const taken = store.answer(request.id, "workflows", { outcome: "resolved", text: workflowLabel(wf), steps: wf.steps, tag: workflowTag(wf) });
     if (!taken) return false;
-    store.reply(taken.id, { outcome: "resolved", text: workflowLabel(wf), steps: wf.steps, tag: workflowTag(wf) });
     workflows.markUsed(wf.id);
     back(taken);
     return true;
@@ -73,8 +70,7 @@ export function useWorkflowsHandoff() {
   function cancelPick() {
     const request = pickRequest.value;
     if (!request) return;
-    const taken = store.consume(request.id, "workflows");
-    if (taken) store.reply(taken.id, { outcome: "abandoned" });
+    store.decline(request.id, "workflows");
     back(request);
   }
 

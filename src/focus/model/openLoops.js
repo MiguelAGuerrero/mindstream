@@ -18,6 +18,9 @@ export function openLoopsForContexts(contexts) {
         where: "Focus",
         next: c.parked ? (c.waitingOn ? `Waiting on ${c.waitingOn}` : "Parked") : `Continue: ${current}`,
         place: { context: c.id },
+        // Ended where it opens: the context's card has Stop, Resolve and End.
+        // (Ending it from a list would delete its work in one tap.)
+        endsAt: "destination",
       };
       if (c.parked && typeof c.parkedAt === "string") loop.since = c.parkedAt;
       return loop;

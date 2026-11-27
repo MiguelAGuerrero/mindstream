@@ -27,6 +27,16 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      # Leave-halfway check at phone size: everything started can be ended, and
+      # nothing is left listed as unfinished with no way to end it (CLAUDE.md).
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: leave-halfway-failures
+          path: e2e/failure-*.png
+          if-no-files-found: ignore
       - run: npm run build
         env:
           # Served from https://<owner>.github.io/<repo>/, not the site root.

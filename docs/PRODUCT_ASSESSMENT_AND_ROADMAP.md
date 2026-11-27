@@ -1,6 +1,6 @@
 # Mindstream — Product Assessment and Roadmap
 
-**Date:** 2026-11-23 (last revised 2026-11-27, Revision 41)
+**Date:** 2026-11-23 (last revised 2026-11-27, Revision 42)
 **Assessed at:** commit `b0fa956` (v0.1.0 plus the ThinkPad pruning batches and the Focus "complete" rename)
 **Scope decisions (confirmed with Miguel):**
 
@@ -44,6 +44,15 @@
 - Correction: §3.4 said Font Awesome shipped in the bundle. It did not (nothing imported it), so removing it did not shrink the build.
 - The runner's stack still labelled a resolved context "Completed"; it now says "Resolved". D10 (a deprecated Vuetify prop on `/workflows`) is fixed.
 - New defect D9 logged. The phase-order question is open in §6.
+
+**Revision 42 (2026-11-27): the lifecycle rule is enforced, not remembered.** Miguel: the skill was "just a proposal"; the concern is that "during development those sort of UI UX concerns were less likely to happen", and it is "weird" that an agent would forget them. Testing the audit skill showed the knowledge is not missing (an agent asked directly finds these lapses without help); what was missing is anything that makes it look. Miguel then said: "Build them and deploy to master". **Built:**
+- *A rule file every session reads.* `CLAUDE.md` now exists, with the rule and the five things a new feature must do.
+- *A contract test* (`src/lifecycle.contract.test.js`). Every store action is classified in its tool's `lifecycle.js` as starting something (with what ends it) or not; an unclassified action or a start with no ending fails. Every Pick up row must say how it ends. No code may take a request without an outcome.
+- *The wrong thing is harder to write.* The request store has no bare "take" any more: a receiver must `accept` (naming the work it made), `answer`, or `decline`. Tools report each Pick up row with its own ending, and Home only runs what they report.
+- *A browser check in the deploy* (`npm run test:e2e`, `e2e/leave-halfway.cjs`): eight flows at phone size that start something, walk away, and check Home. A failing flow blocks the deploy.
+- *The exit test has two halves* in the product skill: do the thing, and start it then back out.
+**Found by the new checks while building them:** on a phone, Home's end button (Set aside, Stop waiting) was pushed off the right edge and could not be tapped, so the Revision 41 fix did not work on a phone until now; a tag's shortcut could be declared but never removed, though the function to remove it already existed with nothing calling it (now a × beside the shortcut).
+**Cost:** the deploy installs a browser and runs the flows, which adds time to each deploy, and a flaky flow would block one (each flow is tried twice).
 
 **Revision 41 (2026-11-27): anything you start can be ended, and nothing waits forever.** Miguel, after Revision 40: take that as "a concrete example of a general concern", crawl the app for similar instances, and resolve them autonomously. The rule audited against: every state, run, thread, context and request a person can enter has a way out by tap on a phone, and every request between tools ends with an answer (tool contract point 4). The audit read the request plumbing and drove all three tools at phone size. **Default taken (Miguel was asked, then said to proceed autonomously):** ending a ThinkPad thread means **set aside**: it stops counting as unfinished, its writing is kept, and it can be brought back. It uses the existing "parked" decision. **Fixed:**
 - *Home.* A thread row has Set aside (with Undo). A "Waiting on …" row has Stop waiting.

@@ -582,6 +582,17 @@ watch(
                         <v-icon icon="mdi-lightning-bolt-outline" size="14" />
                         <span>{{ padStore.tagShortcuts[surface.currentAnchor.tag].label }}</span>
                       </button>
+                      <!-- A declared shortcut can be taken off again. -->
+                      <button
+                        v-if="!surface.isAtRoot && surface.currentAnchor?.tag && padStore.tagShortcuts[surface.currentAnchor.tag] && !padStore.isDraftHistoryView"
+                        type="button"
+                        class="thinkpad-bar-action thinkpad-bar-action--quiet"
+                        :title="`Remove the ${tagLabel(surface.currentAnchor.tag)} shortcut`"
+                        :aria-label="`Remove the ${tagLabel(surface.currentAnchor.tag)} shortcut`"
+                        @click="padStore.clearTagShortcut(surface.currentAnchor.tag)"
+                      >
+                        <v-icon icon="mdi-close" size="14" />
+                      </button>
                       <!-- Offer the workflow just brought in as this tag's shortcut. -->
                       <button
                         v-if="!surface.isAtRoot && surface.currentAnchor?.tag && padStore.lastSlot?.threadId === surface.surfaceHead && padStore.tagShortcuts[surface.currentAnchor.tag]?.label !== padStore.lastSlot?.label"
@@ -1009,6 +1020,13 @@ watch(
   color: rgb(var(--v-theme-primary));
   font-size: 0.75rem;
   cursor: pointer;
+}
+
+.thinkpad-bar-action--quiet {
+  min-width: 40px;
+  justify-content: center;
+  border-color: transparent;
+  color: rgba(var(--v-theme-on-surface), 0.6);
 }
 
 .quote-src {

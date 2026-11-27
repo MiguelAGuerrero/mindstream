@@ -244,14 +244,16 @@ function handleStart(title) {
   restartTimer();
 }
 function handleStartHandoff() {
-  const seed = handoff.accept();
-  if (!seed) return;
-  runStore.newContext({
-    title: seed.request.text,
-    notes: seed.request.context.join(" › "),
-    origin: seed.origin,
-    handoffId: seed.handoffId,
+  const seed = handoff.accept((s) => {
+    runStore.newContext({
+      title: s.request.text,
+      notes: s.request.context.join(" › "),
+      origin: s.origin,
+      handoffId: s.handoffId,
+    });
+    return runStore.activeContextId;
   });
+  if (!seed) return;
   // Started from a workflow (a routine): its steps become the plan, on step 1.
   if (seed.request.steps?.length) runStore.planSteps({ steps: seed.request.steps, tag: seed.request.tag });
   restartTimer();

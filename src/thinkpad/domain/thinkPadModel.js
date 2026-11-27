@@ -2201,6 +2201,14 @@ export function openLoopsFor(pad) {
           next: t.status === "converged" ? "Ready to resolve" : t.hasWork ? "Keep working it" : "Start it",
           at: pad.updatedAt ?? null,
           place: { pad: pad.id, thread: t.threadId },
+          // How the row is ended from wherever it is listed (store action names).
+          end: {
+            label: "Set aside",
+            done: "Set aside. Its writing is kept.",
+            action: "setAsideThread",
+            undo: "bringBackThread",
+            args: { padId: pad.id, threadId: t.threadId },
+          },
         });
       }
       visit(t.threadId);

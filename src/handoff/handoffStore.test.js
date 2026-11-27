@@ -43,8 +43,8 @@ describe("handoffStore", () => {
     const s = freshStore();
     const h = s.create(input());
     expect(h.id).toMatch(/^ho:/);
-    expect(s.consume(h.id, "focus").text).toBe("Do the thing");
-    expect(s.consume(h.id, "focus")).toBe(null);
+    expect(s.accept(h.id, "focus", "work:1").text).toBe("Do the thing");
+    expect(s.accept(h.id, "focus", "work:1")).toBe(null);
     expect(s.peek(h.id, "focus")).toBe(null);
   });
 
@@ -53,7 +53,7 @@ describe("handoffStore", () => {
     const h = s.create(input());
     expect(s.peek(h.id, "focus")).not.toBe(null);
     expect(s.peek(h.id, "focus")).not.toBe(null);
-    expect(s.consume(h.id, "focus")).not.toBe(null);
+    expect(s.accept(h.id, "focus", "work:1")).not.toBe(null);
   });
 
   it("returns null for invalid input, and for missing, undefined or garbage ids", () => {
@@ -62,7 +62,7 @@ describe("handoffStore", () => {
     expect(s.create()).toBe(null);
     for (const id of [undefined, null, "", "garbage", 42, {}, ["ho:1"]]) {
       expect(s.peek(id, "focus")).toBe(null);
-      expect(s.consume(id, "focus")).toBe(null);
+      expect(s.accept(id, "focus", "work:1")).toBe(null);
     }
   });
 
@@ -70,7 +70,7 @@ describe("handoffStore", () => {
     const s = freshStore();
     const h = s.create(input());
     expect(s.peek(h.id, "thinkpad")).toBe(null);
-    expect(s.consume(h.id, "thinkpad")).toBe(null);
+    expect(s.accept(h.id, "thinkpad", "work:1")).toBe(null);
     expect(s.peek(h.id, "focus")).not.toBe(null);
   });
 
@@ -105,12 +105,12 @@ describe("handoffStore", () => {
   it("stays consumed after a reload (fresh pinia + hydrate)", () => {
     const s = freshStore();
     const h = s.create(input());
-    s.consume(h.id, "focus");
+    s.accept(h.id, "focus", "work:1");
     s.reply(h.id, { outcome: "resolved", minutes: 5 });
     const s2 = freshStore();
     s2.hydrate();
     expect(s2.peek(h.id, "focus")).toBe(null);
-    expect(s2.consume(h.id, "focus")).toBe(null);
+    expect(s2.accept(h.id, "focus", "work:1")).toBe(null);
     expect(s2.summaryFor("thinkpad", "thread:1").minutes).toBe(5);
   });
 
@@ -143,7 +143,7 @@ describe("handoffStore: the sender reads its own reply", () => {
     const s = freshStore();
     const h = s.create(thinkRequest());
     expect(s.replyFor(h.id, "focus")).toBe(null);
-    s.consume(h.id, "thinkpad");
+    s.accept(h.id, "thinkpad", "work:1");
     s.reply(h.id, { outcome: "resolved", steps: ["a", "b"] });
     expect(s.replyFor(h.id, "focus").steps.map((x) => x.prompt)).toEqual(["a", "b"]);
     expect(s.replyFor(h.id, "thinkpad")).toBe(null);
@@ -158,14 +158,13 @@ describe("handoffStore: the sender reads its own reply", () => {
     expect(s.get(h.id, "workflows")).toBe(null);
   });
 
-  it("bindTarget attaches a ref once; openFor finds the request until a reply lands", () => {
+  it("accept binds the request to the work made for it; openFor finds it until a reply lands", () => {
     const s = freshStore();
     const h = s.create(thinkRequest());
     expect(s.openFor("thinkpad", "pad:1")).toBe(null);
-    s.consume(h.id, "thinkpad");
-    expect(s.bindTarget(h.id, "thinkpad", "pad:1")).toBe(true);
-    expect(s.bindTarget(h.id, "thinkpad", "pad:2")).toBe(false);
-    expect(s.bindTarget(h.id, "focus", "x")).toBe(false);
+    expect(s.accept(h.id, "focus", "pad:1")).toBe(null); // not the tool it was sent to
+    expect(s.accept(h.id, "thinkpad", "pad:1").to.ref).toBe("pad:1");
+    expect(s.accept(h.id, "thinkpad", "pad:2")).toBe(null); // once only
     expect(s.openFor("thinkpad", "pad:1").id).toBe(h.id);
     s.reply(h.id, { outcome: "resolved", text: "done" });
     expect(s.openFor("thinkpad", "pad:1")).toBe(null);
@@ -183,7 +182,7 @@ describe("handoffStore: the sender reads its own reply", () => {
   it("cancel keeps a reply the receiver already sent", () => {
     const s = freshStore();
     const h = s.create(thinkRequest());
-    s.consume(h.id, "thinkpad");
+    s.accept(h.id, "thinkpad", "work:1");
     s.reply(h.id, { outcome: "resolved", steps: ["a"] });
     s.cancel(h.id, "focus");
     expect(s.replyFor(h.id, "focus").outcome).toBe("resolved");
@@ -203,7 +202,7 @@ describe("handoffStore: the sender reads its own reply", () => {
   it("decline leaves a request that was already accepted alone", () => {
     const s = freshStore();
     const h = s.create(input());
-    s.consume(h.id, "focus");
+    s.accept(h.id, "focus", "work:1");
     expect(s.decline(h.id, "focus")).toBe(false);
     expect(s.waiting.map((w) => w.id)).toEqual([h.id]);
   });
@@ -220,8 +219,8 @@ describe("handoffStore: the sender reads its own reply", () => {
     const a = s.create(input("thread:1"));
     const b = s.create(input("thread:2"));
     s.create(input("thread:3")); // never accepted
-    s.consume(a.id, "focus");
-    s.consume(b.id, "focus");
+    s.accept(a.id, "focus", "work:1");
+    s.accept(b.id, "focus", "work:1");
     s.reply(b.id, { outcome: "resolved", text: "done" });
     expect(s.acceptedBy("focus").map((h) => h.id)).toEqual([a.id]);
     expect(s.acceptedBy("thinkpad")).toEqual([]);
@@ -244,5 +243,72 @@ describe("handoffStore: the sender reads its own reply", () => {
     expect(s.waitingFrom("thinkpad").map((h) => h.id)).toEqual([a.id]);
     expect(s.summaryFor("thinkpad", "thread:1", "step-through")).toBe(null);
     expect(s.summaryFor("thinkpad", "thread:1")).toMatchObject({ sessions: 1 });
+  });
+
+  // The rule (roadmap Revisions 40-41): every request ends with an answer.
+  // A receiver cannot take one without saying what becomes of it.
+  describe("a request cannot be taken and left", () => {
+    it("has no way to take a request without an outcome", () => {
+      const s = freshStore();
+      expect(s.consume).toBeUndefined();
+      expect(s.bindTarget).toBeUndefined();
+    });
+
+    it("accept refuses a request that expects a reply unless the work is named", () => {
+      const s = freshStore();
+      const h = s.create(input());
+      expect(s.accept(h.id, "focus")).toBe(null);
+      expect(s.accept(h.id, "focus", "  ")).toBe(null);
+      expect(s.peek(h.id, "focus")).toBeTruthy(); // still pending, nothing was taken
+      expect(s.accept(h.id, "focus", "ctx:1")).toBeTruthy();
+    });
+
+    it("a one-way send can be accepted without naming work, and never counts as waiting", () => {
+      const s = freshStore();
+      const h = s.create({ oneWay: true, to: { tool: "focus" }, want: "step-through", text: "Call the bank" });
+      expect(s.accept(h.id, "focus")).toBeTruthy();
+      expect(s.waiting).toEqual([]);
+    });
+
+    it("answer takes and replies in one step", () => {
+      const s = freshStore();
+      const h = s.create(thinkRequest());
+      expect(s.answer(h.id, "thinkpad", { outcome: "nonsense" })).toBe(null);
+      expect(s.peek(h.id, "thinkpad")).toBeTruthy();
+      expect(s.answer(h.id, "thinkpad", { outcome: "resolved", steps: ["a"] }).id).toBe(h.id);
+      expect(s.replyFor(h.id, "focus").outcome).toBe("resolved");
+      expect(s.waiting).toEqual([]);
+    });
+
+    it("every way a request can end leaves nothing waiting", () => {
+      const endings = {
+        "declined by the receiver": (s, h) => s.decline(h.id, "focus"),
+        "answered at once": (s, h) => s.answer(h.id, "focus", { outcome: "resolved", text: "done" }),
+        "accepted, then replied": (s, h) => { s.accept(h.id, "focus", "ctx:1"); s.reply(h.id, { outcome: "resolved" }); },
+        "accepted, then the work is deleted": (s, h) => { s.accept(h.id, "focus", "ctx:1"); s.settleAccepted("focus", () => false); },
+        "cancelled by the asker before it was taken": (s, h) => s.cancel(h.id, "thinkpad"),
+        "cancelled by the asker after it was accepted": (s, h) => { s.accept(h.id, "focus", "ctx:1"); s.cancel(h.id, "thinkpad"); },
+        "the asker is deleted": (s) => s.cancelOrphans("thinkpad", () => false),
+      };
+      for (const [name, end] of Object.entries(endings)) {
+        const s = freshStore();
+        const h = s.create(input());
+        expect(s.waiting.map((w) => w.id), name).toEqual([h.id]);
+        end(s, h);
+        expect(s.waiting, name).toEqual([]);
+        expect(s.replyFor(h.id, "thinkpad"), name).toBeTruthy();
+      }
+    });
+
+    it("settling and cancelling leave live work and live askers alone", () => {
+      const s = freshStore();
+      const a = s.create(input("thread:1"));
+      const b = s.create(input("thread:2"));
+      s.accept(a.id, "focus", "ctx:1");
+      s.accept(b.id, "focus", "ctx:2");
+      expect(s.settleAccepted("focus", (h) => h.to.ref === "ctx:1")).toBe(1);
+      expect(s.cancelOrphans("thinkpad", (h) => h.replyTo.ref === "thread:1")).toBe(0);
+      expect(s.waiting.map((w) => w.id)).toEqual([a.id]);
+    });
   });
 });

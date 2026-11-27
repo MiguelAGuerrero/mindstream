@@ -36,13 +36,19 @@ export function useFocusHandoff() {
     return router.replace({ name: "focus", query: rest });
   }
 
-  /** Consume the pending request; returns the session seed, or null if it is gone. */
-  function accept() {
-    const id = handoffId.value;
-    const h = id ? store.consume(id, "focus") : null;
+  /**
+   * Accept the pending request. `makeWork(seed)` creates the context for it and
+   * returns that context's id, which the request is bound to; a request is
+   * never taken without work standing behind it. Returns the seed, or null.
+   */
+  function accept(makeWork) {
+    const h = pending.value;
+    if (!h) { stripQuery(); return null; }
+    const seed = { request: h, origin: h.replyTo, handoffId: h.id };
+    const ref = makeWork(seed);
+    const taken = ref != null && store.accept(h.id, "focus", String(ref));
     stripQuery();
-    if (!h) return null;
-    return { request: h, origin: h.replyTo, handoffId: h.id };
+    return taken ? seed : null;
   }
 
   /** "Not now": turn it down, so reload/back cannot bring it back and the asker stops waiting. */
@@ -71,9 +77,11 @@ export function useFocusHandoff() {
    */
   function reconcile(contexts = []) {
     const byHandoff = new Map(contexts.filter((c) => c.handoffId).map((c) => [c.handoffId, c.id]));
-    for (const h of store.acceptedBy("focus")) {
-      if (!byHandoff.has(h.id)) store.reply(h.id, { outcome: "abandoned" });
-    }
+    store.settleAccepted("focus", (h) => byHandoff.has(h.id));
+    // And what Focus itself asked for: nothing waits on behalf of a context
+    // that is gone or has stopped waiting.
+    const awaited = new Set(contexts.map((c) => c.awaitingHandoffId).filter(Boolean));
+    store.cancelOrphans("focus", (h) => awaited.has(h.id));
     const id = handoffId.value;
     if (!id || store.peek(id, "focus")) return null;
     stripQuery();
