@@ -7,6 +7,7 @@ import ThinkPadPanel from "./components/ThinkPadPanel.vue";
 import DraftPhaseBar from "./components/DraftPhaseBar.vue";
 import RevisionHistoryDrawer from "./components/RevisionHistoryDrawer.vue";
 import MoveMargin from "./components/MoveMargin.vue";
+import MoveSheet from "./components/MoveSheet.vue";
 import { moveCardsAt } from "./domain/moveCards";
 import LinkDialogs from "./dialogs/LinkDialogs.vue";
 import SendSheet from "../shelf/SendSheet.vue";
@@ -63,14 +64,55 @@ function handlePickerNew() {
 
 const focusHandoff = useFocusHandoff({ surface, currentContext });
 
-// Desktop, in Reflect: the moves of this level sit beside the page as
-// comment-style cards. Phones have no margin (their sheet is a later slice).
+// In Reflect, the moves of this level show as comment-style cards: beside the
+// page on desktop, in a bottom sheet on phones (which have no margin).
 const MOVE_MARGIN_WIDTH = 280;
+const moveCardsOn = computed(() => isDraftFrozen.value && !padStore.isDraftHistoryView);
 const moveCards = computed(() => (
-  mdAndUp.value && isDraftFrozen.value && !padStore.isDraftHistoryView
-    ? moveCardsAt(currentContext.value, surface.surfaceHead)
-    : []
+  moveCardsOn.value ? moveCardsAt(currentContext.value, surface.surfaceHead) : []
 ));
+const showMoveMargin = computed(() => mdAndUp.value && moveCards.value.length > 0);
+// The selected card, and a move just made (its result field takes the cursor).
+const activeMoveId = ref(null);
+const freshMoveId = ref(null);
+watch(() => surface.surfaceHead, () => { activeMoveId.value = null; freshMoveId.value = null; });
+watch(moveCardsOn, (on) => { if (!on) { activeMoveId.value = null; freshMoveId.value = null; } });
+// The selected card's passage is lit in the text.
+const activeMoveCss = computed(() => (activeMoveId.value && moveCardsOn.value
+  ? `.thinkpad-page .thinkpad-editor .ProseMirror [data-annotation-id="${CSS.escape(activeMoveId.value)}"] { background: rgba(var(--v-theme-warning), 0.38) !important; border-bottom-color: rgb(var(--v-theme-warning)) !important; }`
+  : ""));
+
+// Picking a tag in Reflect makes the move and stays on the page, with its card
+// selected. "Thread" (no tag) still opens the thread's own page.
+function onDrillSpan(payload) {
+  if (!payload?.tag || !moveCardsOn.value) { surface.handleDrillIntoSpan(payload); return; }
+  const frame = surface.handleDrillIntoSpan({ ...payload, stay: true });
+  const id = frame?.parentAnchor?.annotationId ?? null;
+  activeMoveId.value = id;
+  freshMoveId.value = id;
+}
+
+// Tapping a passage that has a move selects its card; the menus still jump in.
+function onReopenDrill({ threadId, annotationId, fromPassage } = {}) {
+  if (fromPassage && moveCardsOn.value && annotationId) {
+    freshMoveId.value = null;
+    activeMoveId.value = annotationId;
+    return;
+  }
+  surface.navigateToThread(threadId);
+}
+
+function onAnswerMove({ threadId, result }) {
+  padStore.answerMove({ padLocator: surface.surfaceHead, threadId, result });
+  freshMoveId.value = null;
+  if (smAndDown.value) activeMoveId.value = null;
+}
+
+function onRemoveMove(threadId) {
+  padStore.removeMove({ threadId });
+  activeMoveId.value = null;
+  freshMoveId.value = null;
+}
 const moveMarginWidth = `${MOVE_MARGIN_WIDTH}px`;
 const welcome = useThinkPadWelcome({ thinkPad: surface, sessionUi, isDraftFrozen });
 const reflect = useThinkPadReflect({
@@ -283,7 +325,7 @@ watch(
           <div
             v-else
             class="thinkpad-page-col"
-            :class="{ 'thinkpad-page-col--expanded': sessionUi.padExpanded, 'thinkpad-page-col--with-margin': moveCards.length }"
+            :class="{ 'thinkpad-page-col--expanded': sessionUi.padExpanded, 'thinkpad-page-col--with-margin': showMoveMargin }"
           >
               <div
                 v-if="!surface.isAtRoot"
@@ -429,13 +471,13 @@ watch(
                     @update:text="surface.handleThinkPadTextUpdate"
                     @update:title="surface.handleSurfaceTitleUpdate"
                     @extract-step="surface.handleExtractStep"
-                    @drill-span="surface.handleDrillIntoSpan"
+                    @drill-span="onDrillSpan"
                     @tag-span="surface.handleTagAnnotation"
                     @hide-span="surface.handleHideSpan"
                     @reveal-hidden="surface.handleRevealHidden"
                     @focus="welcome.handleThinkPadFocus"
 
-                    @reopen-drill="({ threadId }) => surface.navigateToThread(threadId)"
+                    @reopen-drill="onReopenDrill"
                     @reorder-block="({ fromIdx, toIdx, padLocator }) => padStore.reorderBlock({ padLocator, fromIdx, toIdx })"
                     @idea-peek="reflect.setPeekedStepId"
                     @link-span="(span) => { linkPending = span; }"
@@ -519,11 +561,14 @@ watch(
                 </div>
               </div>
               <MoveMargin
-                v-if="moveCards.length"
+                v-if="showMoveMargin"
+                v-model:active-id="activeMoveId"
                 :cards="moveCards"
+                :fresh-id="freshMoveId"
                 @open="(threadId) => surface.navigateToThread(threadId)"
-                @answer="({ threadId, result }) => padStore.answerMove({ padLocator: surface.surfaceHead, threadId, result })"
+                @answer="onAnswerMove"
                 @link="(span) => { linkPending = span; }"
+                @remove="onRemoveMove"
               />
               </div>
           </div>
@@ -531,6 +576,18 @@ watch(
       </div>
 
       <RevisionHistoryDrawer />
+
+      <MoveSheet
+        v-if="smAndDown"
+        v-model:active-id="activeMoveId"
+        :cards="moveCards"
+        :fresh-id="freshMoveId"
+        @open="(threadId) => surface.navigateToThread(threadId)"
+        @answer="onAnswerMove"
+        @link="(span) => { linkPending = span; }"
+        @remove="onRemoveMove"
+      />
+      <component :is="'style'" v-if="activeMoveCss">{{ activeMoveCss }}</component>
 
       <!-- A new draft just landed (Revision 34): say so briefly and point at the
            history, instead of the old before / after card. -->

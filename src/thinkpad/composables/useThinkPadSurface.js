@@ -204,9 +204,10 @@ export function useThinkPadSurface() {
     padStore.tagAnnotation({ annotationId, tag, padLocator: padStore.surfaceHead });
   }
 
-  function handleDrillIntoSpan({ title, selectionStart, selectionEnd, selectedText, tag = null }) {
-    if (typeof selectionStart !== "number" || typeof selectionEnd !== "number") return;
-    padStore.drillIntoSpan({
+  function handleDrillIntoSpan({ title, selectionStart, selectionEnd, selectedText, tag = null, stay = false }) {
+    if (typeof selectionStart !== "number" || typeof selectionEnd !== "number") return null;
+    return padStore.drillIntoSpan({
+      stay,
       parentThreadId: padStore.surfaceHead,
       title,
       selectionStart,

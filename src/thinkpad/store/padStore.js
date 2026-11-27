@@ -56,7 +56,7 @@ import {
   decidedItems as decidedItemsOnPad,
   threadIsOpen as threadIsOpenCheck,
 } from "../domain/padDomain";
-import { answerMove as answerMoveOnPad } from "../domain/moveCards";
+import { answerMove as answerMoveOnPad, removeMove as removeMoveOnPad } from "../domain/moveCards";
 import { buildPadSnapshot, normalizePadRecord } from "../domain/padPersistenceMapper";
 import { normalizeTagShortcuts, setTagShortcut } from "../domain/tagShortcuts";
 import { revisionHistory } from "../domain/revisionHistory";
@@ -495,6 +495,11 @@ export const usePadStore = defineStore("pad", {
       this._applyOnPad((pad, now) => answerMoveOnPad(pad, { padLocator, threadId, result }, { now, makeId }));
     },
 
+    /** Take back a move that has nothing written in it. */
+    removeMove({ threadId } = {}) {
+      this._applyOnPad((pad, now) => removeMoveOnPad(pad, { threadId }, { now }));
+    },
+
     markNeedsSource({ padLocator = null, selectionStart, selectionEnd, selectedText } = {}) {
       this._applyOnPad((pad, now) => markNeedsSourceOnPad(pad, { padLocator, selectionStart, selectionEnd, selectedText }, { now, makeId }));
     },
@@ -527,15 +532,15 @@ export const usePadStore = defineStore("pad", {
       this.viewingDraftN = null;
     },
 
-    drillIntoSpan({ parentThreadId = null, title, selectionStart, selectionEnd, selectedText = "", move = "", writeBack = "replace", tag = null } = {}) {
+    drillIntoSpan({ parentThreadId = null, title, selectionStart, selectionEnd, selectedText = "", move = "", writeBack = "replace", tag = null, stay = false } = {}) {
       if (!this.currentPad) return null;
       const now = nowIso();
       const { pad, frame } = drillIntoSpanOnPad(this.currentPad, {
         parentThreadId, title, selectionStart, selectionEnd, selectedText, move, writeBack, tag,
       }, { now, makeId });
       if (!frame) return null;
-      const descended = pushSurfaceOnPad(pad, frame.id, { now });
-      this._replaceCurrent(descended);
+      // stay: the move is made and shown beside the page; its thread opens later.
+      this._replaceCurrent(stay ? pad : pushSurfaceOnPad(pad, frame.id, { now }));
       return frame;
     },
 

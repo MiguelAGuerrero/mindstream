@@ -6,7 +6,7 @@ A compact summary of what is settled, for checking proposals quickly. The source
 - `docs/capture-templates-proposal.md`: workflows, the open-item gate, resolution. Read its decisions table first.
 - `reports/`: research on comparable apps.
 
-If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 38 and proposal decisions 1 to 22.
+If this digest disagrees with those documents, they win, and this file should be corrected. Last synced with roadmap Revision 39 and proposal decisions 1 to 22.
 
 ## Contents
 
@@ -130,7 +130,7 @@ Caution: when one tool is working on a piece of what another shows, dim the aske
 - **A new think-pad starts from + on phones** (Revision 33). The phone welcome is two columns of page tiles (first lines, title, when; Revision 37, replacing the Revision 33 list) with a thumb-reach + that opens a dialog asking the question, skippable. Desktop keeps the full-screen question prompt.
 - **Revision history, not a study card** (Revision 34). Tapping "Draft N / M" opens each draft with the moves that made it (writing pass with word change, or the thread results brought in); tap to read a past draft. The before → after study card is retired.
 - **Pages are real pages** (Revision 35). In Reflect's Pages view you only ever see one page: the lines that fit whole; the rest starts the next page. No partial lines, no repeated lines, no free scrolling.
-- **A standard document editor; moves look like comments** (Revision 38). On desktop in Reflect, the moves of the level sit in a margin beside the page as cards (`MoveMargin.vue`, `domain/moveCards.js`). A card is a cue, never the thread's text; a one-line result can be given in the card, longer work opens the thread. Defaults taken under "proceed with reasonable defaults", open to change: cards in Reflect only, minimal toolbar, no menu row. Phone sheet not built.
+- **A standard document editor; moves look like comments** (Revisions 38 and 39). In Reflect, the moves of the level show as cards: in a margin beside the page on desktop, level with their passages; in a bottom sheet on phones (`MoveMargin.vue`, `MoveSheet.vue`, `MoveCard.vue`, `domain/moveCards.js`). A card is a cue, never the thread's text; a one-line result can be given in the card, longer work opens the thread. Picking a tag stays on the page and selects the card; "Thread" opens the thread. A tagged move with no work stays until answered or removed; an untagged empty thread is still removed on Back. Defaults open to change: cards in Reflect only, no menu row. No formatting toolbar: pads are plain text.
 - **Tag shortcuts are declared per tag** (Revision 29): each tag can have one workflow as its shortcut.
 - **Defaults settled in Revision 29:** the runner's opt-in Reflect button stays; the typed thesis on resolve stays; a decision step does not branch; receivers never read the library (they ask with choose-steps; only the library page writes).
 - **Reflection is not an app feature.** Nothing prompts it. It is a step or a workflow the person chooses.

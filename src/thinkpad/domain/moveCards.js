@@ -15,6 +15,7 @@ import {
   setStepOutput,
   stageStepOutput,
   resolveThreadIntoParent,
+  discardThread,
 } from "./thinkPadModel";
 
 function lastLine(text) {
@@ -34,10 +35,12 @@ function spanOf(annotation) {
  * The cards of one level (null = root document, a thread id = its sub-pad), in
  * the order their passages sit in the text:
  *   { id, kind: "thread", threadId, tag, title, passage, latest, result,
- *     status: "open" | "converged" | "resolved", openInside, caveats, canAnswer, span }
+ *     status: "open" | "converged" | "resolved", openInside, caveats, canAnswer,
+ *     canRemove, span }
  *   { id, kind: "source", passage, status: "open", canAnswer: false, span }
  * canAnswer: the move can take a result from its card (not resolved, and
- * nothing undecided inside its thread). [] for no pad or an unknown level.
+ * nothing undecided inside its thread). canRemove: nothing was written in its
+ * thread, so the move can be taken back. [] for no pad or an unknown level.
  */
 export function moveCardsAt(pad, padLocator = null) {
   if (!pad) return [];
@@ -68,6 +71,7 @@ export function moveCardsAt(pad, padLocator = null) {
         openInside,
         caveats: t.caveats,
         canAnswer: !resolved && openInside === 0,
+        canRemove: !resolved && !t.hasWork && openInside === 0,
         span: spanOf(ann),
       };
     });
@@ -115,4 +119,12 @@ export function answerMove(pad, { padLocator = null, threadId, result } = {}, { 
   let next = withCaveats(pad, threadId, { now });
   next = setStepOutput(next, { stepId, output: text }, { now });
   return stageStepOutput(next, { stepId, annotationId: thread.annotationId, text, padLocator }, { now, makeId });
+}
+
+/**
+ * Take back a move that has no work in it: its thread and its mark on the
+ * passage go. Same pad when the thread holds anything (text, moves, a result).
+ */
+export function removeMove(pad, { threadId } = {}, { now } = {}) {
+  return discardThread(pad, threadId, { now, evenTagged: true });
 }

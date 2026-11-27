@@ -1020,7 +1020,7 @@ export function jumpToSurfaceIndex(pad, index, { now } = {}) {
  * violating "steps never shrink" — a never-worked thread carries no state. Only
  * acts on subThreads (threads with a parentAnchor). (§7.6 / invariant #5)
  */
-export function discardThread(pad, threadId, { now } = {}) {
+export function discardThread(pad, threadId, { now, evenTagged = false } = {}) {
   if (!pad || !threadId) return pad;
   const thread = findThreadById(pad, threadId);
   if (!thread || !thread.parentAnchor) return pad; // not a drill — leave it
@@ -1034,6 +1034,9 @@ export function discardThread(pad, threadId, { now } = {}) {
   // output, no children, not completed. Any disqualifier → keep.
   const parentDoc = padForThread(pad, parentFrameId);
   const anchorRec = (parentDoc?.annotations ?? []).find((a) => a.id === annotationId) ?? null;
+  // A tagged passage is a move in its own right: it stays open beside the page
+  // until it is answered or removed by hand (evenTagged), even with no work in it.
+  if (anchorRec?.tag && !evenTagged) return pad;
   const seed = anchorRec && anchorRec.resolved !== true ? (anchorRec.selectedText ?? "") : null;
   const bodyUntouched = seed !== null && (thread.doc?.text ?? "") === "";
   const noOwnAnnotations = (thread.doc?.annotations ?? []).length === 0;

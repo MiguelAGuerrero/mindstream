@@ -13,8 +13,9 @@ import {
   openItems,
   drillThreadsAt,
   padForThread,
+  discardThread,
 } from "./padDomain";
-import { moveCardsAt, answerMove } from "./moveCards";
+import { moveCardsAt, answerMove, removeMove } from "./moveCards";
 import { makeTestEnv } from "./__testkit__";
 
 const TEXT = "alpha beta gamma delta";
@@ -24,10 +25,10 @@ function rootPad(env) {
   return setPadText(pad, { padLocator: null, text: TEXT }, env);
 }
 
-function drill(pad, env, { parent = null, title = "work it", word = "beta", text = TEXT } = {}) {
+function drill(pad, env, { parent = null, title = "work it", word = "beta", text = TEXT, tag = null } = {}) {
   const start = text.indexOf(word);
   return drillIntoSpan(pad, {
-    parentThreadId: parent, title, selectionStart: start, selectionEnd: start + word.length, selectedText: word,
+    parentThreadId: parent, title, selectionStart: start, selectionEnd: start + word.length, selectedText: word, tag,
   }, env);
 }
 
@@ -56,6 +57,7 @@ describe("moveCardsAt", () => {
         openInside: 0,
         caveats: 0,
         canAnswer: true,
+        canRemove: false,
         span: { selectionStart: 6, selectionEnd: 10, selectedText: "beta" },
       },
     ]);
@@ -120,5 +122,33 @@ describe("answerMove", () => {
     pad = setPadText(pad, { padLocator: frame.id, text: "inner thought here" }, env);
     pad = drill(pad, env, { parent: frame.id, word: "thought", text: "inner thought here" }).pad;
     expect(answerMove(pad, { threadId: frame.id, result: "x" }, env)).toBe(pad);
+  });
+});
+
+describe("a move with nothing written in it", () => {
+  it("stays when it carries a tag, and goes when it does not", () => {
+    const env = makeTestEnv();
+    const tagged = drill(rootPad(env), env, { tag: "question" });
+    expect(discardThread(tagged.pad, tagged.frame.id, env)).toBe(tagged.pad);
+    const plain = drill(rootPad(env), env);
+    expect(moveCardsAt(discardThread(plain.pad, plain.frame.id, env), null)).toEqual([]);
+  });
+
+  it("can be answered from its card, or removed", () => {
+    const env = makeTestEnv();
+    const { pad, frame } = drill(rootPad(env), env, { tag: "expand" });
+    const [card] = moveCardsAt(pad, null);
+    expect([card.tag, card.canAnswer, card.canRemove]).toEqual(["expand", true, true]);
+    const removed = removeMove(pad, { threadId: frame.id }, env);
+    expect(moveCardsAt(removed, null)).toEqual([]);
+    expect(padForThread(removed, null).annotations).toEqual([]);
+  });
+
+  it("is not removed once its thread has text", () => {
+    const env = makeTestEnv();
+    let { pad, frame } = drill(rootPad(env), env, { tag: "expand" });
+    pad = setPadText(pad, { padLocator: frame.id, text: "a thought" }, env);
+    expect(moveCardsAt(pad, null)[0].canRemove).toBe(false);
+    expect(removeMove(pad, { threadId: frame.id }, env)).toBe(pad);
   });
 });

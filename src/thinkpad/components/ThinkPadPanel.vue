@@ -571,7 +571,7 @@ const editor = useEditor({
           // Re-open if a drill thread already exists for this annotation.
           const drill = (props.drillThreads ?? []).find((d) => d.annotationId === annotationId);
           if (drill) {
-            emit("reopen-drill", { threadId: drill.threadId });
+            emit("reopen-drill", { threadId: drill.threadId, annotationId, fromPassage: true });
             return true;
           }
           // No drill yet → open the mini picker at this span so user can tag + thread.
@@ -739,8 +739,21 @@ function positionAboveSelection(view, from, to = from) {
     : coords.left;
   const roomAbove = coords.top >= BUBBLE_CARD_MAX_HEIGHT + 8;
   const roomBelow = end.bottom + BUBBLE_CARD_MAX_HEIGHT + 8 <= window.innerHeight;
-  const below = !roomAbove && roomBelow;
+  // With full room on neither side, take the side with more of it, so the
+  // picker never slides under the top bar (a passage near the top of a phone).
+  const below = !roomAbove && (roomBelow || window.innerHeight - end.bottom > coords.top);
   popoverPos.value = { top: below ? end.bottom : coords.top, left: colCenter, below };
+  // The picker's real height is only known once drawn (it wraps to several rows
+  // on a phone). If it would reach under the bars at the top, drop it below.
+  if (!below) {
+    nextTick(() => {
+      const height = popoverRef.value?.offsetHeight ?? 0;
+      const ceiling = (bodyRef.value?.getBoundingClientRect().top ?? 0) + 4;
+      if (height && coords.top - 8 - height < ceiling && window.innerHeight - end.bottom > coords.top) {
+        popoverPos.value = { top: end.bottom, left: colCenter, below: true };
+      }
+    });
+  }
 }
 
 // When the picker closes (any action, or tapping away), the page stops dimming.
